@@ -18,19 +18,25 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: 'OpenAI API key is not configured' });
       }
 
+      // Add state information to the system prompt
+      const stateDescription = state ? `Current Redux state:\n${JSON.stringify(state, null, 2)}` : 'No state available';
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
             role: "system",
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
-            Current Redux state: ${JSON.stringify(state)}
+            ${stateDescription}
 
             Rules for generating actions:
             1. Actions must have a 'type' field
             2. Actions may optionally have a 'payload' field
             3. Action types should be in SCREAMING_SNAKE_CASE
             4. Payload should contain only serializable data
+
+            When asked about state values, look them up in the current state and report them.
+            If a value doesn't exist, suggest initializing it.
 
             Respond with a JSON object containing:
             {
@@ -55,17 +61,22 @@ export async function registerRoutes(app: Express) {
 
       const content = JSON.parse(response.choices[0].message.content);
 
-      // Store the interaction in vector storage if available
+      // Store the interaction in vector storage
       try {
-        await storage.storeInteraction(query, content.message, state);
+        await storage.storeInteraction(query, content.message, state || {});
         console.log('Stored interaction in vector storage');
       } catch (error) {
-        console.warn('Failed to store interaction:', error);
+        console.error('Failed to store interaction:', error);
       }
 
       res.json({ 
         message: content.message,
-        action: content.action || null
+        action: content.action || null,
+        ragResults: {
+          ragResponse: content.message,
+          similarDocs: await storage.getInteractions(),
+          timestamp: new Date().toISOString()
+        }
       });
     } catch (error: unknown) {
       console.error('Error processing query:', error);

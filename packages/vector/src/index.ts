@@ -17,16 +17,24 @@ export class ReduxAIVector {
   }
 
   async storeInteraction(query: string, response: string, state: any) {
+    // Ensure state is properly stringified for storage
+    const stateString = typeof state === 'string' ? state : JSON.stringify(state, null, 2);
+
     await this.storage.addEntry({
       query,
       response,
-      state: JSON.stringify(state),
+      state: stateString,
       timestamp: new Date().toISOString(),
     });
   }
 
   async retrieveSimilar(query: string, limit: number = 5) {
-    return this.storage.findSimilar(query, limit);
+    try {
+      return await this.storage.findSimilar(query, limit);
+    } catch (error) {
+      console.error('Error retrieving similar interactions:', error);
+      return [];
+    }
   }
 }
 
