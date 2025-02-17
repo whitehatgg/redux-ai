@@ -224,10 +224,6 @@ importers:
       zod-validation-error:
         specifier: ^3.4.0
         version: 3.4.0(zod@3.24.2)
-    optionalDependencies:
-      bufferutil:
-        specifier: ^4.0.8
-        version: 4.0.9
     devDependencies:
       '@replit/vite-plugin-cartographer':
         specifier: ^0.0.2
@@ -292,6 +288,37 @@ importers:
       vite:
         specifier: ^5.4.9
         version: 5.4.14(@types/node@20.16.11)
+    optionalDependencies:
+      bufferutil:
+        specifier: ^4.0.8
+        version: 4.0.9
+
+  client:
+    dependencies:
+      '@redux-ai/react':
+        specifier: workspace:*
+        version: link:../packages/react
+      '@redux-ai/schema':
+        specifier: workspace:*
+        version: link:../packages/schema
+      '@redux-ai/state':
+        specifier: workspace:*
+        version: link:../packages/state
+      '@redux-ai/vector':
+        specifier: workspace:*
+        version: link:../packages/vector
+      '@reduxjs/toolkit':
+        specifier: ^2.5.1
+        version: 2.5.1(react-redux@9.2.0(@types/react@18.3.18)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-redux:
+        specifier: ^9.2.0
+        version: 9.2.0(@types/react@18.3.18)(react@18.3.1)(redux@5.0.1)
 
   packages/react:
     dependencies:
