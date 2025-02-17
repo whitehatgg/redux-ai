@@ -11,6 +11,7 @@ export interface VectorEntry {
 export class VectorStorage {
   private entries: VectorEntry[] = [];
   private embeddings: OpenAIEmbeddings;
+  private vectors: number[][] = [];
 
   private constructor(embeddings: OpenAIEmbeddings) {
     this.embeddings = embeddings;
@@ -30,18 +31,42 @@ export class VectorStorage {
       ...entry,
       state: typeof entry.state === 'string' ? entry.state : JSON.stringify(entry.state, null, 2)
     };
+
+    // Generate embedding for the query
+    const embedding = await this.embeddings.embedQuery(entry.query);
+
+    // Store entry and its embedding
     this.entries.push(processedEntry);
+    this.vectors.push(embedding);
   }
 
   async findSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
-    // For now, return the most recent entries
-    return this.entries
-      .slice()
-      .reverse()
+    if (this.entries.length === 0) {
+      return [];
+    }
+
+    // Generate embedding for the search query
+    const queryEmbedding = await this.embeddings.embedQuery(query);
+
+    // Calculate cosine similarity with all stored vectors
+    const similarities = this.vectors.map((vector, index) => ({
+      index,
+      similarity: this.cosineSimilarity(queryEmbedding, vector)
+    }));
+
+    // Sort by similarity and get top results
+    const topResults = similarities
+      .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit)
-      .map(entry => ({
-        ...entry,
-        state: entry.state // State is already stringified when stored
-      }));
+      .map(result => this.entries[result.index]);
+
+    return topResults;
+  }
+
+  private cosineSimilarity(a: number[], b: number[]): number {
+    const dotProduct = a.reduce((sum, value, i) => sum + value * b[i], 0);
+    const magnitudeA = Math.sqrt(a.reduce((sum, value) => sum + value * value, 0));
+    const magnitudeB = Math.sqrt(b.reduce((sum, value) => sum + value * value, 0));
+    return dotProduct / (magnitudeA * magnitudeB);
   }
 }
