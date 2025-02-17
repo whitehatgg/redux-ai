@@ -1,12 +1,6 @@
 import React from 'react';
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle 
-} from './ui/card';
-import { ScrollArea } from './ui/scroll-area';
+import * as ScrollArea from '@radix-ui/react-scroll-area';
+import { cn } from '../lib/utils';
 
 interface RAGResultsProps {
   results: {
@@ -24,33 +18,41 @@ export const RAGResults: React.FC<RAGResultsProps> = ({ results }) => {
   if (!results) return null;
 
   return (
-    <Card className="w-full max-w-3xl">
-      <CardHeader>
-        <CardTitle>AI Response</CardTitle>
-        <CardDescription>
+    <div className="w-full max-w-3xl rounded-lg border border-border bg-card text-card-foreground shadow">
+      <div className="p-6">
+        <h3 className="text-2xl font-semibold">AI Response</h3>
+        <p className="text-sm text-muted-foreground">
           Generated at {new Date(results.timestamp).toLocaleString()}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </p>
+      </div>
+      <div className="p-6 pt-0">
         <div className="space-y-4">
           <div>
             <h3 className="font-medium mb-2">Response:</h3>
             <p className="text-muted-foreground">{results.ragResponse}</p>
           </div>
-          
+
           <div>
             <h3 className="font-medium mb-2">Similar Interactions:</h3>
-            <ScrollArea className="h-[200px] rounded-md border p-4">
-              {results.similarDocs.map((doc, index) => (
-                <div key={index} className="mb-4 last:mb-0">
-                  <p className="text-sm font-medium">Query: {doc.query}</p>
-                  <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
-                </div>
-              ))}
-            </ScrollArea>
+            <ScrollArea.Root className="h-[200px] w-full rounded-md border">
+              <ScrollArea.Viewport className="p-4">
+                {results.similarDocs.map((doc, index) => (
+                  <div key={index} className="mb-4 last:mb-0">
+                    <p className="text-sm font-medium">Query: {doc.query}</p>
+                    <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
+                  </div>
+                ))}
+              </ScrollArea.Viewport>
+              <ScrollArea.Scrollbar
+                className="flex select-none touch-none p-0.5 bg-slate-100 transition-colors hover:bg-slate-200"
+                orientation="vertical"
+              >
+                <ScrollArea.Thumb className="relative flex-1 rounded-full bg-slate-300" />
+              </ScrollArea.Scrollbar>
+            </ScrollArea.Root>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
