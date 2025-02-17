@@ -22,7 +22,11 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
-            Current state: ${JSON.stringify(state)}`
+            Current Redux state: ${JSON.stringify(state)}
+
+            Respond with a JSON object containing two fields:
+            1. 'message': A natural language response to the user
+            2. 'action': (Optional) A Redux action to dispatch, or null if no action is needed`
           },
           {
             role: "user",
@@ -34,14 +38,19 @@ export async function registerRoutes(app: Express) {
 
       const content = JSON.parse(response.choices[0].message.content);
 
+      if (!content.message) {
+        throw new Error('Invalid response format from AI');
+      }
+
       res.json({ 
-        message: content.response || content.message,
+        message: content.message,
         action: content.action || null
       });
     } catch (error: unknown) {
-      const err = error as Error;
-      console.error('Error processing query:', err);
-      res.status(500).json({ error: err.message });
+      console.error('Error processing query:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
     }
   });
 

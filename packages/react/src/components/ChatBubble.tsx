@@ -2,18 +2,18 @@ import React from 'react';
 import { useReduxAI } from '../hooks/useReduxAI';
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'error';
   content: string;
 }
 
 export const ChatBubble: React.FC = () => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
-  const { sendQuery, isProcessing } = useReduxAI();
+  const { sendQuery, isProcessing, error } = useReduxAI();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isProcessing) return;
 
     const userMessage: ChatMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
@@ -24,7 +24,11 @@ export const ChatBubble: React.FC = () => {
       const assistantMessage: ChatMessage = { role: 'assistant', content: response };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Failed to get response:', error);
+      const errorMessage: ChatMessage = {
+        role: 'error',
+        content: error instanceof Error ? error.message : 'Failed to get response'
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -43,6 +47,8 @@ export const ChatBubble: React.FC = () => {
                 className={`inline-block p-3 rounded-lg ${
                   message.role === 'user'
                     ? 'bg-primary text-primary-foreground'
+                    : message.role === 'error'
+                    ? 'bg-destructive text-destructive-foreground'
                     : 'bg-muted'
                 }`}
               >
@@ -64,7 +70,7 @@ export const ChatBubble: React.FC = () => {
             disabled={isProcessing}
             className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
           >
-            Send
+            {isProcessing ? 'Sending...' : 'Send'}
           </button>
         </form>
       </div>

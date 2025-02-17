@@ -4,14 +4,18 @@ import { useDispatch } from 'react-redux';
 interface QueryResponse {
   message: string;
   action: any | null;
+  error?: string;
 }
 
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
     setIsProcessing(true);
+    setError(null);
+
     try {
       const response = await fetch('/api/query', {
         method: 'POST',
@@ -22,10 +26,15 @@ export function useReduxAI() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data: QueryResponse = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
       if (data.action) {
         dispatch(data.action);
@@ -33,7 +42,8 @@ export function useReduxAI() {
 
       return data.message;
     } catch (error) {
-      console.error('Error sending query:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setError(errorMessage);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -43,5 +53,6 @@ export function useReduxAI() {
   return {
     sendQuery,
     isProcessing,
+    error
   };
 }
