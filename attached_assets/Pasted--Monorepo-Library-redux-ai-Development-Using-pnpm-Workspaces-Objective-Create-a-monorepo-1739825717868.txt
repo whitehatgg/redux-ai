@@ -1,0 +1,147 @@
+# Monorepo Library `@redux-ai` Development Using pnpm Workspaces
+
+## Objective:
+Create a monorepo for `@redux-ai` that integrates with **any Redux store** and **any JSON schema** to facilitate **natural language interaction** with Redux state and actions. This interaction should use a **state machine** for tracking AI conversations, a **vector memory database** (ChromaDB) for storing historical data client-side, and **schema validation** for all state updates.
+
+The library will consist of several packages that interact with each other to allow natural language interactions with Redux, including validation of actions and memory recall. The following sections describe each package’s functionality and the overall flow of the system.
+
+---
+
+## **1️⃣ `@redux-ai/state` (AI-Driven Redux State Management)**  
+
+### **Responsibilities**:
+- Manages AI interactions with the Redux store via natural language.
+- Creates a state machine using **XState** to track AI conversation context.
+- Uses **@redux-ai/schema** for validating action payloads before state updates.
+- Dispatches Redux actions based on AI responses.
+- Logs state updates and AI interactions to `@redux-ai/vector` for memory recall.
+
+### **Dependencies**:
+- **XState** (for state machine).
+- **@redux-ai/schema** (for schema validation).
+- **@redux-ai/vector** (for memory).
+- **Redux Toolkit** (for Redux integration).
+
+---
+
+## **2️⃣ `@redux-ai/vector` (Memory & Retrieval for AI-Powered State Tracking)**  
+
+### **Responsibilities**:
+- Stores AI chat history and Redux state updates for **contextual memory recall**.
+- Uses a **vector memory database** (**ChromaDB**) for RAG (retrieval-augmented generation) in the client-side.
+- Tracks Redux store changes, ensuring the LLM can refer to historical state and AI conversation for future queries.
+
+### **Dependencies**:
+- **ChromaDB** (for client-side memory storage).
+- **LangChain** (for vector memory).
+
+---
+
+## **3️⃣ `@redux-ai/schema` (Validation & Schema Enforcement)**  
+
+### **Responsibilities**:
+- Ensures that AI-generated Redux actions are **validated** against a provided **JSON schema**.
+- Acts as a **validation middleware**, checking action payloads before allowing state updates.
+
+### **Dependencies**:
+- **AJV** (for JSON schema validation).
+
+---
+
+## **4️⃣ `@redux-ai/react` (UI & Hooks for AI Integration)**  
+
+### **Responsibilities**:
+- Provides **React components** and **hooks** for easy integration with Redux and AI functionalities.
+- Provides a **`<ChatBubble />`** component for showing AI conversations and state interactions.
+- Includes a **`<VectorDebugger />`** component to inspect memory and the historical context stored in the vector database.
+- Provides the **`useReduxAI()`** hook to send natural language queries and trigger Redux actions.
+
+### **Dependencies**:
+- **React** (for UI components).
+- **Redux** (for state management).
+- **@redux-ai/state** (for state interaction).
+- **@redux-ai/vector** (for memory management).
+
+---
+
+## **5️⃣ Demo App (Using `client/` and `server/` Folders)**
+
+### **Responsibilities**:
+- A **demo app** will reside at the root of the monorepo and consist of two main parts: `client/` and `server/` folders.
+- The **`client/` folder** contains the React front-end and hooks for interaction with the `@redux-ai` library.
+- The **`server/` folder** contains the server-side logic for handling AI interactions and managing the Redux store.
+
+### **Key Components in Demo**:
+1. **Redux Store**: A simple Redux store to interact with.
+2. **Schema**: A basic JSON schema for validating actions.
+3. **AI Conversation**: Users can ask the AI to interact with the store and trigger state updates.
+4. **Memory Recall**: Users can retrieve past interactions and state changes via AI.
+
+### **Interactions in Demo**:
+- All interactions will happen through the **`<ChatBubble />`** component.
+- No toast components or additional UI notifications will be present.
+- Users will communicate with the AI entirely through the chat interface.
+
+---
+
+## **System Flow**:  
+
+1️⃣ **User interacts with `<ChatBubble />`** in the `client/` app → Sends a natural language query (e.g., "What's my balance?").  
+2️⃣ **`useReduxAI()`** sends the query to `@redux-ai/state`, which interprets the request and queries the Redux store.  
+3️⃣ **`@redux-ai/state`** validates the action payload using **`@redux-ai/schema`**.  
+4️⃣ If valid, the **action is dispatched to the Redux store**.  
+5️⃣ **State updates are logged in `@redux-ai/vector`**, allowing memory recall for future interactions.  
+6️⃣ **`<VectorDebugger />`** can be used to inspect past interactions and memory.  
+
+---
+
+## **Best Practices for Package Interactions**:
+- Each package should be self-contained and responsible for its own functionality.
+- **`@redux-ai/state`** interacts with **`@redux-ai/schema`** for validation and **`@redux-ai/vector`** for memory tracking.
+- **`@redux-ai/react`** provides a simple integration layer for React apps.
+- A **single Redux store** is used across the app, and **JSON schemas** validate state changes before dispatching any actions.
+
+---
+
+## **Development Setup**:
+1. **pnpm workspaces**: Use to manage the monorepo structure.
+2. **TypeScript**: Use for type safety and consistency.
+3. **Unit tests**: Write for core functionality to ensure reliability, using **Vitest** for testing.
+4. **React**: Provide easy-to-use UI components and hooks for integration.
+
+### **Steps**:
+1. Set up the monorepo using pnpm workspaces.
+2. Develop the core functionality for `@redux-ai/state`, `@redux-ai/schema`, `@redux-ai/vector`, and `@redux-ai/react`.
+3. Implement the demo app with `client/` and `server/` folders to showcase the complete flow from AI queries to Redux actions and memory recall.
+4. Test all components and ensure seamless interaction between Redux, schema validation, state updates, and memory.
+5. Ensure proper **code formatting** and **style linting** with **Prettier** and **ESLint**.
+6. Add tests for all packages to validate functionality and edge cases using **Vitest**.
+
+---
+
+## **Best Practices**:
+- Use **Prettier** and **ESLint** for consistent code formatting and linting.
+- Write **unit tests** for core components and features to ensure reliability using **Vitest**.
+- Ensure all components are well-documented with **JSDoc** comments and **Markdown documentation** for developers to integrate and use the library easily.
+
+---
+
+## **Dependencies Overview**:
+- **pnpm**: Workspace management.
+- **XState**: For state machine management in `@redux-ai/state`.
+- **LangChain & ChromaDB**: For vector-based memory in `@redux-ai/vector`.
+- **AJV**: For JSON schema validation in `@redux-ai/schema`.
+- **React**: For UI components in `@redux-ai/react`.
+- **Redux Toolkit**: For Redux store management.
+- **Prettier & ESLint**: For consistent code formatting and linting.
+- **Vitest**: For testing core components and functionality.
+
+---
+
+This setup ensures a well-structured and flexible solution that can be easily integrated with any Redux store and schema. The demo app in the `client/` and `server/` folders will act as a guide for developers on how to use the library in their own applications, with all interactions happening through the **chat interface**.
+
+---
+
+---
+
+With this configuration, all interactions will now be handled through the **chat** in the `client/` folder, and there will be no toast components involved.
