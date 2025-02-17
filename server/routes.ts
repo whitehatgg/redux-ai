@@ -9,7 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
     try {
-      const { query } = req.body;
+      const { query, state } = req.body;
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -17,8 +17,6 @@ export async function registerRoutes(app: Express) {
       if (!process.env.OPENAI_API_KEY) {
         return res.status(500).json({ error: 'OpenAI API key is not configured' });
       }
-
-      const state = storage.getState();
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -28,9 +26,20 @@ export async function registerRoutes(app: Express) {
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
             Current Redux state: ${JSON.stringify(state)}
 
-            Respond with a JSON object containing two fields:
-            1. 'message': A natural language response to the user
-            2. 'action': (Optional) A Redux action to dispatch, or null if no action is needed`
+            Rules for generating actions:
+            1. Actions must have a 'type' field
+            2. Actions may optionally have a 'payload' field
+            3. Action types should be in SCREAMING_SNAKE_CASE
+            4. Payload should contain only serializable data
+
+            Respond with a JSON object containing:
+            {
+              "message": "Natural language response explaining what was done or found",
+              "action": {
+                "type": "ACTION_TYPE",
+                "payload": {} // Optional, include only if needed
+              }
+            }`
           },
           {
             role: "user",
@@ -44,6 +53,13 @@ export async function registerRoutes(app: Express) {
 
       if (!content.message) {
         throw new Error('Invalid response format from AI');
+      }
+
+      // Store the interaction in vector storage if available
+      try {
+        await storage.storeInteraction(query, content.message, state);
+      } catch (error) {
+        console.warn('Failed to store interaction:', error);
       }
 
       res.json({ 
