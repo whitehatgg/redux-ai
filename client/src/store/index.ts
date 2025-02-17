@@ -1,5 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createReduxAIState } from '@redux-ai/state';
+import { counterSchema, messageSchema } from './schema';
 
 interface DemoState {
   count: number;
@@ -32,6 +34,15 @@ export const { increment, decrement, setMessage } = demoSlice.actions;
 export const store = configureStore({
   reducer: {
     demo: demoSlice.reducer
+  }
+});
+
+// Create ReduxAI state manager with schema validation
+export const reduxAI = createReduxAIState({
+  store,
+  schema: counterSchema, // We can extend this to handle multiple schemas
+  onError: (error) => {
+    console.error('ReduxAI Error:', error);
   }
 });
 
