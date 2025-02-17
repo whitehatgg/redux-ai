@@ -10,8 +10,16 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "declaration": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "composite": true,
+    "tsBuildInfoFile": "./.tsbuildinfo"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules", "**/*.test.ts", "dist"],
+  "references": [
+    { "path": "../schema" }
+  ]
 }
