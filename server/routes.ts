@@ -14,6 +14,10 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Query is required' });
       }
 
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ error: 'OpenAI API key is not configured' });
+      }
+
       const state = storage.getState();
 
       const response = await openai.chat.completions.create({
