@@ -25,7 +25,12 @@ export class VectorStorage {
   }
 
   async addEntry(entry: VectorEntry) {
-    this.entries.push(entry);
+    // Ensure state is stringified
+    const processedEntry = {
+      ...entry,
+      state: typeof entry.state === 'string' ? entry.state : JSON.stringify(entry.state, null, 2)
+    };
+    this.entries.push(processedEntry);
   }
 
   async findSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
@@ -33,6 +38,10 @@ export class VectorStorage {
     return this.entries
       .slice()
       .reverse()
-      .slice(0, limit);
+      .slice(0, limit)
+      .map(entry => ({
+        ...entry,
+        state: entry.state // State is already stringified when stored
+      }));
   }
 }

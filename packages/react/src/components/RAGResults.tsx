@@ -9,6 +9,7 @@ interface RAGResultsProps {
       query: string;
       response: string;
       state: string;
+      timestamp: string;
     }>;
     timestamp: string;
   } | null;
@@ -34,12 +35,23 @@ export const RAGResults: React.FC<RAGResultsProps> = ({ results }) => {
 
           <div>
             <h3 className="font-medium mb-2">Similar Interactions:</h3>
-            <ScrollArea.Root className="h-[200px] w-full rounded-md border">
+            <ScrollArea.Root className="h-[300px] w-full rounded-md border">
               <ScrollArea.Viewport className="p-4">
                 {results.similarDocs.map((doc, index) => (
-                  <div key={index} className="mb-4 last:mb-0">
-                    <p className="text-sm font-medium">Query: {doc.query}</p>
-                    <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
+                  <div key={index} className="mb-6 last:mb-0 p-4 bg-muted rounded-lg">
+                    <div className="mb-2">
+                      <p className="text-sm font-medium">Query: {doc.query}</p>
+                      <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-sm font-medium">State:</p>
+                      <pre className="text-xs bg-background p-2 rounded mt-1 overflow-x-auto">
+                        {doc.state}
+                      </pre>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {new Date(doc.timestamp).toLocaleString()}
+                    </p>
                   </div>
                 ))}
               </ScrollArea.Viewport>
