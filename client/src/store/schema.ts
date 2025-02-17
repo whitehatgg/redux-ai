@@ -5,7 +5,7 @@ import { Action } from '@reduxjs/toolkit';
 // Define the action shape that AI can work with
 interface AIAction extends Action {
   type: 'INCREMENT' | 'DECREMENT' | 'SET_MESSAGE' | 'RESET_COUNTER';
-  payload?: string;
+  payload?: string | number;
 }
 
 // Create a schema that matches our demo slice actions
@@ -16,7 +16,10 @@ const aiActionSchema: JSONSchemaType<AIAction> = {
       type: 'string',
       enum: ['INCREMENT', 'DECREMENT', 'SET_MESSAGE', 'RESET_COUNTER']
     },
-    payload: { type: 'string', nullable: true }
+    payload: { 
+      type: ['string', 'number', 'null'],
+      nullable: true 
+    }
   },
   required: ['type'],
   additionalProperties: false

@@ -35,8 +35,14 @@ export async function registerRoutes(app: Express) {
             3. Action types should be in SCREAMING_SNAKE_CASE
             4. Payload should contain only serializable data
 
-            When asked about state values, look them up in the current state and report them.
-            If a value doesn't exist, suggest initializing it.
+            For counter operations:
+            - Use INCREMENT to increase counter by 1
+            - Use DECREMENT to decrease counter by 1
+            - The counter value is stored in state.demo.counter
+            - Always check if counter exists in state.demo before operations
+
+            When asked about state values, look them up in the current state and report them accurately.
+            For the counter value, specifically check state.demo.counter.
 
             Respond with a JSON object containing:
             {
