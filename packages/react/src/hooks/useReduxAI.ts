@@ -7,6 +7,10 @@ interface QueryResponse {
   error?: string;
 }
 
+/**
+ * Hook for natural language interaction with Redux store
+ * Allows querying and updating store state through AI
+ */
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +40,7 @@ export function useReduxAI() {
         throw new Error(data.error);
       }
 
+      // If action is provided, dispatch it to update Redux store
       if (data.action) {
         dispatch(data.action);
       }
