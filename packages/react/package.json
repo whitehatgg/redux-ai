@@ -1,0 +1,22 @@
+{
+  "name": "@redux-ai/react",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.2.0",
+    "@redux-ai/state": "workspace:*",
+    "@redux-ai/schema": "workspace:*",
+    "@redux-ai/vector": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
