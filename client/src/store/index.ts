@@ -1,46 +1,19 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { createReduxAIState } from '@redux-ai/state';
-import { counterSchema, messageSchema } from './schema';
+import { schema } from './schema';
 
-interface DemoState {
-  count: number;
-  message: string;
-}
+// Create an empty initial state
+const initialState = {};
 
-const initialState: DemoState = {
-  count: 0,
-  message: ''
-};
-
-const demoSlice = createSlice({
-  name: 'demo',
-  initialState,
-  reducers: {
-    increment: (state) => {
-      state.count += 1;
-    },
-    decrement: (state) => {
-      state.count -= 1;
-    },
-    setMessage: (state, action: PayloadAction<string>) => {
-      state.message = action.payload;
-    }
-  }
-});
-
-export const { increment, decrement, setMessage } = demoSlice.actions;
-
+// Create a store with a simple reducer that just returns the state
 export const store = configureStore({
-  reducer: {
-    demo: demoSlice.reducer
-  }
+  reducer: (state = initialState, action) => state
 });
 
 // Create ReduxAI state manager with schema validation
 export const reduxAI = createReduxAIState({
   store,
-  schema: counterSchema, // We can extend this to handle multiple schemas
+  schema,
   onError: (error) => {
     console.error('ReduxAI Error:', error);
   }

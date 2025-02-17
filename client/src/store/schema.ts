@@ -2,44 +2,26 @@ import { JSONSchemaType } from 'ajv';
 import { createReduxAISchema } from '@redux-ai/schema';
 import { Action } from '@reduxjs/toolkit';
 
-// Define the shape of our actions
-interface CounterAction extends Action {
-  type: 'INCREMENT' | 'DECREMENT';
+// Define a generic action shape that AI can work with
+interface AIAction extends Action {
+  type: string;
+  payload?: any;
 }
 
-interface MessageAction extends Action {
-  type: 'SET_MESSAGE';
-  payload: string;
-}
-
-// Create JSON schemas for our actions
-const counterActionSchema: JSONSchemaType<CounterAction> = {
+// Create a flexible schema that allows AI to generate valid actions
+const aiActionSchema: JSONSchemaType<AIAction> = {
   type: 'object',
   properties: {
-    type: { type: 'string', enum: ['INCREMENT', 'DECREMENT'] }
+    type: { type: 'string' },
+    payload: { type: 'object', nullable: true }
   },
   required: ['type'],
   additionalProperties: false
 };
 
-const messageActionSchema: JSONSchemaType<MessageAction> = {
-  type: 'object',
-  properties: {
-    type: { type: 'string', const: 'SET_MESSAGE' },
-    payload: { type: 'string' }
-  },
-  required: ['type', 'payload'],
-  additionalProperties: false
-};
-
-// Create ReduxAI schemas
-export const counterSchema = createReduxAISchema({
-  schema: counterActionSchema
+// Create ReduxAI schema
+export const schema = createReduxAISchema({
+  schema: aiActionSchema
 });
 
-export const messageSchema = createReduxAISchema({
-  schema: messageActionSchema
-});
-
-// Export types for use in other files
-export type { CounterAction, MessageAction };
+export type { AIAction };
