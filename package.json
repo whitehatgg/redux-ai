@@ -62,6 +62,7 @@
     "langchain": "^0.3.15",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
+    "nanoid": "^5.1.0",
     "openai": "^4.85.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",

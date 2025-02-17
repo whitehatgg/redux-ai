@@ -23,14 +23,17 @@ export class ReduxAIState {
     try {
       const state = this.store.getState();
       const response = await this.generateAIResponse(query, state);
-      
+
       if (response.action) {
         this.store.dispatch(response.action);
       }
 
       return response.message;
-    } catch (error) {
-      throw new Error(`Failed to process query: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to process query: ${error.message}`);
+      }
+      throw new Error('Failed to process query: An unknown error occurred');
     }
   }
 
