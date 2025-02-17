@@ -49,15 +49,16 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
-      const content = JSON.parse(response.choices[0].message.content);
-
-      if (!content.message) {
+      if (!response.choices[0].message.content) {
         throw new Error('Invalid response format from AI');
       }
+
+      const content = JSON.parse(response.choices[0].message.content);
 
       // Store the interaction in vector storage if available
       try {
         await storage.storeInteraction(query, content.message, state);
+        console.log('Stored interaction in vector storage');
       } catch (error) {
         console.warn('Failed to store interaction:', error);
       }
@@ -70,6 +71,20 @@ export async function registerRoutes(app: Express) {
       console.error('Error processing query:', error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
+    }
+  });
+
+  // Add a route to fetch vector debug entries
+  app.get('/api/vector/debug', async (req, res) => {
+    try {
+      const entries = await storage.getInteractions();
+      console.log('Retrieved vector debug entries:', entries.length);
+      res.json(entries);
+    } catch (error) {
+      console.error('Error fetching vector debug entries:', error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to fetch debug entries'
       });
     }
   });
