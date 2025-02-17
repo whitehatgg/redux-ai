@@ -10,13 +10,19 @@ export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
     try {
       const { query } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: 'Query is required' });
+      }
+
+      const state = storage.getState();
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
             role: "system",
-            content: "You are an AI assistant that helps users interact with Redux state through natural language."
+            content: `You are an AI assistant that helps users interact with Redux state through natural language.
+            Current state: ${JSON.stringify(state)}`
           },
           {
             role: "user",
@@ -26,12 +32,15 @@ export async function registerRoutes(app: Express) {
         response_format: { type: "json_object" }
       });
 
+      const content = JSON.parse(response.choices[0].message.content);
+
       res.json({ 
-        message: response.choices[0].message.content,
-        action: null // TODO: Implement action generation
+        message: content.response || content.message,
+        action: content.action || null
       });
     } catch (error: unknown) {
       const err = error as Error;
+      console.error('Error processing query:', err);
       res.status(500).json({ error: err.message });
     }
   });

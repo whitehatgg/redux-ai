@@ -7,6 +7,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getState(): Record<string, any>;
 }
 
 export class MemStorage implements IStorage {
@@ -33,6 +34,12 @@ export class MemStorage implements IStorage {
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
+  }
+
+  getState(): Record<string, any> {
+    return {
+      users: Array.from(this.users.values()),
+    };
   }
 }
 
