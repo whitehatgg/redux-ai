@@ -17,7 +17,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@redux-ai/schema": "^0.1.0",
+    "@redux-ai/schema": "workspace:*",
     "@reduxjs/toolkit": "^2.5.1",
     "xstate": "^5.19.2"
   }
