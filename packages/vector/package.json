@@ -4,9 +4,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "tsc --watch"
   },
   "dependencies": {
+    "@redux-ai/schema": "workspace:*",
     "chromadb": "^1.10.4",
     "langchain": "^0.3.15"
   }

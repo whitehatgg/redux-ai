@@ -4,9 +4,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "tsc --watch"
   },
   "dependencies": {
+    "@redux-ai/schema": "workspace:*",
     "@reduxjs/toolkit": "^2.5.1",
     "xstate": "^5.19.2"
   }
