@@ -1,9 +1,20 @@
 import { useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 
+interface RAGResponse {
+  ragResponse: string;
+  similarDocs: Array<{
+    query: string;
+    response: string;
+    state: string;
+  }>;
+  timestamp: string;
+}
+
 interface QueryResponse {
   message: string;
   action: any | null;
+  ragResults?: RAGResponse;
   error?: string;
 }
 
@@ -14,11 +25,13 @@ interface QueryResponse {
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ragResults, setRagResults] = useState<RAGResponse | null>(null);
   const dispatch = useDispatch();
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
     setIsProcessing(true);
     setError(null);
+    setRagResults(null);
 
     try {
       const response = await fetch('/api/query', {
@@ -45,6 +58,11 @@ export function useReduxAI() {
         dispatch(data.action);
       }
 
+      // Store RAG results if available
+      if (data.ragResults) {
+        setRagResults(data.ragResults);
+      }
+
       return data.message;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -58,6 +76,7 @@ export function useReduxAI() {
   return {
     sendQuery,
     isProcessing,
-    error
+    error,
+    ragResults
   };
 }

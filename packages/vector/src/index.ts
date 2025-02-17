@@ -26,7 +26,11 @@ export class ReduxAIVector {
   }
 
   async retrieveSimilar(query: string, limit: number = 5) {
-    return await this.storage.findSimilar(query, limit);
+    const results = await this.storage.findSimilar(query, limit);
+    return {
+      ...results,
+      timestamp: new Date().toISOString()
+    };
   }
 }
 
