@@ -1,13 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { createReduxAIState } from '@redux-ai/state';
 import { schema } from './schema';
+import demoReducer from './slices/demoSlice';
 
-// Create an empty initial state
-const initialState = {};
-
-// Create a store with a simple reducer that just returns the state
+// Create store with demo reducer
 export const store = configureStore({
-  reducer: (state = initialState, action) => state
+  reducer: {
+    demo: demoReducer
+  }
 });
 
 // Create ReduxAI state manager with schema validation

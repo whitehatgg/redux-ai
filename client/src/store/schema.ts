@@ -2,24 +2,27 @@ import { JSONSchemaType } from 'ajv';
 import { createReduxAISchema } from '@redux-ai/schema';
 import { Action } from '@reduxjs/toolkit';
 
-// Define a generic action shape that AI can work with
+// Define the action shape that AI can work with
 interface AIAction extends Action {
-  type: string;
-  payload?: any;
+  type: 'INCREMENT' | 'DECREMENT' | 'SET_MESSAGE' | 'RESET_COUNTER';
+  payload?: string;
 }
 
-// Create a flexible schema that allows AI to generate valid actions
+// Create a schema that matches our demo slice actions
 const aiActionSchema: JSONSchemaType<AIAction> = {
   type: 'object',
   properties: {
-    type: { type: 'string' },
-    payload: { type: 'object', nullable: true }
+    type: { 
+      type: 'string',
+      enum: ['INCREMENT', 'DECREMENT', 'SET_MESSAGE', 'RESET_COUNTER']
+    },
+    payload: { type: 'string', nullable: true }
   },
   required: ['type'],
   additionalProperties: false
 };
 
-// Create ReduxAI schema
+// Create ReduxAI schema that validates against our demo actions
 export const schema = createReduxAISchema({
   schema: aiActionSchema
 });
