@@ -49,7 +49,6 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private listeners: Set<(entry: VectorEntry) => void> = new Set();
-  private isInitialized = false;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -58,15 +57,10 @@ export class VectorStorage {
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
     try {
-      console.log('[VectorStorage] Starting creation...');
       const storage = new IndexedDBStorage();
       await storage.initialize();
-      console.log('[VectorStorage] Storage initialized');
-      const instance = new VectorStorage(storage, config);
-      console.log('[VectorStorage] Instance created');
-      return instance;
+      return new VectorStorage(storage, config);
     } catch (error) {
-      console.error('[VectorStorage] Creation failed:', error);
       throw error;
     }
   }
@@ -76,7 +70,6 @@ export class VectorStorage {
       await this.storage.addEntry(entry);
       this.notifyListeners(entry);
     } catch (error) {
-      console.error('[VectorStorage] Error adding entry:', error);
       throw error;
     }
   }
@@ -95,7 +88,6 @@ export class VectorStorage {
 
       await this.addEntry(entry);
     } catch (error) {
-      console.error('[VectorStorage] Error storing interaction:', error);
       throw error;
     }
   }
@@ -114,7 +106,6 @@ export class VectorStorage {
         .slice(0, limit)
         .map(({ entry }) => entry);
     } catch (error) {
-      console.error('[VectorStorage] Error retrieving similar:', error);
       return [];
     }
   }
@@ -123,7 +114,6 @@ export class VectorStorage {
     try {
       return await this.storage.getAllEntries();
     } catch (error) {
-      console.error('[VectorStorage] Error getting all entries:', error);
       return [];
     }
   }
@@ -140,7 +130,7 @@ export class VectorStorage {
       try {
         listener(entry);
       } catch (error) {
-        console.error('[VectorStorage] Error in listener:', error);
+        // Ignore listener errors
       }
     });
   }
