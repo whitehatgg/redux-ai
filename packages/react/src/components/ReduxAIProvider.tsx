@@ -37,6 +37,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
+  const [lastActionTimestamp, setLastActionTimestamp] = useState<string>('');
 
   useEffect(() => {
     const initialize = async () => {
@@ -48,22 +49,31 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128,
-          // @ts-ignore - We know this callback exists but isn't in the type definition
           onStateChange: (action: VectorAction) => {
             console.log('Vector state change detected:', action);
-            // Track vector database operations in Redux store
+
             if (store && action) {
+              const currentTimestamp = new Date().toISOString();
               const enhancedAction = {
                 ...action,
-                timestamp: new Date().toISOString(),
+                timestamp: currentTimestamp,
                 type: `vector/${action.type}`,
                 query: action.query || action.payload?.query,
                 response: action.payload ? JSON.stringify(action.payload) : undefined
               };
+
+              // Prevent duplicate actions within a short time window (100ms)
+              if (
+                action.type === 'add' && 
+                Date.parse(currentTimestamp) - Date.parse(lastActionTimestamp) < 100
+              ) {
+                console.log('Preventing duplicate vector/add action');
+                return;
+              }
+
               console.log('Dispatching vector action:', enhancedAction);
               (store as any).lastAction = enhancedAction;
-              // Don't dispatch additional updates for vector operations
-              // This prevents duplicate entries in the activity log
+              setLastActionTimestamp(currentTimestamp);
             }
           }
         });
@@ -79,7 +89,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           availableActions,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
-            // Log errors in activity log
             if (store) {
               const errorAction = {
                 type: '__VECTOR_ERROR__',
