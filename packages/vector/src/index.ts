@@ -1,7 +1,8 @@
 import { VectorStorage } from './storage';
+import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorConfig {
-  collectionName?: string; // Made optional since we're not using it with IndexedDB
+  collectionName?: string;
 }
 
 export class ReduxAIVector {
@@ -40,3 +41,6 @@ export class ReduxAIVector {
 export const createReduxAIVector = async (config: VectorConfig) => {
   return ReduxAIVector.create(config);
 };
+
+// Export IndexedDBStorage for direct usage
+export { IndexedDBStorage };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IndexedDBStorage } from '@redux-ai/vector/dist/indexeddb';
+import { IndexedDBStorage } from '@redux-ai/vector/src/indexeddb';
 
 interface DebugEntry {
   query: string;
@@ -14,33 +14,68 @@ export function useVectorDebug() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let storage: IndexedDBStorage | null = null;
+
     const fetchDebugEntries = async () => {
       try {
+        console.log('Creating new IndexedDB storage instance...');
+        storage = new IndexedDBStorage();
+
         console.log('Initializing IndexedDB storage...');
-        const storage = new IndexedDBStorage();
         await storage.initialize();
+        console.log('IndexedDB storage initialized successfully');
 
         console.log('Fetching entries from IndexedDB...');
         const data = await storage.getAllEntries();
-        console.log('Retrieved entries:', data);
+        console.log('Raw data from IndexedDB:', data);
 
+        // Validate data structure
         if (!Array.isArray(data)) {
-          throw new Error('Invalid data format: expected array of entries');
+          throw new Error(`Invalid data format: expected array but got ${typeof data}`);
         }
 
-        setEntries(data);
+        // Validate each entry
+        const validatedData = data.map((entry, index) => {
+          if (!entry || typeof entry !== 'object') {
+            throw new Error(`Invalid entry at index ${index}: ${JSON.stringify(entry)}`);
+          }
+
+          if (!('query' in entry && 'response' in entry && 'state' in entry && 'timestamp' in entry)) {
+            throw new Error(`Missing required fields in entry at index ${index}`);
+          }
+
+          return entry as DebugEntry;
+        });
+
+        setEntries(validatedData);
+        setError(null);
       } catch (err) {
-        console.error('Error in useVectorDebug:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch debug entries');
+        console.error('Detailed error in useVectorDebug:', err);
+        let errorMessage = 'Failed to fetch debug entries';
+
+        if (err instanceof Error) {
+          errorMessage += `: ${err.message}`;
+          console.error('Error stack:', err.stack);
+        } else {
+          errorMessage += `: Unknown error type: ${err}`;
+        }
+
+        setError(errorMessage);
+        setEntries([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDebugEntries();
-    // Set up polling every 5 seconds to keep debug view updated
+
+    // Poll for updates every 5 seconds
     const interval = setInterval(fetchDebugEntries, 5000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      storage = null; // Help with cleanup
+    };
   }, []);
 
   return { entries, isLoading, error };
