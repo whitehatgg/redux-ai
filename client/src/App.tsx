@@ -7,22 +7,22 @@ import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
 import { useState } from 'react';
 
-// Define available actions without inference logic
+// Define available actions with rich descriptions and keywords
 const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
     description: 'Set which columns are visible in the table',
-    keywords: ['show', 'hide', 'column', 'field']
+    keywords: ['show', 'hide', 'column', 'field', 'display']
   },
   {
     type: 'applicant/toggleSearch',
     description: 'Enable or disable the search functionality',
-    keywords: ['enable', 'disable', 'search']
+    keywords: ['enable', 'disable', 'search', 'toggle']
   },
   {
     type: 'applicant/setSearchTerm',
-    description: 'Set the search term for filtering applicants',
-    keywords: ['search', 'find', 'filter', 'look for']
+    description: 'Filter applicants by searching through their information',
+    keywords: ['search', 'find', 'filter', 'look', 'query', 'search for']
   }
 ];
 
@@ -69,21 +69,8 @@ function App() {
           store={store} 
           availableActions={availableActions}
           onActionMatch={async (query: string) => {
-            // Check if it's a search request
-            const searchMatch = query.match(/search(?:\s+for)?\s+(.+)/i);
-
-            if (searchMatch) {
-              const searchTerm = searchMatch[1].trim();
-              return {
-                action: {
-                  type: 'applicant/setSearchTerm',
-                  payload: searchTerm
-                },
-                message: `Searching for "${searchTerm}" in applicants...`
-              };
-            }
-
-            // Non-action queries should return null action but still provide a response
+            // Let the LLM use availableActions to determine the appropriate action
+            // The actual matching logic is handled by the LLM through ReduxAIProvider
             return {
               action: null,
               message: 'I understand your request but I\'m not sure what action to take. Try asking me to search for something specific.'
