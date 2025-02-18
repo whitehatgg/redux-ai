@@ -51,16 +51,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         await createReduxAIState({
           store,
           schema,
-          vectorStorage: vectorDb as VectorStorage,
+          vectorStorage: vectorDb,
           availableActions,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
             store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
           }
         });
-
-        // Make store accessible on window for development
-        (window as any).__REDUX_STORE__ = store;
 
         setIsInitialized(true);
         console.log('ReduxAI Provider initialized successfully');

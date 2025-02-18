@@ -1,13 +1,12 @@
 import React from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { X } from 'lucide-react';
-import { useStore } from 'react-redux';
-import type { AnyAction } from '@reduxjs/toolkit';
+import { useReduxAIContext } from './ReduxAIProvider';
+import type { VectorEntry } from '@redux-ai/vector';
 
-interface ActivityEntry {
+interface ActivityLogEntry {
   type: string;
   timestamp: string;
-  state: any;
   query?: string;
   response?: string;
 }
@@ -17,65 +16,31 @@ interface ActivityLogProps {
   onClose?: () => void;
 }
 
-interface ExtendedStore {
-  getState: () => any;
-  subscribe: (listener: () => void) => () => void;
-  lastAction?: AnyAction & {
-    timestamp?: string;
-    query?: string;
-    response?: string;
-  };
-}
-
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
-  const store = useStore() as ExtendedStore;
-  const [entries, setEntries] = React.useState<ActivityEntry[]>([]);
+  const { vectorStorage } = useReduxAIContext();
+  const [entries, setEntries] = React.useState<ActivityLogEntry[]>([]);
 
   React.useEffect(() => {
-    let mounted = true;
-    console.log('ActivityLog: Setting up store subscription');
+    if (!vectorStorage) return;
 
-    const unsubscribe = store.subscribe(() => {
-      if (!mounted) return;
+    const unsubscribe = vectorStorage.subscribe((entry: VectorEntry) => {
+      console.log('ActivityLog: New vector entry:', entry);
 
-      const lastAction = store.lastAction;
-      if (!lastAction?.type) return;
+      const newEntry: ActivityLogEntry = {
+        type: entry.metadata?.type === 'interaction' ? 'vector/store' : 'vector/add',
+        timestamp: entry.timestamp,
+        query: entry.query,
+        response: entry.response
+      };
 
-      console.log('ActivityLog: Store updated, lastAction:', lastAction);
-
-      const isVectorAction = lastAction.type.startsWith('vector/');
-      const isVectorError = lastAction.type === '__VECTOR_ERROR__';
-      const isVectorUpdate = lastAction.type === '__VECTOR_UPDATE__';
-
-      if (isVectorAction || isVectorError || isVectorUpdate) {
-        // Check if this action is already logged
-        const isDuplicate = entries.some(entry => 
-          entry.type === lastAction.type && 
-          entry.timestamp === lastAction.timestamp &&
-          entry.query === lastAction.query
-        );
-
-        if (!isDuplicate) {
-          console.log('ActivityLog: Adding new vector entry:', lastAction);
-          setEntries(prev => [...prev, {
-            type: lastAction.type,
-            timestamp: lastAction.timestamp || new Date().toISOString(),
-            state: store.getState(),
-            query: lastAction.query,
-            response: lastAction.response
-          }]);
-        } else {
-          console.log('ActivityLog: Skipping duplicate entry');
-        }
-      }
+      setEntries(prev => [...prev, newEntry]);
     });
 
     return () => {
-      console.log('ActivityLog: Cleaning up store subscription');
-      mounted = false;
+      console.log('ActivityLog: Cleaning up subscription');
       unsubscribe();
     };
-  }, [store]);
+  }, [vectorStorage]);
 
   if (!open) return null;
 

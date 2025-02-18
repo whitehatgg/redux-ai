@@ -16,6 +16,9 @@ export interface VectorConfig {
   dimensions: number;
 }
 
+// Event bus for vector operations
+type VectorEventListener = (entry: VectorEntry) => void;
+
 // Simple text to vector function for demo purposes
 function textToVector(text: string, dimensions: number = 128): number[] {
   const vector = new Array(dimensions).fill(0);
@@ -51,6 +54,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
+  private listeners: Set<VectorEventListener> = new Set();
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -70,6 +74,15 @@ export class VectorStorage {
     }
   }
 
+  subscribe(listener: VectorEventListener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notifyListeners(entry: VectorEntry) {
+    this.listeners.forEach(listener => listener(entry));
+  }
+
   async addEntry(entry: VectorEntry): Promise<void> {
     try {
       console.log('Adding entry:', entry);
@@ -82,6 +95,7 @@ export class VectorStorage {
       };
 
       await this.storage.addEntry(enhancedEntry);
+      this.notifyListeners(enhancedEntry);
     } catch (error) {
       console.error('Error adding entry:', error);
       throw error;
@@ -106,6 +120,7 @@ export class VectorStorage {
 
       await this.storage.addEntry(entry);
       console.log('Entry stored successfully');
+      this.notifyListeners(entry);
     } catch (error) {
       console.error('Error storing interaction:', error);
       throw error;
