@@ -44,6 +44,9 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           dimensions: 128
         });
 
+        // Set up Redux dispatch
+        vectorDb.setDispatch(store.dispatch);
+
         console.log('[ReduxAIProvider] Vector storage created:', vectorDb);
         setVectorStorage(vectorDb);
 

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { X } from 'lucide-react';
 import { useReduxAIContext } from './ReduxAIProvider';
@@ -19,30 +19,14 @@ interface ActivityLogProps {
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   const { vectorStorage } = useReduxAIContext();
   const [entries, setEntries] = React.useState<ActivityLogEntry[]>([]);
-  const subscriptionRef = useRef<(() => void) | null>(null);
-  const entriesRef = useRef<ActivityLogEntry[]>([]);
 
   React.useEffect(() => {
-    entriesRef.current = entries;
-  }, [entries]);
+    if (!vectorStorage) return;
 
-  React.useEffect(() => {
-    if (!vectorStorage || subscriptionRef.current) return;
-
-    console.log('ActivityLog: Initial setup of vector storage subscription');
+    console.log('ActivityLog: Setting up vector storage subscription');
 
     const unsubscribe = vectorStorage.subscribe((entry: VectorEntry) => {
-      console.log('ActivityLog: Processing vector entry:', {
-        content: entry.content,
-        metadata: entry.metadata?.type,
-        operationId: entry.metadata?.operationId
-      });
-
-      // Skip if we already have this entry (check by timestamp)
-      if (entriesRef.current.some(e => e.timestamp === entry.timestamp)) {
-        console.log('ActivityLog: Skipping duplicate entry');
-        return;
-      }
+      console.log('ActivityLog: Received vector entry:', entry);
 
       const newEntry: ActivityLogEntry = {
         type: entry.metadata?.type === 'interaction' ? 'vector/store' : 'vector/add',
@@ -51,20 +35,12 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
         response: entry.response
       };
 
-      setEntries(prev => {
-        console.log('ActivityLog: Adding new entry, current count:', prev.length);
-        return [...prev, newEntry];
-      });
+      setEntries(prev => [...prev, newEntry]);
     });
-
-    subscriptionRef.current = unsubscribe;
 
     return () => {
       console.log('ActivityLog: Cleaning up subscription');
-      if (subscriptionRef.current) {
-        subscriptionRef.current();
-        subscriptionRef.current = null;
-      }
+      unsubscribe();
     };
   }, [vectorStorage]);
 

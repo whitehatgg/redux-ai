@@ -16,8 +16,6 @@ export interface VectorConfig {
   dimensions: number;
 }
 
-type VectorEventListener = (entry: VectorEntry) => void;
-
 function textToVector(text: string, dimensions: number = 128): number[] {
   const vector = new Array(dimensions).fill(0);
   const normalized = text.toLowerCase().trim();
@@ -51,16 +49,10 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
-  private listeners: Set<VectorEventListener> = new Set();
-  private static instanceCount = 0;
-  private instanceId: number;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
-    VectorStorage.instanceCount++;
-    this.instanceId = VectorStorage.instanceCount;
     this.storage = storage;
     this.dimensions = config.dimensions;
-    console.log(`[VectorStorage ${this.instanceId}] Created new instance`);
   }
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
@@ -75,28 +67,11 @@ export class VectorStorage {
     }
   }
 
-  subscribe(listener: VectorEventListener) {
-    console.log(`[VectorStorage ${this.instanceId}] Adding new listener. Current count: ${this.listeners.size}`);
-    this.listeners.add(listener);
-    return () => {
-      console.log(`[VectorStorage ${this.instanceId}] Removing listener. Remaining count: ${this.listeners.size - 1}`);
-      this.listeners.delete(listener);
-    };
-  }
 
-  private notifyListeners(entry: VectorEntry) {
-    console.log(`[VectorStorage ${this.instanceId}] Notifying ${this.listeners.size} listeners of new entry:`, {
-      type: entry.metadata?.type,
-      content: entry.content?.substring(0, 50)
-    });
-    this.listeners.forEach(listener => listener(entry));
-  }
-
-  async addEntry(entry: VectorEntry, notify: boolean = true): Promise<void> {
-    console.log(`[VectorStorage ${this.instanceId}] Adding entry:`, {
+  async addEntry(entry: VectorEntry): Promise<void> {
+    console.log('[VectorStorage] Adding entry:', {
       content: entry.content?.substring(0, 50),
-      metadata: entry.metadata,
-      notify
+      metadata: entry.metadata
     });
 
     const enhancedEntry: VectorEntry = {
@@ -107,14 +82,10 @@ export class VectorStorage {
     };
 
     await this.storage.addEntry(enhancedEntry);
-
-    if (notify) {
-      this.notifyListeners(enhancedEntry);
-    }
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
-    console.log(`[VectorStorage ${this.instanceId}] Storing interaction:`, {
+    console.log('[VectorStorage] Storing interaction:', {
       query: query?.substring(0, 50),
       response: response?.substring(0, 50)
     });
@@ -132,13 +103,12 @@ export class VectorStorage {
       metadata: { type: 'interaction' }
     };
 
-    // Pass notify=false since we'll notify after storing
-    await this.addEntry(entry, false);
-    this.notifyListeners(entry);
+    await this.storage.addEntry(entry);
   }
 
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
-    console.log(`[VectorStorage ${this.instanceId}] Retrieving similar entries for query:`, query);
+    console.log('[VectorStorage] Retrieving similar entries for query:', query);
+
     try {
       const queryEmbedding = textToVector(query, this.dimensions);
       const entries = await this.storage.getAllEntries();
@@ -152,10 +122,9 @@ export class VectorStorage {
         .slice(0, limit)
         .map(({ entry }) => entry);
 
-      console.log(`[VectorStorage ${this.instanceId}] Found ${scoredEntries.length} similar entries`);
       return scoredEntries;
     } catch (error) {
-      console.error(`[VectorStorage ${this.instanceId}] Error retrieving similar:`, error);
+      console.error('[VectorStorage] Error retrieving similar:', error);
       return [];
     }
   }
@@ -163,12 +132,17 @@ export class VectorStorage {
   async getAllEntries(): Promise<VectorEntry[]> {
     try {
       const entries = await this.storage.getAllEntries();
-      console.log(`[VectorStorage ${this.instanceId}] Retrieved ${entries.length} entries`);
       return entries;
     } catch (error) {
-      console.error(`[VectorStorage ${this.instanceId}] Error getting all entries:`, error);
+      console.error('[VectorStorage] Error getting all entries:', error);
       return [];
     }
+  }
+  subscribe(listener: (entry: VectorEntry) => void) {
+    console.log('[VectorStorage] Adding new listener');
+    return () => {
+      console.log('[VectorStorage] Removing listener');
+    };
   }
 }
 

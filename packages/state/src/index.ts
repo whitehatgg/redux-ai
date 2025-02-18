@@ -32,14 +32,8 @@ export class ReduxAIState<TState> {
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
   private interactions: Interaction[] = [];
-  private static instanceCount = 0;
-  private instanceId: number;
 
   constructor(config: AIStateConfig<TState>) {
-    ReduxAIState.instanceCount++;
-    this.instanceId = ReduxAIState.instanceCount;
-    console.log(`[ReduxAIState ${this.instanceId}] Initializing...`);
-
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
@@ -49,12 +43,6 @@ export class ReduxAIState<TState> {
   }
 
   private async storeInteraction(query: string, response: string) {
-    console.log(`[ReduxAIState ${this.instanceId}] Storing interaction:`, {
-      query: query?.substring(0, 50),
-      response: response?.substring(0, 50),
-      stack: new Error().stack
-    });
-
     try {
       const interaction: Interaction = {
         query,
@@ -63,14 +51,9 @@ export class ReduxAIState<TState> {
       };
 
       this.interactions.push(interaction);
-      console.log(`[ReduxAIState ${this.instanceId}] Added to local cache`);
-
-      // Instead of using addEntry directly, use storeInteraction which is designed for this purpose
       await this.vectorStorage.storeInteraction(query, response, this.store.getState());
-
-      console.log(`[ReduxAIState ${this.instanceId}] Successfully stored in vector storage`);
     } catch (error) {
-      console.error(`[ReduxAIState ${this.instanceId}] Error storing:`, error);
+      console.error('Error storing interaction:', error);
       if (this.onError) {
         this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
       }
@@ -78,8 +61,6 @@ export class ReduxAIState<TState> {
   }
 
   async processQuery(query: string) {
-    console.log(`[ReduxAIState ${this.instanceId}] Processing query:`, query);
-
     try {
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
@@ -99,27 +80,22 @@ export class ReduxAIState<TState> {
       }
 
       const result = await apiResponse.json();
-      console.log(`[ReduxAIState ${this.instanceId}] API Response:`, result);
-
       const { message, action } = result;
 
       if (!message) {
         throw new Error('Invalid response format from API');
       }
 
-      // First store the interaction
       await this.storeInteraction(query, message);
 
-      // Then dispatch the action if provided
       if (action) {
-        console.log(`[ReduxAIState ${this.instanceId}] Dispatching action:`, action);
         this.store.dispatch(action);
       }
 
       return { message, action };
 
     } catch (error) {
-      console.error(`[ReduxAIState ${this.instanceId}] Error:`, error);
+      console.error('Error in processQuery:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       if (this.onError) {
         this.onError(new Error(errorMessage));
@@ -135,11 +111,10 @@ export const createReduxAIState = async <TState>(
   config: AIStateConfig<TState>
 ): Promise<ReduxAIState<TState>> => {
   try {
-    console.log('[ReduxAIState] Creating new instance...');
     instance = new ReduxAIState(config);
     return instance as ReduxAIState<TState>;
   } catch (error) {
-    console.error('[ReduxAIState] Creation error:', error);
+    console.error('Error creating ReduxAIState:', error);
     throw error;
   }
 };
