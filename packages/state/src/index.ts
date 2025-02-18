@@ -4,14 +4,20 @@ import { configureStore, createSlice, PayloadAction, Store, Action } from "@redu
 import { ReduxAISchema } from "@redux-ai/schema";
 import { ReduxAIVector, VectorConfig } from "@redux-ai/vector";
 
-export interface AIStateConfig<TState, TAction extends Action> {
+// Define base action type that includes optional payload and index signature
+interface BaseAction extends Action {
+  payload?: any;
+  [key: string]: any; // Add index signature to satisfy UnknownAction constraint
+}
+
+export interface AIStateConfig<TState, TAction extends BaseAction> {
   store: Store;
   schema?: ReduxAISchema<TAction>;
   vectorStorage: ReduxAIVector;
   onError?: (error: Error) => void;
 }
 
-export class ReduxAIState<TState, TAction extends Action> {
+export class ReduxAIState<TState, TAction extends BaseAction> {
   private store: Store;
   private schema?: ReduxAISchema<TAction>;
   private machine;
@@ -180,23 +186,23 @@ export class ReduxAIState<TState, TAction extends Action> {
 }
 
 // Singleton instance
-let _instance: ReduxAIState<any, any> | null = null;
+let instance: ReduxAIState<any, BaseAction> | null = null;
 
-export const createReduxAIState = async <TState, TAction extends Action>(
+export const createReduxAIState = async <TState, TAction extends BaseAction>(
   config: AIStateConfig<TState, TAction>
 ): Promise<ReduxAIState<TState, TAction>> => {
   try {
-    _instance = new ReduxAIState<TState, TAction>(config);
-    return _instance;
+    instance = new ReduxAIState(config) as ReduxAIState<any, BaseAction>;
+    return instance as ReduxAIState<TState, TAction>;
   } catch (error) {
     console.error('Error creating ReduxAIState:', error);
     throw error;
   }
 };
 
-export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TState, TAction> => {
-  if (!_instance) {
+export const getReduxAI = <TState, TAction extends BaseAction>(): ReduxAIState<TState, TAction> => {
+  if (!instance) {
     throw new Error('ReduxAI not initialized');
   }
-  return _instance as ReduxAIState<TState, TAction>;
+  return instance as ReduxAIState<TState, TAction>;
 };
