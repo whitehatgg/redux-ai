@@ -39,12 +39,16 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       const lastAction = store.lastAction;
       if (lastAction?.type) {
         console.log('ActivityLog: New action detected:', lastAction);
-        setEntries(prev => [...prev, {
-          type: lastAction.type,
-          timestamp: lastAction.timestamp || new Date().toISOString(),
-          state: store.getState(),
-          response: lastAction.response
-        }]);
+
+        // Only add entries for vector operations or errors
+        if (lastAction.type.startsWith('vector/') || lastAction.type === '__VECTOR_ERROR__') {
+          setEntries(prev => [...prev, {
+            type: lastAction.type,
+            timestamp: lastAction.timestamp || new Date().toISOString(),
+            state: store.getState(),
+            response: lastAction.response
+          }]);
+        }
       }
     });
 
@@ -60,7 +64,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   return (
     <div className="fixed inset-y-0 left-0 w-80 bg-background border-r shadow-lg z-50">
       <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold">Activity Log</h3>
+        <h3 className="font-semibold">Vector Activity Log</h3>
         <button
           onClick={onClose}
           className="p-1 hover:bg-muted rounded-md"
@@ -81,7 +85,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">Action: {entry.type}</h4>
+                      <h4 className="font-medium text-sm">Operation: {entry.type}</h4>
                       <span className="text-xs text-muted-foreground">
                         {new Date(entry.timestamp).toLocaleTimeString()}
                       </span>
@@ -89,23 +93,17 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                     <div className="space-y-2">
                       {entry.response && (
                         <div className="text-sm">
-                          <span className="font-medium">Response: </span>
+                          <span className="font-medium">Details: </span>
                           <span className="text-muted-foreground">{entry.response}</span>
                         </div>
                       )}
-                      <div className="text-sm">
-                        <span className="font-medium">State: </span>
-                        <pre className="text-muted-foreground text-xs whitespace-pre-wrap">
-                          {JSON.stringify(entry.state, null, 2)}
-                        </pre>
-                      </div>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No activities logged yet.
+                No vector operations logged yet.
               </div>
             )}
           </div>

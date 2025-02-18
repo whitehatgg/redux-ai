@@ -8,6 +8,7 @@ interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
   isInitialized: boolean;
   store?: Store;
+  vectorStorage?: VectorStorage;
 }
 
 const ReduxAIContext = createContext<ReduxAIContextType>({
@@ -29,6 +30,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   availableActions,
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
 
   useEffect(() => {
     const initialize = async () => {
@@ -36,20 +38,44 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.log('Initializing ReduxAI Provider...');
 
         // Create vector storage for semantic search
-        const vectorStorage = await createReduxAIVector({
+        const vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
-          dimensions: 128
+          dimensions: 128,
+          onStateChange: (action) => {
+            // Track vector database operations in Redux store
+            if (store && action) {
+              (store as any).lastAction = {
+                ...action,
+                timestamp: new Date().toISOString(),
+                type: `vector/${action.type}`,
+                response: action.payload ? JSON.stringify(action.payload) : undefined
+              };
+              // Force a store update to trigger subscribers
+              store.dispatch({ type: '__VECTOR_UPDATE__', payload: action });
+            }
+          }
         });
+
+        setVectorStorage(vectorDb);
 
         // Initialize ReduxAI state management
         await createReduxAIState({
           store,
           schema,
-          vectorStorage: vectorStorage as VectorStorage,
+          vectorStorage: vectorDb as VectorStorage,
           availableActions,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
+            // Log errors in activity log
+            if (store) {
+              (store as any).lastAction = {
+                type: 'vector/error',
+                timestamp: new Date().toISOString(),
+                response: error.message
+              };
+              store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
+            }
           }
         });
 
@@ -67,7 +93,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }, [store, schema, availableActions]);
 
   return (
-    <ReduxAIContext.Provider value={{ availableActions, isInitialized, store }}>
+    <ReduxAIContext.Provider value={{ availableActions, isInitialized, store, vectorStorage }}>
       {children}
     </ReduxAIContext.Provider>
   );
