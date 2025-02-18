@@ -32,6 +32,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
   private actionTrace: TAction[] = [];
+  private lastUserQuery: string = '';
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
@@ -90,24 +91,30 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
   async processQuery(query: string) {
     try {
-      const state = this.store.getState();
+      const lowerQuery = query.toLowerCase();
       console.log('Processing query:', query);
 
-      // Check if this is a state query
-      if (query.toLowerCase().includes('value') ||
-          query.toLowerCase().includes('counter') ||
-          query.toLowerCase().includes('state')) {
-        const stateInfo = await this.getStateInfo(query);
+      // Store the current query
+      this.lastUserQuery = query;
 
-        // Store the query interaction
+      // Handle query about last message
+      if (lowerQuery.includes('last message') || lowerQuery.includes('previous message')) {
+        return {
+          message: `Your last message was: "${this.lastUserQuery}"`,
+          action: null
+        };
+      }
+
+      // Handle state queries
+      if (lowerQuery.includes('value') ||
+          lowerQuery.includes('counter') ||
+          lowerQuery.includes('state')) {
+        const stateInfo = await this.getStateInfo(query);
         const queryData = {
           type: 'QUERY',
           query,
           response: stateInfo,
-          state: {
-            counter: state.demo.counter,
-            message: state.demo.message
-          },
+          state: this.store.getState().demo,
           timestamp: new Date().toISOString()
         };
 
@@ -178,36 +185,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
   private async getStateInfo(query: string): Promise<string> {
     const currentState = this.store.getState();
-
-    // Format current state info clearly and concisely
-    const stateInfo = `Current state: counter = ${currentState.demo.counter}${currentState.demo.message ? `, message = "${currentState.demo.message}"` : ''}`;
-
-    try {
-      // Get recent interactions for context
-      const interactions = await this.vectorStorage.retrieveSimilar(query, 5);
-
-      // Format recent actions if available
-      const recentActions = interactions
-        .map(entry => {
-          try {
-            const data = JSON.parse(entry.state);
-            if (data.type === 'STATE_CHANGE') {
-              return `${new Date(data.timestamp).toLocaleTimeString()} - ${data.action.type}`;
-            }
-            return null;
-          } catch (e) {
-            return null;
-          }
-        })
-        .filter(Boolean)
-        .join('\n');
-
-      // Return only state info if no recent actions
-      return stateInfo;
-    } catch (error) {
-      console.error('Error getting state history:', error);
-      return stateInfo;
-    }
+    return `Current state: counter = ${currentState.demo.counter}${currentState.demo.message ? `, message = "${currentState.demo.message}"` : ''}`;
   }
 
   private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {
