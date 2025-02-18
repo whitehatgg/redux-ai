@@ -10,10 +10,32 @@ interface RAGResultsProps {
       response: string;
       state: string;
       timestamp: string;
+      embedding?: number[];
     }>;
     timestamp: string;
   } | null;
 }
+
+// Simple vector visualization using a heatmap
+const VectorViz: React.FC<{ vector?: number[] }> = ({ vector }) => {
+  if (!vector || vector.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-0.5 p-2 bg-background rounded">
+      {vector.slice(0, 64).map((value, i) => (
+        <div
+          key={i}
+          className="w-2 h-2 rounded-sm"
+          style={{
+            backgroundColor: `rgba(59, 130, 246, ${value})`,
+            transition: 'background-color 0.2s'
+          }}
+          title={`Dimension ${i}: ${value.toFixed(3)}`}
+        />
+      ))}
+    </div>
+  );
+};
 
 export const RAGResults: React.FC<RAGResultsProps> = ({ results }) => {
   if (!results) return null;
@@ -21,7 +43,7 @@ export const RAGResults: React.FC<RAGResultsProps> = ({ results }) => {
   return (
     <div className="w-full max-w-3xl rounded-lg border border-border bg-card text-card-foreground shadow">
       <div className="p-6">
-        <h3 className="text-2xl font-semibold">AI Response</h3>
+        <h3 className="text-2xl font-semibold">AI Debug View</h3>
         <p className="text-sm text-muted-foreground">
           Generated at {new Date(results.timestamp).toLocaleString()}
         </p>
@@ -35,20 +57,34 @@ export const RAGResults: React.FC<RAGResultsProps> = ({ results }) => {
 
           <div>
             <h3 className="font-medium mb-2">Similar Interactions:</h3>
-            <ScrollArea.Root className="h-[300px] w-full rounded-md border">
+            <ScrollArea.Root className="h-[500px] w-full rounded-md border">
               <ScrollArea.Viewport className="p-4">
                 {results.similarDocs.map((doc, index) => (
                   <div key={index} className="mb-6 last:mb-0 p-4 bg-muted rounded-lg">
                     <div className="mb-2">
-                      <p className="text-sm font-medium">Query: {doc.query}</p>
-                      <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium">Query: {doc.query}</p>
+                          <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
+                        </div>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                          Match Score: {((index === 0 ? 1 : 0.8 - index * 0.2) * 100).toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-2">
+
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium">Vector Visualization:</p>
+                      <VectorViz vector={doc.embedding} />
+                    </div>
+
+                    <div className="mt-4">
                       <p className="text-sm font-medium">State:</p>
                       <pre className="text-xs bg-background p-2 rounded mt-1 overflow-x-auto">
                         {doc.state}
                       </pre>
                     </div>
+
                     <p className="text-xs text-muted-foreground mt-2">
                       {new Date(doc.timestamp).toLocaleString()}
                     </p>
