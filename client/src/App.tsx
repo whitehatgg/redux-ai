@@ -7,48 +7,24 @@ import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
 import { useState } from 'react';
 
-// Define available actions for the demo
-const demoActions: ReduxAIAction[] = [
+// Define available actions without inference logic
+const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
-    description: 'Show or hide columns in the applicant table',
-    keywords: ['show columns', 'hide columns', 'display columns', 'visible columns', 'show only']
+    description: 'Set which columns are visible in the table',
+    keywords: []
   },
   {
     type: 'applicant/toggleSearch',
-    description: 'Toggle the search functionality',
-    keywords: ['enable search', 'disable search', 'toggle search', 'turn on search', 'turn off search']
+    description: 'Enable or disable the search functionality',
+    keywords: []
   },
   {
     type: 'applicant/setSearchTerm',
-    description: 'Search for applicants',
-    keywords: ['search for', 'find', 'look for', 'filter by', 'search applicant']
+    description: 'Set the search term for filtering applicants',
+    keywords: []
   }
 ];
-
-// LLM interaction handler that relies solely on provided actions
-const matchActionWithLLM = async (query: string, contextData: any) => {
-  try {
-    // Here you would make the actual OpenAI API call with:
-    // 1. The user's query
-    // 2. The context from vector DB (contextData)
-    // 3. The available actions (contextData.availableActions)
-
-    // For now, we'll simulate an LLM response
-    // In production, replace this with actual OpenAI API call
-    return {
-      action: null,
-      message: `I understand you want to "${query}". Based on the available actions, I can help you search for applicants or manage table columns. What would you like to do?`
-    };
-
-  } catch (error) {
-    console.error('Error in matchActionWithLLM:', error);
-    return {
-      action: null,
-      message: 'I encountered an error processing your request. Please try again.'
-    };
-  }
-};
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -91,27 +67,20 @@ function App() {
       <Provider store={store}>
         <ReduxAIProvider 
           store={store} 
-          availableActions={demoActions}
+          availableActions={availableActions}
           onActionMatch={async (query: string, context: string) => {
             try {
-              const contextData = JSON.parse(context);
-              const result = await matchActionWithLLM(query, contextData);
+              // In production, this would be replaced with the actual OpenAI API call
+              // The LLM would receive:
+              // 1. The user's query
+              // 2. The context from vector DB
+              // 3. The available actions list
+              // And would return the appropriate action and message
 
-              if (!result) {
-                return null;
-              }
-
-              const { action, message } = result;
-
-              // Validate action structure if present
-              if (action && (!action.type || !demoActions.some(a => a.type === action.type))) {
-                return {
-                  action: null,
-                  message: 'I could not determine an appropriate action. Please try rephrasing your request.'
-                };
-              }
-
-              return { action, message };
+              return {
+                action: null,
+                message: 'This is a demo. In production, an LLM would determine the appropriate action based on your query.'
+              };
             } catch (error) {
               console.error('Error in onActionMatch:', error);
               return null;
