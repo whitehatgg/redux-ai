@@ -20,10 +20,11 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   const [entries, setEntries] = React.useState<ActivityEntry[]>([]);
 
   React.useEffect(() => {
+    console.log('ActivityLog: Setting up store subscription');
     const unsubscribe = store.subscribe(() => {
       const lastAction = (store as any).lastAction;
       if (lastAction) {
-        console.log('New action detected:', lastAction);
+        console.log('ActivityLog: New action detected:', lastAction);
         setEntries(prev => [...prev, {
           type: lastAction.type,
           timestamp: lastAction.timestamp || new Date().toISOString(),
@@ -33,7 +34,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('ActivityLog: Cleaning up store subscription');
+      unsubscribe();
+    };
   }, [store]);
 
   if (!open) return null;
@@ -76,9 +80,9 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                       )}
                       <div className="text-sm">
                         <span className="font-medium">State: </span>
-                        <span className="text-muted-foreground">
-                          {JSON.stringify(entry.state, null, 2).substring(0, 100)}...
-                        </span>
+                        <pre className="text-muted-foreground text-xs whitespace-pre-wrap">
+                          {JSON.stringify(entry.state, null, 2)}
+                        </pre>
                       </div>
                     </div>
                   </div>

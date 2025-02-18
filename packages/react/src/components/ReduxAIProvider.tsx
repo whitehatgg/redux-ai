@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Store, Action } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
@@ -6,10 +6,12 @@ import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
 interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
+  isInitialized: boolean;
 }
 
 const ReduxAIContext = createContext<ReduxAIContextType>({
-  availableActions: []
+  availableActions: [],
+  isInitialized: false
 });
 
 export interface ReduxAIProviderProps {
@@ -25,9 +27,12 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   schema,
   availableActions,
 }) => {
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
     const initialize = async () => {
       try {
+        console.log('Initializing ReduxAI Provider...');
         const vectorStorage = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
@@ -43,6 +48,9 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             console.error('ReduxAI Error:', error);
           }
         });
+
+        setIsInitialized(true);
+        console.log('ReduxAI Provider initialized successfully');
       } catch (error) {
         console.error('ReduxAI initialization error:', error);
       }
@@ -52,7 +60,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }, [store, schema, availableActions]);
 
   return (
-    <ReduxAIContext.Provider value={{ availableActions }}>
+    <ReduxAIContext.Provider value={{ availableActions, isInitialized }}>
       {children}
     </ReduxAIContext.Provider>
   );

@@ -40,6 +40,13 @@ export class ReduxAIState<TState> {
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
+
+    // Enhance store to track last action
+    const originalDispatch = this.store.dispatch;
+    (this.store as any).dispatch = (action: any) => {
+      (this.store as any).lastAction = action;
+      return originalDispatch(action);
+    };
   }
 
   private async storeInteraction(query: string, response: string) {
