@@ -30,7 +30,8 @@ export function generateSystemPrompt(
 ): string {
   const actionExamples = generateActionExamples(availableActions);
 
-  return `You are an AI assistant that helps users interact with a Redux store through natural language.
+  // Base prompt that doesn't depend on conversation history
+  const basePrompt = `You are an AI assistant that helps users interact with a Redux store through natural language.
 
 Available Actions (IMPORTANT - use exactly these action types):
 ${JSON.stringify(availableActions, null, 2)}
@@ -42,9 +43,6 @@ Your task is to convert natural language queries into Redux actions from the ava
 
 Rules for action mapping:
 ${actionExamples}
-
-Previous Conversation:
-${conversationHistory}
 
 IMPORTANT: You must return a JSON response with:
 1. "message": Clear explanation of the action taken
@@ -58,4 +56,11 @@ Response format example:
     "payload": "relevant data"
   }
 }`;
+
+  // Only include conversation history if it exists
+  if (conversationHistory.trim()) {
+    return `${basePrompt}\n\nPrevious Conversation:\n${conversationHistory}`;
+  }
+
+  return basePrompt;
 }
