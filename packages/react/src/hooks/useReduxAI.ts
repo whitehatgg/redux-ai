@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useDispatch, useStore } from 'react-redux';
 import type { VectorEntry } from '@redux-ai/vector';
 import { getReduxAI } from '@redux-ai/state';
+import { useReduxAIContext } from '../components/ReduxAIProvider';
 
 interface RAGResponse {
   ragResponse: string;
@@ -15,6 +16,7 @@ export function useReduxAI() {
   const [ragResults, setRagResults] = useState<RAGResponse | null>(null);
   const dispatch = useDispatch();
   const store = useStore();
+  const { isInitialized } = useReduxAIContext();
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
     setIsProcessing(true);
@@ -50,6 +52,7 @@ export function useReduxAI() {
     sendQuery,
     isProcessing,
     error,
+    isInitialized,
     ragResults
   };
 }

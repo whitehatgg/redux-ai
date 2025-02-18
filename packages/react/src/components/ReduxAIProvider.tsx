@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Store, Action } from '@reduxjs/toolkit';
+import { Store } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector } from '@redux-ai/vector';
 import { createReduxAIState } from '@redux-ai/state';
@@ -14,7 +14,7 @@ const ReduxAIContext = createContext<ReduxAIContextType>({
   error: null,
 });
 
-interface ReduxAIProviderProps {
+export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
   schema?: ReduxAISchema<any>;
