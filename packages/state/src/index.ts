@@ -45,15 +45,48 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     const originalDispatch = this.store.dispatch;
     this.store.dispatch = ((action: TAction) => {
       this.actionTrace.push(action);
+      this.storeStateChange(action);
       return originalDispatch(action);
     }) as typeof this.store.dispatch;
+  }
+
+  private async storeStateChange(action: TAction) {
+    try {
+      const state = this.store.getState();
+      const stateData = {
+        action,
+        state,
+        timestamp: new Date().toISOString()
+      };
+
+      await this.vectorStorage.storeInteraction(
+        `Action: ${action.type}`,
+        JSON.stringify(stateData),
+        JSON.stringify(stateData)
+      );
+
+      console.log('Stored state change:', {
+        action: action.type,
+        state: stateData
+      });
+    } catch (error) {
+      console.error('Error storing state change:', error);
+    }
   }
 
   async processQuery(query: string) {
     try {
       const state = this.store.getState();
       console.log('Processing query:', query);
-      console.log('Current state:', state);
+
+      // Check if this is a state query
+      if (query.toLowerCase().includes('value') || query.toLowerCase().includes('state')) {
+        const stateInfo = await this.getStateInfo(query);
+        return {
+          message: stateInfo,
+          action: null
+        };
+      }
 
       // Get previous interactions for context
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
@@ -66,7 +99,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       if (actionInfo) {
         // Store pre-action state
         const preActionState = this.store.getState();
-        console.log('Pre-action state:', preActionState);
 
         // Dispatch the action
         this.store.dispatch(actionInfo.action);
@@ -74,7 +106,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
         // Get post-action state and store the interaction
         const postActionState = this.store.getState();
-        console.log('Post-action state:', postActionState);
 
         const stateData = {
           action: actionInfo.action,
@@ -89,12 +120,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
           actionInfo.message,
           JSON.stringify(stateData)
         );
-
-        console.log('Stored interaction in vector storage:', {
-          query,
-          response: actionInfo.message,
-          state: stateData
-        });
 
         return {
           message: actionInfo.message,
@@ -114,6 +139,34 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       }
       throw error;
     }
+  }
+
+  private async getStateInfo(query: string): Promise<string> {
+    const currentState = this.store.getState();
+    const interactions = await this.vectorStorage.retrieveSimilar(query, 5);
+
+    // Format current state info
+    const stateInfo = Object.entries(currentState.demo || {})
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+
+    // Include history if available
+    const history = interactions
+      .map(entry => {
+        try {
+          const data = JSON.parse(entry.state);
+          if (data.state?.demo) {
+            return `At ${data.timestamp}: counter was ${data.state.demo.counter}`;
+          }
+          return null;
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    return `Current state: ${stateInfo}\n\nHistory:\n${history}`;
   }
 
   private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {

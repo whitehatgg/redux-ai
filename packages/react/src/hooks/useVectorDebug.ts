@@ -16,17 +16,33 @@ export function useVectorDebug() {
     }
 
     const fetchEntries = async () => {
-      console.log('Fetching vector storage entries...');
       try {
         const reduxAI = getReduxAI();
         console.log('Got ReduxAI instance');
 
+        // Fetch all state changes and interactions
         const data = await reduxAI.getSimilarInteractions('', 100);
         console.log('Retrieved vector entries:', data);
 
-        setEntries(Array.isArray(data) ? data : []);
+        // Process and format the entries
+        const formattedEntries = data.map(entry => {
+          try {
+            const state = JSON.parse(entry.state);
+            return {
+              ...entry,
+              state: state.state || state,
+              action: state.action?.type || null,
+              timestamp: state.timestamp || new Date().toISOString()
+            };
+          } catch (e) {
+            return entry;
+          }
+        });
+
+        setEntries(formattedEntries.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        ));
         setError(null);
-        console.log('Updated entries state with:', Array.isArray(data) ? data.length : 0, 'items');
       } catch (err) {
         console.error('Error fetching debug entries:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch debug entries');
@@ -38,7 +54,7 @@ export function useVectorDebug() {
 
     console.log('Setting up vector debug polling...');
     fetchEntries();
-    const interval = setInterval(fetchEntries, 5000);
+    const interval = setInterval(fetchEntries, 2000);
 
     return () => {
       console.log('Cleaning up vector debug polling');
