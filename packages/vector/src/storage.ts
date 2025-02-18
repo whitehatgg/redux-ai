@@ -1,5 +1,3 @@
-import { Document } from "@langchain/core/documents";
-import { Pipeline } from '@xenova/transformers';
 import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
@@ -11,7 +9,6 @@ export interface VectorEntry {
 
 export class VectorStorage {
   private indexedDB: IndexedDBStorage;
-  private embeddingPipeline: Pipeline | null = null;
 
   private constructor(indexedDB: IndexedDBStorage) {
     this.indexedDB = indexedDB;
@@ -21,31 +18,6 @@ export class VectorStorage {
     const indexedDB = new IndexedDBStorage();
     await indexedDB.initialize();
     return new VectorStorage(indexedDB);
-  }
-
-  private async getEmbedding(text: string): Promise<number[]> {
-    try {
-      if (!this.embeddingPipeline) {
-        this.embeddingPipeline = await Pipeline.fromPretrained(
-          'Xenova/all-MiniLM-L6-v2',
-          'feature-extraction',
-          {
-            quantized: false,
-            progress_callback: null
-          }
-        );
-      }
-
-      const output = await this.embeddingPipeline(text, {
-        pooling: 'mean',
-        normalize: true
-      });
-
-      return Array.from(output.data);
-    } catch (error) {
-      console.error('Failed to generate embedding:', error);
-      throw error;
-    }
   }
 
   async addEntry(entry: VectorEntry) {
@@ -62,32 +34,15 @@ export class VectorStorage {
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
     try {
       const entries = await this.indexedDB.getAllEntries();
-      const queryEmbedding = await this.getEmbedding(query);
+      if (entries.length === 0) return [];
 
-      // Calculate cosine similarity with each entry
-      const entriesWithSimilarity = await Promise.all(
-        entries.map(async (entry) => {
-          const entryEmbedding = await this.getEmbedding(entry.query);
-          const similarity = this.cosineSimilarity(queryEmbedding, entryEmbedding);
-          return { ...entry, similarity };
-        })
-      );
-
-      // Sort by similarity and return top N results
-      return entriesWithSimilarity
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, limit)
-        .map(({ similarity, ...entry }) => entry);
+      // Sort by timestamp descending (most recent first) and return top N
+      return entries
+        .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+        .slice(0, limit);
     } catch (error) {
       console.error('Failed to find similar entries:', error);
       return [];
     }
-  }
-
-  private cosineSimilarity(a: number[], b: number[]): number {
-    const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-    const normA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-    const normB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-    return dotProduct / (normA * normB);
   }
 }
