@@ -55,7 +55,7 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private listeners: Set<VectorEventListener> = new Set();
-  private isInternalOperation = false;
+  private operationInProgress = false;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -81,12 +81,19 @@ export class VectorStorage {
   }
 
   private notifyListeners(entry: VectorEntry) {
-    if (this.isInternalOperation) return; // Skip notification for internal operations
-    this.listeners.forEach(listener => listener(entry));
+    if (!this.operationInProgress) {
+      this.listeners.forEach(listener => listener(entry));
+    }
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
+    if (this.operationInProgress) {
+      console.log('Operation in progress, skipping duplicate notification');
+      return;
+    }
+
     try {
+      this.operationInProgress = true;
       console.log('Adding entry:', entry);
 
       const enhancedEntry: VectorEntry = {
@@ -101,12 +108,19 @@ export class VectorStorage {
     } catch (error) {
       console.error('Error adding entry:', error);
       throw error;
+    } finally {
+      this.operationInProgress = false;
     }
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
-      this.isInternalOperation = true; // Mark this as an internal operation
+      if (this.operationInProgress) {
+        console.log('Operation in progress, skipping duplicate store');
+        return;
+      }
+
+      this.operationInProgress = true;
       console.log('Storing interaction:', { query, response });
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
       const timestamp = new Date().toISOString();
@@ -123,12 +137,12 @@ export class VectorStorage {
 
       await this.storage.addEntry(entry);
       console.log('Entry stored successfully');
-      this.isInternalOperation = false; // Reset the flag
-      this.notifyListeners(entry); // Only notify once after the operation is complete
+      this.notifyListeners(entry);
     } catch (error) {
-      this.isInternalOperation = false; // Reset the flag even if there's an error
       console.error('Error storing interaction:', error);
       throw error;
+    } finally {
+      this.operationInProgress = false;
     }
   }
 
