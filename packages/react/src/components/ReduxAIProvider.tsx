@@ -4,12 +4,6 @@ import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
-interface VectorAction {
-  type: string;
-  payload?: any;
-  query?: string;
-}
-
 interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
   isInitialized: boolean;
@@ -37,7 +31,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
-  const [lastAction, setLastAction] = useState<{type: string; timestamp: string} | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -48,37 +41,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         const vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
-          dimensions: 128,
-          onStateChange: (action: VectorAction) => {
-            console.log('Vector state change detected:', action);
-
-            if (store && action) {
-              const currentTimestamp = new Date().toISOString();
-
-              // Prevent duplicate actions within a short time window (100ms)
-              if (lastAction && 
-                  lastAction.type === action.type &&
-                  Date.parse(currentTimestamp) - Date.parse(lastAction.timestamp) < 100) {
-                console.log('Preventing duplicate action:', action.type);
-                return;
-              }
-
-              const enhancedAction = {
-                ...action,
-                timestamp: currentTimestamp,
-                type: `vector/${action.type}`,
-                query: action.query || action.payload?.query,
-                response: action.payload ? JSON.stringify(action.payload) : undefined
-              };
-
-              console.log('Dispatching vector action:', enhancedAction);
-              (store as any).lastAction = enhancedAction;
-              setLastAction({ 
-                type: action.type, 
-                timestamp: currentTimestamp 
-              });
-            }
-          }
+          dimensions: 128
         });
 
         console.log('Vector storage initialized:', vectorDb);
@@ -92,16 +55,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           availableActions,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
-            if (store) {
-              const errorAction = {
-                type: '__VECTOR_ERROR__',
-                timestamp: new Date().toISOString(),
-                response: error.message
-              };
-              console.log('Dispatching vector error:', errorAction);
-              (store as any).lastAction = errorAction;
-              store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
-            }
+            store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
           }
         });
 
