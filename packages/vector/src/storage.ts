@@ -49,6 +49,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
+  private listeners: Set<(entry: VectorEntry) => void> = new Set();
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -68,51 +69,62 @@ export class VectorStorage {
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
-    console.log('[VectorStorage] Adding entry:', {
-      content: entry.content?.substring(0, 50),
-      metadata: entry.metadata
-    });
+    try {
+      console.log('[VectorStorage] Adding entry:', {
+        content: entry.content?.substring(0, 50),
+        metadata: entry.metadata
+      });
 
-    const enhancedEntry: VectorEntry = {
-      ...entry,
-      content: entry.content,
-      embedding: entry.embedding || textToVector(entry.content, this.dimensions),
-      timestamp: entry.timestamp || new Date().toISOString()
-    };
+      const enhancedEntry: VectorEntry = {
+        ...entry,
+        content: entry.content,
+        embedding: entry.embedding || textToVector(entry.content, this.dimensions),
+        timestamp: entry.timestamp || new Date().toISOString()
+      };
 
-    await this.storage.addEntry(enhancedEntry);
+      await this.storage.addEntry(enhancedEntry);
+      this.notifyListeners(enhancedEntry);
+    } catch (error) {
+      console.error('[VectorStorage] Error adding entry:', error);
+      throw error;
+    }
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
-    console.log('[VectorStorage] Storing interaction:', {
-      query: query?.substring(0, 50),
-      response: response?.substring(0, 50)
-    });
+    try {
+      console.log('[VectorStorage] Storing interaction:', {
+        query: query?.substring(0, 50),
+        response: response?.substring(0, 50)
+      });
 
-    const stateString = typeof state === 'string' ? state : JSON.stringify(state);
-    const timestamp = new Date().toISOString();
+      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+      const timestamp = new Date().toISOString();
 
-    const entry: VectorEntry = {
-      query,
-      response,
-      state: stateString,
-      content: `${query} ${response}`,
-      embedding: textToVector(`${query} ${response}`, this.dimensions),
-      timestamp,
-      metadata: { type: 'interaction' }
-    };
+      const entry: VectorEntry = {
+        query,
+        response,
+        state: stateString,
+        content: `${query} ${response}`,
+        embedding: textToVector(`${query} ${response}`, this.dimensions),
+        timestamp,
+        metadata: { type: 'interaction' }
+      };
 
-    await this.storage.addEntry(entry);
+      await this.storage.addEntry(entry);
+      this.notifyListeners(entry);
+    } catch (error) {
+      console.error('[VectorStorage] Error storing interaction:', error);
+      throw error;
+    }
   }
 
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
-    console.log('[VectorStorage] Retrieving similar entries for query:', query);
-
     try {
+      console.log('[VectorStorage] Retrieving similar entries for query:', query);
       const queryEmbedding = textToVector(query, this.dimensions);
       const entries = await this.storage.getAllEntries();
 
-      const scoredEntries = entries
+      return entries
         .map(entry => ({
           entry,
           score: cosineSimilarity(queryEmbedding, entry.embedding || [])
@@ -120,8 +132,6 @@ export class VectorStorage {
         .sort((a, b) => b.score - a.score)
         .slice(0, limit)
         .map(({ entry }) => entry);
-
-      return scoredEntries;
     } catch (error) {
       console.error('[VectorStorage] Error retrieving similar:', error);
       return [];
@@ -130,8 +140,7 @@ export class VectorStorage {
 
   async getAllEntries(): Promise<VectorEntry[]> {
     try {
-      const entries = await this.storage.getAllEntries();
-      return entries;
+      return await this.storage.getAllEntries();
     } catch (error) {
       console.error('[VectorStorage] Error getting all entries:', error);
       return [];
@@ -140,9 +149,21 @@ export class VectorStorage {
 
   subscribe(listener: (entry: VectorEntry) => void) {
     console.log('[VectorStorage] Adding new listener');
+    this.listeners.add(listener);
     return () => {
       console.log('[VectorStorage] Removing listener');
+      this.listeners.delete(listener);
     };
+  }
+
+  private notifyListeners(entry: VectorEntry) {
+    this.listeners.forEach(listener => {
+      try {
+        listener(entry);
+      } catch (error) {
+        console.error('[VectorStorage] Error in listener:', error);
+      }
+    });
   }
 }
 
