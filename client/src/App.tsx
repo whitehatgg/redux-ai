@@ -26,9 +26,21 @@ const demoActions: ReduxAIAction[] = [
   }
 ];
 
-// Custom action matching logic
-const matchAction = async (query: string) => {
+// Enhanced action matching logic with context
+const matchAction = async (query: string, context?: string) => {
   const lowerQuery = query.toLowerCase().trim();
+  const contextData = context ? JSON.parse(context) : null;
+
+  // If we have context and it's a history-related query, don't trigger an action
+  if (contextData && /^(?:what|show|tell\s+me)\s+(?:about|what)\s+happened/i.test(lowerQuery)) {
+    const recentChanges = contextData.stateChanges[0];
+    if (recentChanges) {
+      return {
+        action: null,
+        message: `Recent activity: ${recentChanges.message}`
+      };
+    }
+  }
 
   // Match show columns command
   const showColumnsMatch = /^show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?$/.exec(lowerQuery);
@@ -51,11 +63,20 @@ const matchAction = async (query: string) => {
     }
   }
 
-  // Match search command with more variations
+  // Match search command with context awareness
   const searchPattern = /^(?:(?:search|find|look|filter)\s+(?:for\s+)?|show\s+me\s+|get\s+)([a-zA-Z0-9@\s.]+)$/i;
   const searchMatch = searchPattern.exec(lowerQuery);
   if (searchMatch) {
     const searchTerm = searchMatch[1].trim();
+
+    // Check if this is a repeated search
+    if (contextData?.chatHistory.some(h => h.query === query)) {
+      return {
+        action: null,
+        message: `You've already searched for "${searchTerm}". Would you like to try a different search?`
+      };
+    }
+
     return {
       action: {
         type: 'applicant/setSearchTerm',
@@ -65,7 +86,7 @@ const matchAction = async (query: string) => {
     };
   }
 
-  // If no action matches, return null
+  // If no action matches, return null to let the RAG system handle it
   return null;
 };
 
@@ -111,9 +132,9 @@ function App() {
         <ReduxAIProvider 
           store={store} 
           availableActions={demoActions}
-          onActionMatch={async (query: string) => {
+          onActionMatch={async (query: string, context?: string) => {
             try {
-              return await matchAction(query);
+              return await matchAction(query, context);
             } catch (error) {
               console.error('Error matching action:', error);
               return null;
