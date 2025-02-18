@@ -13,18 +13,13 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
 
   if (!open) return null;
 
-  const formatActionType = (action: any) => {
+  // Format action in a generic way
+  const formatAction = (action: any) => {
     if (!action) return 'No action';
-    if (action?.type === 'applicant/setSearchTerm') {
-      return `Search for: ${action.payload}`;
-    }
-    if (action?.type === 'applicant/toggleSearch') {
-      return `${action.payload ? 'Enable' : 'Disable'} search`;
-    }
-    return action?.type || 'Unknown action';
+    return `${action.type}${action.payload ? `: ${JSON.stringify(action.payload)}` : ''}`;
   };
 
-  // Filter out duplicate consecutive actions
+  // Filter out duplicate consecutive actions (generic implementation)
   const filteredChanges = stateChanges.reduce((acc: any[], current, index) => {
     // Skip if this is a duplicate of the previous action
     if (index > 0) {
@@ -60,20 +55,13 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                   <div className="flex justify-between items-start mb-2">
                     <div className="space-y-1">
                       <p className="text-sm font-medium">
-                        {formatActionType(change.action)}
+                        {formatAction(change.action)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(change.timestamp).toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  {change.action?.payload && (
-                    <div className="mt-2">
-                      <p className="text-sm text-muted-foreground">
-                        Payload: {JSON.stringify(change.action.payload)}
-                      </p>
-                    </div>
-                  )}
                   {change.state && (
                     <div className="mt-2">
                       <p className="text-sm text-muted-foreground">
@@ -85,7 +73,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No activity recorded yet. Try interacting with the table or AI assistant.
+                No activity recorded yet. Try interacting with the AI assistant.
               </div>
             )}
           </div>
