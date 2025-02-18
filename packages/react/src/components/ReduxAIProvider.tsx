@@ -71,19 +71,37 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           }
         });
 
-        // Subscribe to store changes
-        store.subscribe(() => {
+        // Add middleware to track state changes
+        const unsubscribe = store.subscribe(() => {
           const state = store.getState();
-          const action = store.getState()?._lastAction;
-          setStateChanges(prev => [...prev, {
-            action,
-            state,
-            timestamp: new Date().toISOString()
-          }]);
+          const lastAction = (store as any)._lastAction;
+
+          // Only track meaningful state changes
+          if (lastAction && lastAction.type) {
+            const stateChange = {
+              action: lastAction,
+              state,
+              timestamp: new Date().toISOString()
+            };
+
+            setStateChanges(prev => [...prev, stateChange]);
+
+            // Store the interaction in vector storage
+            vectorStorage.storeInteraction(
+              lastAction.type,
+              JSON.stringify(stateChange),
+              JSON.stringify(stateChange)
+            ).catch(error => {
+              console.error('Error storing state change:', error);
+            });
+          }
         });
 
         setIsInitialized(true);
         console.log('ReduxAI initialization complete');
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to initialize ReduxAI';
         console.error('ReduxAI initialization error:', message);
