@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { X } from 'lucide-react';
 import { useReduxAIContext } from './ReduxAIProvider';
@@ -19,18 +19,30 @@ interface ActivityLogProps {
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   const { vectorStorage } = useReduxAIContext();
   const [entries, setEntries] = React.useState<ActivityLogEntry[]>([]);
+  const subscriptionRef = useRef<(() => void) | null>(null);
+  const entriesRef = useRef<ActivityLogEntry[]>([]);
 
   React.useEffect(() => {
-    if (!vectorStorage) return;
+    entriesRef.current = entries;
+  }, [entries]);
 
-    console.log('ActivityLog: Setting up vector storage subscription');
+  React.useEffect(() => {
+    if (!vectorStorage || subscriptionRef.current) return;
+
+    console.log('ActivityLog: Initial setup of vector storage subscription');
 
     const unsubscribe = vectorStorage.subscribe((entry: VectorEntry) => {
-      console.log('ActivityLog: Received vector entry:', {
+      console.log('ActivityLog: Processing vector entry:', {
         content: entry.content,
-        timestamp: entry.timestamp,
-        metadata: entry.metadata
+        metadata: entry.metadata?.type,
+        operationId: entry.metadata?.operationId
       });
+
+      // Skip if we already have this entry (check by timestamp)
+      if (entriesRef.current.some(e => e.timestamp === entry.timestamp)) {
+        console.log('ActivityLog: Skipping duplicate entry');
+        return;
+      }
 
       const newEntry: ActivityLogEntry = {
         type: entry.metadata?.type === 'interaction' ? 'vector/store' : 'vector/add',
@@ -40,14 +52,19 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       };
 
       setEntries(prev => {
-        console.log('ActivityLog: Updating entries, current count:', prev.length);
+        console.log('ActivityLog: Adding new entry, current count:', prev.length);
         return [...prev, newEntry];
       });
     });
 
+    subscriptionRef.current = unsubscribe;
+
     return () => {
       console.log('ActivityLog: Cleaning up subscription');
-      unsubscribe();
+      if (subscriptionRef.current) {
+        subscriptionRef.current();
+        subscriptionRef.current = null;
+      }
     };
   }, [vectorStorage]);
 
