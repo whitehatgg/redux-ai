@@ -13,7 +13,7 @@ export async function registerRoutes(app: Express) {
 
   app.post('/api/query', async (req, res) => {
     try {
-      const { query } = req.body;
+      const { query, state } = req.body;
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -22,8 +22,8 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: 'OpenAI API key is not configured' });
       }
 
-      // Get the current Redux state from the store
-      const currentState = req.app.locals.store?.getState() || {};
+      // Get the current Redux state
+      const currentState = state || {};
       const stateDescription = `Current Redux state:\n${JSON.stringify(currentState, null, 2)}`;
 
       const response = await openai.chat.completions.create({

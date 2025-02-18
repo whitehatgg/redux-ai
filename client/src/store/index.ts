@@ -27,6 +27,20 @@ export const initializeReduxAI = async () => {
       }
     });
 
+    // Subscribe to store changes to update vector storage
+    let lastState = store.getState();
+    store.subscribe(() => {
+      const currentState = store.getState();
+      if (currentState !== lastState) {
+        vectorStorage.storeInteraction(
+          'State Update',
+          'Store state was updated',
+          JSON.stringify(currentState, null, 2)
+        ).catch(console.error);
+        lastState = currentState;
+      }
+    });
+
     return _reduxAI;
   } catch (error) {
     console.error('Failed to initialize ReduxAI:', error);
@@ -34,10 +48,6 @@ export const initializeReduxAI = async () => {
   }
 };
 
-// Initialize immediately
-initializeReduxAI().catch(console.error);
-
-// Export a function to get the initialized instance
 export const getReduxAI = () => {
   if (!_reduxAI) {
     throw new Error('ReduxAI not initialized');
