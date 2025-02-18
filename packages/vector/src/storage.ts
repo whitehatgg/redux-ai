@@ -1,10 +1,10 @@
 import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
+  content: string;
   query?: string;
   response?: string;
   state?: string;
-  content: string;
   metadata?: Record<string, any>;
   embedding?: number[];
   timestamp: string;
@@ -66,7 +66,6 @@ export class VectorStorage {
       throw error;
     }
   }
-
 
   async addEntry(entry: VectorEntry): Promise<void> {
     console.log('[VectorStorage] Adding entry:', {
@@ -138,6 +137,7 @@ export class VectorStorage {
       return [];
     }
   }
+
   subscribe(listener: (entry: VectorEntry) => void) {
     console.log('[VectorStorage] Adding new listener');
     return () => {

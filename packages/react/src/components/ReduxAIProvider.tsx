@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Store } from '@reduxjs/toolkit';
+import { Store, Action } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
@@ -19,7 +19,7 @@ const ReduxAIContext = createContext<ReduxAIContextType>({
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema?: ReduxAISchema;
+  schema?: ReduxAISchema<Action>;
   availableActions: ReduxAIAction[];
 }
 
@@ -43,9 +43,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           maxEntries: 100,
           dimensions: 128
         });
-
-        // Set up Redux dispatch
-        vectorDb.setDispatch(store.dispatch);
 
         console.log('[ReduxAIProvider] Vector storage created:', vectorDb);
         setVectorStorage(vectorDb);
