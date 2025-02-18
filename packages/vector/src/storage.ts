@@ -49,6 +49,7 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private listeners: Set<(entry: VectorEntry) => void> = new Set();
+  private isInitialized = false;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -57,9 +58,13 @@ export class VectorStorage {
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
     try {
+      console.log('[VectorStorage] Starting creation...');
       const storage = new IndexedDBStorage();
       await storage.initialize();
-      return new VectorStorage(storage, config);
+      console.log('[VectorStorage] Storage initialized');
+      const instance = new VectorStorage(storage, config);
+      console.log('[VectorStorage] Instance created');
+      return instance;
     } catch (error) {
       console.error('[VectorStorage] Creation failed:', error);
       throw error;
