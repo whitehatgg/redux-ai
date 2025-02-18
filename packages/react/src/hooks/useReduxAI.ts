@@ -18,12 +18,36 @@ export function useReduxAI() {
   const store = useStore();
   const { isInitialized } = useReduxAIContext();
 
+  // Track state changes
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      const currentState = store.getState();
+      console.log('State updated:', currentState);
+      // Store the state change in vector storage
+      if (isInitialized) {
+        const reduxAI = getReduxAI();
+        reduxAI.storeInteraction(
+          'state_change',
+          'State updated',
+          currentState
+        ).catch(console.error);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [store, isInitialized]);
+
   const sendQuery = useCallback(async (query: string): Promise<string> => {
     setIsProcessing(true);
     setError(null);
 
     try {
       const reduxAI = getReduxAI();
+      const currentState = store.getState();
+
+      // Store the query and current state
+      await reduxAI.storeInteraction(query, '', currentState);
+
       const response = await reduxAI.processQuery(query);
       console.log('ReduxAI Response:', response);
 
@@ -46,7 +70,7 @@ export function useReduxAI() {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [store, isInitialized]);
 
   return {
     sendQuery,
