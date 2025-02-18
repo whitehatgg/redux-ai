@@ -51,25 +51,27 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
   // Function to record state change
   const recordStateChange = (action: any, state: any) => {
-    console.log('Recording state change:', { action, state });
-    const stateChange = {
-      action,
-      state,
-      timestamp: new Date().toISOString()
-    };
+    if (!action || typeof action !== 'object' || !('type' in action)) {
+      return; // Skip invalid actions
+    }
 
-    // Ensure we don't add duplicate state changes
     setStateChanges(prev => {
-      const lastChange = prev[prev.length - 1];
-      if (lastChange && 
-          JSON.stringify(lastChange.action) === JSON.stringify(action) &&
-          JSON.stringify(lastChange.state) === JSON.stringify(state)) {
+      const timestamp = new Date().toISOString();
+      const newChange = { action, state, timestamp };
+
+      // Check last 5 entries for duplicates
+      const recentEntries = prev.slice(-5);
+      const isDuplicate = recentEntries.some(entry => 
+        entry.action?.type === action.type && 
+        JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload)
+      );
+
+      if (isDuplicate) {
         return prev;
       }
-      return [...prev, stateChange];
-    });
 
-    return stateChange;
+      return [...prev, newChange];
+    });
   };
 
   useEffect(() => {
@@ -140,12 +142,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
               if (!result) return null;
 
-              // Record state change when action is matched
-              if (result.action) {
-                const stateChange = recordStateChange(result.action, store.getState());
-                console.log('Recorded state change from action match:', stateChange);
-              }
-
+              // We don't need to record state change here as it will be caught by the store subscription
               return result;
             } catch (error) {
               console.error('Error in action match:', error);
@@ -162,29 +159,15 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (isCleanedUp) return;
 
-        // Add middleware to track state changes
+        // Subscribe to store changes
         unsubscribe = store.subscribe(() => {
           if (isCleanedUp) return;
 
-          // Get the current state
           const state = store.getState();
-
-          // Access the last action from our tracking middleware
           const lastAction = typeof window !== 'undefined' ? window.__LAST_ACTION__ : null;
 
           if (lastAction && typeof lastAction === 'object' && 'type' in lastAction) {
-            console.log('State change detected:', { action: lastAction, state });
-            const stateChange = recordStateChange(lastAction, state);
-            console.log('Recorded state change from store:', stateChange);
-
-            // Store the interaction in vector storage
-            vectorStorage.storeInteraction(
-              lastAction.type,
-              JSON.stringify(stateChange),
-              stateChange
-            ).catch(error => {
-              console.error('Error storing state change:', error);
-            });
+            recordStateChange(lastAction, state);
           }
         });
 
