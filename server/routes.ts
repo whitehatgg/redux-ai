@@ -72,21 +72,28 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
+      if (!query) {
+        console.log('[API Error] Missing query in request');
+        return res.status(400).json({ error: 'Query is required' });
+      }
+
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
         console.log('[API Error] Invalid availableActions:', availableActions);
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      const response = await createChatCompletion([
+      const messages = [
         {
           role: "system",
           content: prompt
         },
         {
           role: "user",
-          content: query  // Add the user's query as a separate message
+          content: query
         }
-      ], currentState);
+      ];
+
+      const response = await createChatCompletion(messages, currentState);
 
       if (!response.choices[0].message.content) {
         throw new Error('Invalid response format from AI');
