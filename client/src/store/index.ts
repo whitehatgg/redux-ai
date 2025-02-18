@@ -8,11 +8,7 @@ export interface RootState {
 export const store = configureStore({
   reducer: {
     applicant: applicantReducer
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false
-    })
+  }
 });
 
 export type AppDispatch = typeof store.dispatch;
