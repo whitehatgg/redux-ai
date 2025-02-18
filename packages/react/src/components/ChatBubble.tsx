@@ -12,7 +12,8 @@ export const ChatBubble: React.FC = () => {
   const { sendQuery, isProcessing, error, isInitialized, ragResults } = useReduxAI();
 
   React.useEffect(() => {
-    if (ragResults?.similarDocs?.length > 0) {
+    // Add proper null checks and optional chaining
+    if (ragResults?.similarDocs && ragResults.similarDocs.length > 0) {
       console.log('Previous interactions loaded:', ragResults.similarDocs);
     }
   }, [ragResults]);

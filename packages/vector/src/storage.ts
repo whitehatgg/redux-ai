@@ -7,6 +7,45 @@ export interface VectorEntry {
   timestamp: string;
 }
 
+export interface VectorConfig {
+  collectionName?: string;
+  maxEntries?: number;
+}
+
+export class ReduxAIVector {
+  private storage: VectorStorage;
+  private maxEntries: number;
+
+  private constructor(storage: VectorStorage, config: VectorConfig = {}) {
+    this.storage = storage;
+    this.maxEntries = config.maxEntries || 100;
+  }
+
+  static async create(config: VectorConfig = {}): Promise<ReduxAIVector> {
+    try {
+      console.log('Initializing vector storage...');
+      const storage = await VectorStorage.create();
+      console.log('Vector storage initialized successfully');
+      return new ReduxAIVector(storage, config);
+    } catch (error) {
+      console.error('Failed to initialize vector storage:', error);
+      throw new Error(`Vector storage initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async storeInteraction(query: string, response: string, state: any): Promise<void> {
+    return this.storage.storeInteraction(query, response, state);
+  }
+
+  async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
+    return this.storage.retrieveSimilar(query, Math.min(limit, this.maxEntries));
+  }
+
+  async getAllEntries(): Promise<VectorEntry[]> {
+    return this.storage.getAllEntries();
+  }
+}
+
 export class VectorStorage {
   private storage: IndexedDBStorage;
 
@@ -56,8 +95,6 @@ export class VectorStorage {
         return [];
       }
 
-      // For now, we'll just return the most recent interactions
-      // In a future update, we can implement more sophisticated similarity matching
       const sortedEntries = entries
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, Math.min(limit, entries.length));
@@ -87,8 +124,6 @@ export class VectorStorage {
   }
 }
 
-export const createReduxAIVector = async (config: { collectionName?: string; maxEntries?: number } = {}) => {
+export const createReduxAIVector = async (config: VectorConfig = {}): Promise<ReduxAIVector> => {
   return ReduxAIVector.create(config);
 };
-
-export { IndexedDBStorage };

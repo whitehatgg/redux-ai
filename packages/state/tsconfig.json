@@ -15,11 +15,16 @@
     "noEmit": false,
     "allowImportingTsExtensions": false,
     "composite": true,
-    "tsBuildInfoFile": "./.tsbuildinfo"
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "paths": {
+      "@redux-ai/vector": ["../vector/src"],
+      "@redux-ai/schema": ["../schema/src"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts", "dist"],
   "references": [
-    { "path": "../schema" }
+    { "path": "../schema" },
+    { "path": "../vector" }
   ]
 }
