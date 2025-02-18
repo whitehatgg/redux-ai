@@ -161,6 +161,22 @@ export class VectorStorage {
   }
 }
 
+export async function resetVectorStorage(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase('reduxai_vector');
+
+    request.onerror = () => {
+      console.error('Error deleting database:', request.error);
+      reject(request.error);
+    };
+
+    request.onsuccess = () => {
+      console.log('Successfully deleted vector database');
+      resolve();
+    };
+  });
+}
+
 export const createReduxAIVector = async (config: VectorConfig): Promise<VectorStorage> => {
   return VectorStorage.create(config);
 };

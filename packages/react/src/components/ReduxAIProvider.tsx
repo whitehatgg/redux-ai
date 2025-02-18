@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Store, Action } from '@reduxjs/toolkit';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Store } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
-import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
+import { createReduxAIVector, VectorStorage, resetVectorStorage } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
 interface ReduxAIContextType {
@@ -19,7 +19,7 @@ const ReduxAIContext = createContext<ReduxAIContextType>({
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema?: ReduxAISchema<Action>;
+  schema?: ReduxAISchema;
   availableActions: ReduxAIAction[];
 }
 
@@ -36,6 +36,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const initialize = async () => {
       try {
         console.log('Initializing ReduxAI Provider...');
+
+        // Reset the vector database to apply schema changes
+        await resetVectorStorage();
+        console.log('Vector database reset successfully');
 
         // Create vector storage for semantic search
         const vectorDb = await createReduxAIVector({

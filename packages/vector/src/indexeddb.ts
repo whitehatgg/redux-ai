@@ -23,11 +23,10 @@ export class IndexedDBStorage {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           console.log('Creating vector entries store');
           const store = db.createObjectStore(STORE_NAME, { 
-            keyPath: 'timestamp'
+            keyPath: ['content', 'timestamp'] 
           });
-          store.createIndex('timestamp', 'timestamp', { unique: false });
-          store.createIndex('content', 'content', { unique: false });
-          store.createIndex('query', 'query', { unique: false });
+          // Add compound index for uniqueness
+          store.createIndex('content_timestamp', ['content', 'timestamp'], { unique: true });
         }
       };
     });
@@ -39,15 +38,35 @@ export class IndexedDBStorage {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.add(entry);
 
-      request.onerror = () => {
-        console.error('Error adding entry:', request.error);
-        reject(request.error);
+      // Check if entry already exists
+      const index = store.index('content_timestamp');
+      const getRequest = index.get([entry.content, entry.timestamp]);
+
+      getRequest.onsuccess = () => {
+        if (getRequest.result) {
+          console.log('Entry already exists, skipping:', entry);
+          resolve(); // Skip adding duplicate
+          return;
+        }
+
+        // Add new entry if it doesn't exist
+        const addRequest = store.add(entry);
+
+        addRequest.onerror = () => {
+          console.error('Error adding entry:', addRequest.error);
+          reject(addRequest.error);
+        };
+
+        addRequest.onsuccess = () => {
+          console.log('Successfully added entry to IndexedDB');
+          resolve();
+        };
       };
-      request.onsuccess = () => {
-        console.log('Successfully added entry to IndexedDB');
-        resolve();
+
+      getRequest.onerror = () => {
+        console.error('Error checking existing entry:', getRequest.error);
+        reject(getRequest.error);
       };
     });
   }
@@ -58,8 +77,7 @@ export class IndexedDBStorage {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const index = store.index('timestamp');
-      const request = index.getAll();
+      const request = store.getAll();
 
       request.onerror = () => {
         console.error('Error getting entries:', request.error);
