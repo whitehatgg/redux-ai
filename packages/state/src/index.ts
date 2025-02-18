@@ -11,6 +11,8 @@ export interface AIStateConfig<TState, TAction extends Action> {
   onError?: (error: Error) => void;
 }
 
+let _reduxAI: ReduxAIState<any, any> | null = null;
+
 export class ReduxAIState<TState, TAction extends Action> {
   private store: Store<TState>;
   private schema?: ReduxAISchema<TAction>;
@@ -30,7 +32,12 @@ export class ReduxAIState<TState, TAction extends Action> {
     try {
       const state = this.store.getState();
       console.log('Current state before processing:', state);
-      const response = await this.generateAIResponse(query, state);
+
+      // Get previous interactions for context
+      const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
+      console.log('Retrieved previous interactions:', previousInteractions);
+
+      const response = await this.generateAIResponse(query, state, previousInteractions);
       console.log('AI Response:', response);
 
       if (response.action) {
@@ -72,20 +79,21 @@ export class ReduxAIState<TState, TAction extends Action> {
     return this.vectorStorage.retrieveSimilar(query, limit);
   }
 
-  private async generateAIResponse(query: string, state: TState): Promise<{
+  private async generateAIResponse(query: string, state: TState, previousInteractions: any[]): Promise<{
     message: string;
     action: TAction | null;
   }> {
     try {
       // Get all available action creators from the store
       const availableActions = Object.keys(this.store.dispatch)
-        .filter(key => typeof this.store.dispatch[key] === 'function')
+        .filter(key => typeof this.store.dispatch[key as keyof typeof this.store.dispatch] === 'function')
         .map(key => ({
           type: `${key}`,
           description: `Action creator for ${key}`
         }));
 
       console.log('Available actions:', availableActions);
+      console.log('Previous interactions:', previousInteractions);
 
       const response = await fetch('/api/query', {
         method: 'POST',
@@ -95,7 +103,8 @@ export class ReduxAIState<TState, TAction extends Action> {
         body: JSON.stringify({
           query,
           state,
-          availableActions
+          availableActions,
+          previousInteractions
         }),
       });
 
@@ -118,7 +127,11 @@ export class ReduxAIState<TState, TAction extends Action> {
 export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
 ) => {
-  const instance = new ReduxAIState<TState, TAction>(config);
+  if (_reduxAI) {
+    return _reduxAI as ReduxAIState<TState, TAction>;
+  }
+
+  _reduxAI = new ReduxAIState<TState, TAction>(config);
 
   // Store initial state in vector storage
   const initialState = config.store.getState();
@@ -128,5 +141,12 @@ export const createReduxAIState = async <TState, TAction extends Action>(
     JSON.stringify(initialState, null, 2)
   );
 
-  return instance;
+  return _reduxAI;
+};
+
+export const getReduxAI = () => {
+  if (!_reduxAI) {
+    throw new Error('ReduxAI not initialized');
+  }
+  return _reduxAI;
 };

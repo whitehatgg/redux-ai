@@ -12,19 +12,36 @@ interface DebugEntry {
 export const VectorDebugger: React.FC = () => {
   const [entries, setEntries] = React.useState<DebugEntry[]>([]);
   const counter = useSelector((state: any) => state.demo.counter);
-  const { ragResults } = useReduxAI();
+  const { ragResults, isInitialized } = useReduxAI();
 
   React.useEffect(() => {
-    if (ragResults && Array.isArray(ragResults.similarDocs) && ragResults.similarDocs.length > 0) {
-      const newEntry: DebugEntry = {
-        query: ragResults.similarDocs[0]?.query || 'No query',
-        response: ragResults.similarDocs[0]?.response || 'No response',
-        state: ragResults.similarDocs[0]?.state || '{}',
-        timestamp: new Date().toISOString()
-      };
-      setEntries(prev => [newEntry, ...prev]);
+    if (isInitialized && ragResults) {
+      console.log('RAG Results updated:', ragResults);
+
+      // Ensure we have valid similarDocs array
+      const similarDocs = Array.isArray(ragResults.similarDocs) ? ragResults.similarDocs : [];
+      console.log('Processed similarDocs:', similarDocs);
+
+      if (similarDocs.length > 0) {
+        const newEntry: DebugEntry = {
+          query: similarDocs[0].query,
+          response: similarDocs[0].response,
+          state: similarDocs[0].state,
+          timestamp: new Date().toISOString()
+        };
+        console.log('Adding new debug entry:', newEntry);
+        setEntries(prev => [newEntry, ...prev]);
+      }
     }
-  }, [ragResults]);
+  }, [ragResults, isInitialized]);
+
+  if (!isInitialized) {
+    return (
+      <div className="w-full max-w-2xl mx-auto p-4 text-center">
+        Initializing vector storage...
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -34,7 +51,7 @@ export const VectorDebugger: React.FC = () => {
           <div className="font-semibold">Current Counter: {counter}</div>
         </div>
         <div className="h-[400px] overflow-auto">
-          {entries && entries.length > 0 ? (
+          {entries.length > 0 ? (
             entries.map((entry, index) => (
               <div key={index} className="mb-6 p-4 border rounded">
                 <div className="font-semibold mb-2">

@@ -13,7 +13,7 @@ export async function registerRoutes(app: Express) {
 
   app.post('/api/query', async (req, res) => {
     try {
-      const { query, state, availableActions } = req.body;
+      const { query, state, availableActions, previousInteractions = [] } = req.body;
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -31,6 +31,11 @@ export async function registerRoutes(app: Express) {
         ? `\nAvailable actions:\n${JSON.stringify(availableActions, null, 2)}`
         : '';
 
+      // Format previous interactions for context
+      const conversationHistory = previousInteractions
+        .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
+        .join('\n');
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -46,6 +51,9 @@ Current State Structure:
 ${stateDescription}
 ${actionsDescription}
 
+Previous Conversation:
+${conversationHistory}
+
 Instructions for State Interactions:
 1. The counter value is accessed at state.demo.counter
 2. For counter operations, use the actions 'demo/increment', 'demo/decrement', or 'demo/resetCounter'
@@ -53,6 +61,7 @@ Instructions for State Interactions:
    - Always mention the current counter value from state.demo.counter
    - For increment/decrement, mention both before and after values
    - Use exact action types: 'demo/increment', 'demo/decrement', 'demo/resetCounter', 'demo/setMessage'
+   - Reference previous interactions when relevant
 
 Respond with a JSON object:
 {
