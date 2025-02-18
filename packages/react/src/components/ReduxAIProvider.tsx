@@ -107,7 +107,17 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             try {
               const result = await onActionMatch(query);
               if (!result) return null;
-              return result;
+
+              // Validate action structure
+              if (result.action && typeof result.action === 'object' && 'type' in result.action) {
+                return result;
+              }
+
+              console.warn('Invalid action structure received:', result.action);
+              return {
+                action: null,
+                message: result.message || 'Invalid action structure received'
+              };
             } catch (error) {
               console.error('Error in action match:', error);
               return null;
@@ -139,8 +149,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
             setStateChanges(prev => [...prev, stateChange]);
 
-            // Store the interaction in vector storage
-            vectorStorage.store( //Corrected to store, assuming storeInteraction is a typo
+            // Store the interaction in vector storage using the correct method name
+            vectorStorage.storeInteraction(
               lastAction.type,
               JSON.stringify(stateChange),
               stateChange

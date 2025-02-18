@@ -55,12 +55,12 @@ export class ReduxAIState<TState, TAction extends Action> {
 
   private async getContext(query: string) {
     try {
-      const chatHistory = await this.vectorStorage.getSimilar(query, 3);
-      const stateChanges = await this.vectorStorage.getSimilar(query, 3);
+      const chatHistory = await this.vectorStorage.retrieveSimilar(query, 3);
+      const stateChanges = await this.vectorStorage.retrieveSimilar(query, 3);
 
       return JSON.stringify({
-        chatHistory: chatHistory.map(entry => entry.metadata),
-        stateChanges: stateChanges.map(entry => entry.metadata),
+        chatHistory: chatHistory.map(entry => ({ query: entry.query, response: entry.response })),
+        stateChanges: stateChanges.map(entry => ({ query: entry.query, state: entry.state })),
         currentState: this.store.getState(),
         availableActions: this.availableActions
       });
@@ -72,7 +72,7 @@ export class ReduxAIState<TState, TAction extends Action> {
 
   private async storeInteraction(query: string, response: string, metadata: any) {
     try {
-      await this.vectorStorage.store(
+      await this.vectorStorage.storeInteraction(
         query,
         response,
         metadata
@@ -153,7 +153,7 @@ export class ReduxAIState<TState, TAction extends Action> {
   async getSimilarInteractions(query: string, limit: number = 5) {
     try {
       console.log('Retrieving similar interactions for query:', query);
-      const interactions = await this.vectorStorage.getSimilar(query, limit);
+      const interactions = await this.vectorStorage.retrieveSimilar(query, limit);
       console.log('Retrieved interactions:', interactions);
       return interactions;
     } catch (error) {
