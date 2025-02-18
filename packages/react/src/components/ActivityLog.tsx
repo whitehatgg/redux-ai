@@ -29,7 +29,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       console.log('ActivityLog: Received vector entry:', entry);
 
       const newEntry: ActivityLogEntry = {
-        type: entry.metadata?.type === 'interaction' ? 'vector/store' : 'vector/add',
+        type: 'vector/store',
         timestamp: entry.timestamp,
         query: entry.query,
         response: entry.response

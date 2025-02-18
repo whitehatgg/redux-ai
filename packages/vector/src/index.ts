@@ -1,14 +1,7 @@
-import { VectorStorage } from './storage';
+import { VectorStorage, VectorEntry } from './storage';
 
-export interface VectorEntry {
-  content: string;
-  query?: string;
-  response?: string;
-  state?: string;
-  metadata?: Record<string, any>;
-  embedding?: number[];
-  timestamp: string;
-}
+// Re-export the VectorEntry type from storage to maintain consistency
+export type { VectorEntry } from './storage';
 
 export interface VectorConfig {
   collectionName: string;

@@ -66,6 +66,16 @@ export class VectorStorage {
     }
   }
 
+  async addEntry(entry: VectorEntry): Promise<void> {
+    try {
+      await this.storage.addEntry(entry);
+      this.notifyListeners(entry);
+    } catch (error) {
+      console.error('[VectorStorage] Error adding entry:', error);
+      throw error;
+    }
+  }
+
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
@@ -78,8 +88,7 @@ export class VectorStorage {
         timestamp: new Date().toISOString()
       };
 
-      await this.storage.addEntry(entry);
-      this.notifyListeners(entry);
+      await this.addEntry(entry);
     } catch (error) {
       console.error('[VectorStorage] Error storing interaction:', error);
       throw error;
