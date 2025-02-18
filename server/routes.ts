@@ -14,7 +14,7 @@ try {
   console.error('Error initializing OpenAI:', error);
 }
 
-async function createChatCompletion(messages: any[]) {
+async function createChatCompletion(messages: any[], currentState?: any) {
   try {
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
@@ -27,7 +27,7 @@ async function createChatCompletion(messages: any[]) {
 
     return response;
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('[OpenAI API Error]:', error);
     throw error;
   }
 }
@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { prompt, availableActions } = req.body;
+      const { prompt, availableActions, currentState } = req.body;
 
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
@@ -55,14 +55,18 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      console.log('[API] Processing query with prompt length:', prompt.length);
+      console.log('[API] Processing query:', {
+        promptLength: prompt.length,
+        actionsCount: availableActions.length,
+        hasState: !!currentState
+      });
 
       const response = await createChatCompletion([
         {
           role: "system",
           content: prompt
         }
-      ]);
+      ], currentState);
 
       if (!response.choices[0].message.content) {
         throw new Error('Invalid response format from AI');
@@ -74,14 +78,17 @@ export async function registerRoutes(app: Express) {
         throw new Error('Invalid response format: missing message');
       }
 
-      console.log('[API] Successfully processed query');
+      console.log('[API] Generated response:', {
+        message: content.message,
+        hasAction: !!content.action
+      });
 
       res.json({ 
         message: content.message,
         action: content.action || null
       });
     } catch (error: unknown) {
-      console.error('Error processing query:', error);
+      console.error('[API] Error processing query:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('API key')) {
@@ -91,7 +98,7 @@ export async function registerRoutes(app: Express) {
         }
         if (error.message.includes('does not have access to model')) {
           return res.status(403).json({ 
-            error: 'Your OpenAI API key does not have access to gpt-3.5-turbo. Please check your OpenAI account settings.'
+            error: 'Your OpenAI API key does not have access to the required model. Please check your OpenAI account settings.'
           });
         }
         if (error.message.includes('rate limit')) {

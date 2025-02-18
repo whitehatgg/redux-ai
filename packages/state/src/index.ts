@@ -71,8 +71,23 @@ export class ReduxAIState<TState> {
       };
 
       this.interactions.push(interaction);
-      await this.vectorStorage.storeInteraction(query, response, this.store.getState());
+
+      // Store the current state along with the interaction
+      const currentState = this.store.getState();
+      await this.vectorStorage.storeInteraction(
+        query, 
+        response,
+        currentState
+      );
+
+      console.log('[ReduxAIState] Stored interaction:', {
+        query,
+        response,
+        timestamp: interaction.timestamp
+      });
+
     } catch (error) {
+      console.error('[ReduxAIState] Error storing interaction:', error);
       if (this.onError) {
         this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
       }
@@ -85,7 +100,9 @@ export class ReduxAIState<TState> {
         await this.initialize();
       }
 
+      // Get recent interactions for context
       const conversationHistory = this.interactions
+        .slice(-5) // Only use last 5 interactions for context
         .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
 
@@ -95,10 +112,11 @@ export class ReduxAIState<TState> {
         conversationHistory
       );
 
-      console.log('[ReduxAIState] Sending request:', {
+      console.log('[ReduxAIState] Processing query:', {
+        query,
         promptLength: systemPrompt.length,
         actionsCount: this.availableActions.length,
-        query
+        interactionsCount: this.interactions.length
       });
 
       const apiResponse = await fetch('/api/query', {
@@ -107,44 +125,9 @@ export class ReduxAIState<TState> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: `
-            System: You are a Redux state management assistant. Your primary task is to help users manage column visibility in the applicant table.
-
-            When a user asks to hide/disable a column:
-            1. Get the current visible columns
-            2. Remove only the specified column
-            3. Keep all other columns visible
-            4. Be specific in your response about which column you're hiding
-
-            Current actions available: ${JSON.stringify(this.availableActions)}.
-            Current conversation history: ${conversationHistory}
-
-            User query: ${query}
-
-            Respond with a JSON object containing:
-            1. A 'message' field specifying exactly which column you're modifying
-            2. An 'action' field with the Redux action to dispatch
-
-            Example responses:
-            For "disable name":
-            {
-              "message": "I'll hide the 'name' column in the table",
-              "action": {
-                "type": "applicant/setVisibleColumns",
-                "payload": ["email", "status", "position", "appliedDate"]
-              }
-            }
-
-            For "disable status":
-            {
-              "message": "I'll hide the 'status' column in the table",
-              "action": {
-                "type": "applicant/setVisibleColumns",
-                "payload": ["name", "email", "position", "appliedDate"]
-              }
-            }
-          `,
-          availableActions: this.availableActions
+          prompt: systemPrompt,
+          availableActions: this.availableActions,
+          currentState: this.store.getState() // Send current state for context
         }),
       });
 
@@ -164,6 +147,7 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
+      // Store the interaction before dispatching action
       await this.storeInteraction(query, message);
 
       if (action) {
