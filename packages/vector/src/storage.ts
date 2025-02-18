@@ -85,15 +85,18 @@ export class VectorStorage {
   }
 
   private notifyListeners(entry: VectorEntry) {
-    console.log(`[VectorStorage ${this.instanceId}] Notifying ${this.listeners.size} listeners of new entry`);
+    console.log(`[VectorStorage ${this.instanceId}] Notifying ${this.listeners.size} listeners of new entry:`, {
+      type: entry.metadata?.type,
+      content: entry.content?.substring(0, 50)
+    });
     this.listeners.forEach(listener => listener(entry));
   }
 
-  async addEntry(entry: VectorEntry): Promise<void> {
+  async addEntry(entry: VectorEntry, notify: boolean = true): Promise<void> {
     console.log(`[VectorStorage ${this.instanceId}] Adding entry:`, {
       content: entry.content?.substring(0, 50),
       metadata: entry.metadata,
-      stack: new Error().stack
+      notify
     });
 
     const enhancedEntry: VectorEntry = {
@@ -104,14 +107,16 @@ export class VectorStorage {
     };
 
     await this.storage.addEntry(enhancedEntry);
-    this.notifyListeners(enhancedEntry);
+
+    if (notify) {
+      this.notifyListeners(enhancedEntry);
+    }
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     console.log(`[VectorStorage ${this.instanceId}] Storing interaction:`, {
       query: query?.substring(0, 50),
-      response: response?.substring(0, 50),
-      stack: new Error().stack
+      response: response?.substring(0, 50)
     });
 
     const stateString = typeof state === 'string' ? state : JSON.stringify(state);
@@ -127,8 +132,8 @@ export class VectorStorage {
       metadata: { type: 'interaction' }
     };
 
-    await this.storage.addEntry(entry);
-    console.log(`[VectorStorage ${this.instanceId}] Successfully stored interaction`);
+    // Pass notify=false since we'll notify after storing
+    await this.addEntry(entry, false);
     this.notifyListeners(entry);
   }
 
