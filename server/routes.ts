@@ -22,15 +22,6 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: 'OpenAI API key is not configured' });
       }
 
-      // Get the current Redux state
-      const currentState = state || {};
-      const counterValue = currentState.demo?.counter ?? 0;
-
-      const stateDescription = `Current Redux state:\n${JSON.stringify(currentState, null, 2)}\nCurrent counter value: ${counterValue}`;
-      const actionsDescription = availableActions 
-        ? `\nAvailable actions:\n${JSON.stringify(availableActions, null, 2)}`
-        : '';
-
       // Format previous interactions for context
       const conversationHistory = previousInteractions
         .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
@@ -42,35 +33,27 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
+Your task is to analyze user queries and determine appropriate Redux actions to dispatch.
 
-Current State Structure:
-- The Redux state has a 'demo' slice containing:
-  - counter: number (default: 0)
-  - message: string (default: '')
+Available Actions:
+${JSON.stringify(availableActions, null, 2)}
 
-${stateDescription}
-${actionsDescription}
+Current Application State:
+${JSON.stringify(state, null, 2)}
 
 Previous Conversation:
 ${conversationHistory}
 
-Instructions for State Interactions:
-1. The counter value is accessed at state.demo.counter
-2. For counter operations, use the actions 'demo/increment', 'demo/decrement', or 'demo/resetCounter'
-3. When responding to queries:
-   - Always mention the current counter value from state.demo.counter
-   - For increment/decrement, mention both before and after values
-   - Use exact action types: 'demo/increment', 'demo/decrement', 'demo/resetCounter', 'demo/setMessage'
-   - Reference previous interactions when relevant
+Instructions:
+1. Analyze the user's query and the current state
+2. Determine if any available action matches the user's intent
+3. Return a JSON response with:
+   - A natural language message explaining what action will be taken
+   - The action to dispatch (if applicable)
 
-Respond with a JSON object:
-{
-  "message": "Natural language response that includes the current counter value and any changes made",
-  "action": null | {
-    "type": "demo/increment" | "demo/decrement" | "demo/resetCounter" | "demo/setMessage",
-    "payload": "PAYLOAD_IF_NEEDED"
-  }
-}`
+Notes:
+- Only return actions that are in the availableActions list
+- If no appropriate action is found, return null for the action`
           },
           {
             role: "user",

@@ -90,20 +90,15 @@ export class ReduxAIState<TState> {
       const context = await this.getContext(query);
       console.log('Retrieved context:', context);
 
-      // Store the initial query
-      await this.storeInteraction(query, '', { query });
-
       if (!context) {
         const message = 'Failed to get context for query.';
         await this.storeInteraction(query, message, { query, error: message });
         return { message, action: null };
       }
 
-      // The LLM will use the context to determine the appropriate action
-      // This includes the currentState, chatHistory, and availableActions
-
-      // For now, return null action since we don't have LLM integration yet
-      const message = 'Action matching will be handled by LLM integration';
+      // Here we would make an API call to the LLM service
+      // For now, return a placeholder response
+      const message = "The API will process this query and return appropriate actions";
       await this.storeInteraction(query, message, { query, message });
       return { message, action: null };
 
