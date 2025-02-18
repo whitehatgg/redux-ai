@@ -89,15 +89,16 @@ export class ReduxAIState<TState> {
         .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
 
-      const prompt = generateSystemPrompt(
+      const systemPrompt = generateSystemPrompt(
         this.store.getState(),
         this.availableActions,
         conversationHistory
       );
 
       console.log('[ReduxAIState] Sending request:', {
-        promptLength: prompt.length,
-        actionsCount: this.availableActions.length
+        promptLength: systemPrompt.length,
+        actionsCount: this.availableActions.length,
+        query
       });
 
       const apiResponse = await fetch('/api/query', {
@@ -106,7 +107,27 @@ export class ReduxAIState<TState> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt,
+          prompt: `
+            System: You are a Redux state management assistant. When handling column visibility,
+            always specify which column the user wants to modify in your response message.
+            Current actions available: ${JSON.stringify(this.availableActions)}.
+            Current conversation history: ${conversationHistory}
+
+            User query: ${query}
+
+            Respond with a JSON object containing:
+            1. A 'message' field explaining what action you're taking
+            2. An 'action' field with the Redux action to dispatch (if needed)
+
+            Example response for hiding email column:
+            {
+              "message": "I'll hide the 'email' column in the table",
+              "action": {
+                "type": "applicant/setVisibleColumns",
+                "payload": ["name", "status", "position", "appliedDate"]
+              }
+            }
+          `,
           availableActions: this.availableActions
         }),
       });
@@ -130,6 +151,7 @@ export class ReduxAIState<TState> {
       await this.storeInteraction(query, message);
 
       if (action) {
+        console.log('[ReduxAIState] Dispatching action:', action);
         this.store.dispatch(action);
       }
 

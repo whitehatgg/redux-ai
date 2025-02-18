@@ -14,17 +14,17 @@ import { Loader2 } from "lucide-react";
 const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
-    description: 'Control column visibility in tables',
-    keywords: ['show', 'hide', 'column', 'field', 'display', 'visible', 'table']
+    description: 'Control which columns are visible in the applicant table',
+    keywords: ['show', 'hide', 'column', 'field', 'display', 'visible', 'table', 'name', 'email', 'status', 'position', 'appliedDate', 'disable', 'enable']
   },
   {
     type: 'applicant/toggleSearch',
-    description: 'Toggle search functionality',
+    description: 'Toggle search functionality on/off',
     keywords: ['enable', 'disable', 'search', 'toggle', 'switch']
   },
   {
     type: 'applicant/setSearchTerm',
-    description: 'Set search filter value',
+    description: 'Set search filter value to find specific applicants',
     keywords: ['search', 'find', 'filter', 'query']
   }
 ];
