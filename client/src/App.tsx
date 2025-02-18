@@ -6,6 +6,7 @@ import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
+import { useState } from 'react';
 
 // Define available actions for the demo
 const demoActions: ReduxAIAction[] = [
@@ -27,6 +28,8 @@ const demoActions: ReduxAIAction[] = [
 ];
 
 function AppContent() {
+  const [showActivityLog, setShowActivityLog] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto py-8 px-4">
@@ -41,13 +44,17 @@ function AppContent() {
         </div>
       </main>
 
-      {/* Fixed Chat Bubble and Activity Log */}
-      <div className="fixed bottom-4 right-4 z-50 flex gap-4">
-        <div className="relative">
-          <ChatBubble className="w-[350px] h-[450px] shadow-lg rounded-lg bg-background border" />
-        </div>
-        <ActivityLog className="w-[300px] h-[450px] bg-background border rounded-lg shadow-lg" />
+      {/* Fixed Chat Bubble */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <ChatBubble 
+          className="w-[350px] h-[450px] shadow-lg rounded-lg bg-background border" 
+          onToggleActivityLog={() => setShowActivityLog(!showActivityLog)}
+        />
       </div>
+      <ActivityLog 
+        open={showActivityLog} 
+        onClose={() => setShowActivityLog(false)} 
+      />
       <div className="text-sm text-muted-foreground fixed bottom-20 right-4 z-50 bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
         Try asking: "show only name and email columns" or "enable search"
       </div>
