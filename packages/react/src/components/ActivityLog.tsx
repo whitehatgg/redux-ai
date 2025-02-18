@@ -13,6 +13,13 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
 
   if (!open) return null;
 
+  const formatActionType = (action: any) => {
+    if (action?.type === 'applicant/setSearchTerm') {
+      return `Search for: ${action.payload}`;
+    }
+    return action?.type || 'State Change';
+  };
+
   return (
     <div className="fixed inset-y-0 right-0 w-80 bg-background border-l shadow-lg z-50">
       <div className="flex items-center justify-between p-4 border-b">
@@ -34,19 +41,20 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                 <div className="flex justify-between items-start mb-2">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">
-                      {change.action?.type || 'State Change'}
+                      {formatActionType(change.action)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(change.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <div className="mt-2">
-                  <p className="text-sm font-medium">State:</p>
-                  <pre className="mt-1 text-xs bg-background p-2 rounded overflow-x-auto">
-                    {JSON.stringify(change.state, null, 2)}
-                  </pre>
-                </div>
+                {change.action?.payload && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Query: {change.action.payload}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
