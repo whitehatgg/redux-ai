@@ -53,6 +53,8 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private async storeStateChange(action: TAction) {
     try {
       const state = this.store.getState();
+      console.log('Storing state change for action:', action.type);
+
       const stateData = {
         type: 'STATE_CHANGE',
         action: {
@@ -68,14 +70,13 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
       await this.vectorStorage.storeInteraction(
         action.type,
-        `${action.type} resulted in counter: ${state.demo.counter}`,
+        JSON.stringify(stateData.state),
         JSON.stringify(stateData)
       );
 
-      console.log('Stored state change:', {
-        action: stateData.action,
-        state: stateData.state,
-        timestamp: stateData.timestamp
+      console.log('Successfully stored state change:', {
+        action: action.type,
+        state: stateData.state
       });
     } catch (error) {
       console.error('Error storing state change:', error);
@@ -88,8 +89,8 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       console.log('Processing query:', query);
 
       // Check if this is a state query
-      if (query.toLowerCase().includes('value') || 
-          query.toLowerCase().includes('counter') || 
+      if (query.toLowerCase().includes('value') ||
+          query.toLowerCase().includes('counter') ||
           query.toLowerCase().includes('state')) {
         const stateInfo = await this.getStateInfo(query);
 
@@ -172,31 +173,39 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
   private async getStateInfo(query: string): Promise<string> {
     const currentState = this.store.getState();
-    const interactions = await this.vectorStorage.retrieveSimilar(query, 10);
 
-    // Format current state info
-    const stateInfo = `counter: ${currentState.demo.counter}, message: ${currentState.demo.message}`;
+    // Format current state info clearly
+    const stateInfo = `Current state: counter = ${currentState.demo.counter}${currentState.demo.message ? `, message = "${currentState.demo.message}"` : ''}`;
 
-    // Include history if available
-    const history = interactions
-      .map(entry => {
-        try {
-          const data = JSON.parse(entry.state);
-          if (data.type === 'STATE_CHANGE') {
-            const time = new Date(data.timestamp).toLocaleTimeString();
-            return `${time} - ${data.action.type} -> Counter: ${data.state.counter}`;
+    try {
+      // Get recent interactions for context
+      const interactions = await this.vectorStorage.retrieveSimilar(query, 5);
+      console.log('Retrieved interactions for state info:', interactions);
+
+      // Format recent actions if available
+      const recentActions = interactions
+        .map(entry => {
+          try {
+            const data = JSON.parse(entry.state);
+            if (data.type === 'STATE_CHANGE') {
+              return `${new Date(data.timestamp).toLocaleTimeString()} - ${data.action.type} → counter: ${data.state.counter}`;
+            }
+            return null;
+          } catch (e) {
+            console.error('Error parsing interaction:', e);
+            return null;
           }
-          return null;
-        } catch (e) {
-          console.error('Error parsing entry:', e);
-          return null;
-        }
-      })
-      .filter(Boolean)
-      .reverse()
-      .join('\n');
+        })
+        .filter(Boolean)
+        .join('\n');
 
-    return `Current state: ${stateInfo}\n\nState History:\n${history}`;
+      return recentActions
+        ? `${stateInfo}\n\nRecent actions:\n${recentActions}`
+        : stateInfo;
+    } catch (error) {
+      console.error('Error getting state history:', error);
+      return stateInfo;
+    }
   }
 
   private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {

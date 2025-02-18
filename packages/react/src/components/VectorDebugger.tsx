@@ -40,45 +40,49 @@ export const VectorDebugger: React.FC = () => {
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
           {entries && entries.length > 0 ? (
             entries.map((entry: any, index: number) => {
-              const { parsedState, type } = entry;
-
-              if (!parsedState) {
-                console.warn('Entry has no parsed state:', entry);
+              if (!entry.state) {
+                console.warn('Entry missing state:', entry);
                 return null;
               }
 
-              return (
-                <div 
-                  key={`${entry.timestamp}-${index}`} 
-                  className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">
-                      {type === 'STATE_CHANGE' ? (
-                        <>Action: {parsedState.action?.type}</>
-                      ) : (
-                        <>Query: {parsedState.query}</>
-                      )}
-                    </div>
-                    <time className="text-xs text-muted-foreground">
-                      {new Date(entry.timestamp).toLocaleTimeString()}
-                    </time>
-                  </div>
+              try {
+                const parsedState = JSON.parse(entry.state);
+                console.log('Rendering entry:', { entry, parsedState });
 
-                  {parsedState.state && (
+                return (
+                  <div 
+                    key={`${entry.timestamp}-${index}`} 
+                    className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium">
+                        {parsedState.type === 'STATE_CHANGE' ? (
+                          <>Action: {parsedState.action.type}</>
+                        ) : (
+                          <>Query: {parsedState.query || 'Unknown query'}</>
+                        )}
+                      </div>
+                      <time className="text-xs text-muted-foreground">
+                        {new Date(parsedState.timestamp).toLocaleTimeString()}
+                      </time>
+                    </div>
+
                     <div className="text-sm text-muted-foreground">
                       Counter: {parsedState.state.counter}
                       {parsedState.state.message && (
                         <span className="ml-2">| Message: {parsedState.state.message}</span>
                       )}
                     </div>
-                  )}
 
-                  {parsedState.response && (
-                    <div className="text-sm mt-2">{parsedState.response}</div>
-                  )}
-                </div>
-              );
+                    {parsedState.response && (
+                      <div className="text-sm mt-2">{parsedState.response}</div>
+                    )}
+                  </div>
+                );
+              } catch (error) {
+                console.error('Error rendering entry:', error, entry);
+                return null;
+              }
             }).filter(Boolean)
           ) : (
             <div className="text-center py-8 text-muted-foreground">
