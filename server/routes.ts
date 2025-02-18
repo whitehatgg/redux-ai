@@ -18,7 +18,7 @@ try {
 async function createChatCompletion(messages: any[]) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0613",
+      model: "gpt-3.5-turbo",
       messages,
       temperature: 0.7,
       max_tokens: 200
@@ -97,7 +97,7 @@ export async function registerRoutes(app: Express) {
         }
         if (error.message.includes('does not have access to model')) {
           return res.status(403).json({ 
-            error: 'Your OpenAI API key does not have access to gpt-3.5-turbo-0613. Please check your OpenAI account settings.'
+            error: 'Your OpenAI API key does not have access to gpt-3.5-turbo. Please check your OpenAI account settings.'
           });
         }
         if (error.message.includes('rate limit')) {
