@@ -8,6 +8,10 @@ export function useReduxAI() {
   const store = useStore();
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
+    if (isProcessing) {
+      throw new Error('A query is already being processed');
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -26,7 +30,7 @@ export function useReduxAI() {
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [isProcessing]);
 
   return {
     sendQuery,
