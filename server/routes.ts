@@ -15,23 +15,18 @@ try {
   console.error('Error initializing OpenAI:', error);
 }
 
-async function createChatCompletion(messages: any[], retryCount = 0) {
-  const models = ["gpt-3.5-turbo", "gpt-3.5-turbo-instruct"];
-  const maxRetries = 2;
-
+async function createChatCompletion(messages: any[]) {
   try {
     const response = await openai.chat.completions.create({
-      model: models[retryCount],
+      model: "gpt-3.5-turbo-0613",
       messages,
-      response_format: { type: "json_object" }
+      temperature: 0.7,
+      max_tokens: 200
     });
 
     return response;
-  } catch (error: any) {
-    if (error?.message?.includes('does not have access to model') && retryCount < models.length - 1) {
-      console.log(`Retrying with model: ${models[retryCount + 1]}`);
-      return createChatCompletion(messages, retryCount + 1);
-    }
+  } catch (error) {
+    console.error('OpenAI API Error:', error);
     throw error;
   }
 }
@@ -102,7 +97,7 @@ export async function registerRoutes(app: Express) {
         }
         if (error.message.includes('does not have access to model')) {
           return res.status(403).json({ 
-            error: 'Your OpenAI API key does not have access to any supported models (GPT-3.5 Turbo or GPT-3.5 Turbo-instruct). Please check your OpenAI account settings.'
+            error: 'Your OpenAI API key does not have access to gpt-3.5-turbo-0613. Please check your OpenAI account settings.'
           });
         }
         if (error.message.includes('rate limit')) {
