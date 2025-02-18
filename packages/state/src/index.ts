@@ -14,12 +14,21 @@ export class ReduxAIState<TState, TAction extends Action> {
   private schema: ReduxAISchema<TAction>;
   private machine;
   private onError?: (error: Error) => void;
+  private app?: any;
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
     this.onError = config.onError;
+  }
+
+  setApp(app: any) {
+    this.app = app;
+    // Make the store available to the Express app
+    if (this.app) {
+      this.app.locals.store = this.store;
+    }
   }
 
   async processQuery(query: string) {
@@ -57,7 +66,6 @@ export class ReduxAIState<TState, TAction extends Action> {
         },
         body: JSON.stringify({
           query,
-          state,
         }),
       });
 

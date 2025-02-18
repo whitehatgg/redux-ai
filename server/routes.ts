@@ -9,7 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
     try {
-      const { query, state } = req.body;
+      const { query } = req.body;
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -18,8 +18,9 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: 'OpenAI API key is not configured' });
       }
 
-      // Add state information to the system prompt
-      const stateDescription = state ? `Current Redux state:\n${JSON.stringify(state, null, 2)}` : 'No state available';
+      // Get the current Redux state from the store
+      const currentState = req.app.locals.store?.getState() || {};
+      const stateDescription = `Current Redux state:\n${JSON.stringify(currentState, null, 2)}`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -69,7 +70,7 @@ export async function registerRoutes(app: Express) {
 
       // Store the interaction in vector storage
       try {
-        await storage.storeInteraction(query, content.message, state || {});
+        await storage.storeInteraction(query, content.message, currentState || {});
         console.log('Stored interaction in vector storage');
       } catch (error) {
         console.error('Failed to store interaction:', error);
