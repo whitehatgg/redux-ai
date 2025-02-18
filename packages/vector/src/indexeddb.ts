@@ -1,4 +1,4 @@
-import { VectorEntry } from './storage';
+import type { VectorEntry } from './types';
 
 const DB_NAME = 'reduxai_vector';
 const STORE_NAME = 'vector_entries';
@@ -13,16 +13,15 @@ export class IndexedDBStorage {
       return;
     }
 
-    // Delete existing database to ensure clean slate
     try {
-      await new Promise<void>((resolve, reject) => {
-        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+      await new Promise<void>((resolve, _reject) => {
+        const deleteRequest = window.indexedDB.deleteDatabase(DB_NAME);
         deleteRequest.onsuccess = () => {
           console.log('[IndexedDB] Successfully deleted old database');
           resolve();
         };
-        deleteRequest.onerror = (e) => {
-          console.warn('[IndexedDB] Error deleting old database:', e);
+        deleteRequest.onerror = (_e) => {
+          console.warn('[IndexedDB] Error deleting old database');
           resolve(); // Continue even if delete fails
         };
       });
@@ -31,9 +30,9 @@ export class IndexedDBStorage {
     }
 
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = (event) => {
+      request.onerror = (_event) => {
         const error = request.error;
         console.error('[IndexedDB] Database error:', {
           name: error?.name,
@@ -49,8 +48,8 @@ export class IndexedDBStorage {
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
+      request.onupgradeneeded = (_event) => {
+        const db = request.result;
 
         if (db.objectStoreNames.contains(STORE_NAME)) {
           db.deleteObjectStore(STORE_NAME);
@@ -73,11 +72,15 @@ export class IndexedDBStorage {
       try {
         console.log('[IndexedDB] Adding entry:', { id: entry.id, timestamp: entry.timestamp });
 
-        const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+        const transaction = this.db?.transaction([STORE_NAME], 'readwrite');
+        if (!transaction) {
+          throw new Error('Failed to create transaction');
+        }
+
         const store = transaction.objectStore(STORE_NAME);
         const request = store.add({
           ...entry,
-          id: entry.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          id: entry.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`
         });
 
         request.onsuccess = () => {
@@ -108,7 +111,11 @@ export class IndexedDBStorage {
 
     return new Promise((resolve, reject) => {
       try {
-        const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+        const transaction = this.db?.transaction([STORE_NAME], 'readonly');
+        if (!transaction) {
+          throw new Error('Failed to create transaction');
+        }
+
         const store = transaction.objectStore(STORE_NAME);
         const request = store.getAll();
 

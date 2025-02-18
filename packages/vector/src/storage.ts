@@ -1,13 +1,5 @@
+import type { VectorEntry } from './types';
 import { IndexedDBStorage } from './indexeddb';
-
-export interface VectorEntry {
-  query: string;
-  response: string;
-  state: string;
-  timestamp: string;
-  embedding?: number[];
-  id?: string;
-}
 
 export interface VectorConfig {
   collectionName: string;
@@ -15,7 +7,7 @@ export interface VectorConfig {
   dimensions: number;
 }
 
-function textToVector(text: string, dimensions: number = 128): number[] {
+function textToVector(text: string, dimensions = 128): number[] {
   const vector = new Array(dimensions).fill(0);
   const normalized = text.toLowerCase().trim();
 
@@ -48,7 +40,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
-  private listeners: Set<(entry: VectorEntry) => void> = new Set();
+  private listeners = new Set<(entry: VectorEntry) => void>();
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -56,56 +48,50 @@ export class VectorStorage {
   }
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
-    try {
-      const storage = new IndexedDBStorage();
-      await storage.initialize();
-      return new VectorStorage(storage, config);
-    } catch (error) {
-      throw error;
-    }
+    const storage = new IndexedDBStorage();
+    await storage.initialize();
+    return new VectorStorage(storage, config);
   }
 
-  async addEntry(entry: VectorEntry): Promise<void> {
-    try {
-      await this.storage.addEntry(entry);
-      this.notifyListeners(entry);
-    } catch (error) {
-      throw error;
-    }
+  async addEntry(input: { vector: number[]; metadata: Record<string, unknown> }): Promise<void> {
+    const entry: VectorEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      vector: input.vector,
+      metadata: input.metadata,
+      timestamp: Date.now()
+    };
+
+    await this.storage.addEntry(entry);
+    this.notifyListeners(entry);
   }
 
-  async storeInteraction(query: string, response: string, state: any): Promise<void> {
-    try {
-      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
-      const entry: VectorEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  async storeInteraction(query: string, response: string, state: unknown): Promise<void> {
+    const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+    await this.addEntry({
+      vector: textToVector(`${query} ${response}`, this.dimensions),
+      metadata: {
         query,
         response,
-        state: stateString,
-        embedding: textToVector(`${query} ${response}`, this.dimensions),
-        timestamp: new Date().toISOString()
-      };
-
-      await this.addEntry(entry);
-    } catch (error) {
-      throw error;
-    }
+        state: stateString
+      }
+    });
   }
 
-  async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
+  async retrieveSimilar(query: string, limit = 5): Promise<VectorEntry[]> {
     try {
-      const queryEmbedding = textToVector(query, this.dimensions);
+      const queryVector = textToVector(query, this.dimensions);
       const entries = await this.storage.getAllEntries();
 
       return entries
         .map(entry => ({
           entry,
-          score: cosineSimilarity(queryEmbedding, entry.embedding || [])
+          score: cosineSimilarity(queryVector, entry.vector)
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, limit)
         .map(({ entry }) => entry);
     } catch (error) {
+      console.error('Error retrieving similar entries:', error);
       return [];
     }
   }
@@ -114,29 +100,32 @@ export class VectorStorage {
     try {
       return await this.storage.getAllEntries();
     } catch (error) {
+      console.error('Error getting all entries:', error);
       return [];
     }
   }
 
-  subscribe(listener: (entry: VectorEntry) => void) {
+  subscribe(listener: (entry: VectorEntry) => void): () => void {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  private notifyListeners(entry: VectorEntry) {
+  private notifyListeners(entry: VectorEntry): void {
     this.listeners.forEach(listener => {
       try {
         listener(entry);
       } catch (error) {
-        // Ignore listener errors
+        console.error('Error in vector storage listener:', error);
       }
     });
   }
 }
 
-export const createReduxAIVector = async (config: Partial<VectorConfig> = {}): Promise<VectorStorage> => {
+export const createReduxAIVector = async (
+  config: Partial<VectorConfig> = {}
+): Promise<VectorStorage> => {
   const defaultConfig: VectorConfig = {
     collectionName: 'reduxai_vector',
     maxEntries: 100,

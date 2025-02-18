@@ -1,26 +1,31 @@
-import { VectorStorage, VectorEntry } from './storage';
+import type { ReduxAIAction } from '@redux-ai/state';
+import type { VectorEntry, VectorConfig, ReduxAIVector } from './types';
+import { VectorStorage } from './storage';
+import { IndexedDBStorage } from './indexeddb';
 
-// Re-export the VectorEntry type from storage to maintain consistency
-export type { VectorEntry } from './storage';
+export type { 
+  VectorEntry,
+  VectorConfig,
+  ReduxAIVector,
+  ReduxAIAction
+};
 
-export interface VectorConfig {
-  collectionName: string;
-  maxEntries: number;
-  dimensions: number;
-}
+export { VectorStorage };
+export { IndexedDBStorage };
 
 export interface VectorSearchParams {
   query: string;
   limit?: number;
 }
 
-export interface ReduxAIVector {
-  addEntry(entry: VectorEntry): Promise<void>;
-  storeInteraction(query: string, response: string, state: any): Promise<void>;
-  retrieveSimilar(query: string, limit?: number): Promise<VectorEntry[]>;
-  getAllEntries(): Promise<VectorEntry[]>;
-  subscribe(listener: (entry: VectorEntry) => void): () => void;
-}
-
-export { VectorStorage, createReduxAIVector } from './storage';
-export { IndexedDBStorage } from './indexeddb';
+export const createReduxAIVector = async (
+  config: Partial<VectorConfig> = {}
+): Promise<VectorStorage> => {
+  const defaultConfig: VectorConfig = {
+    collectionName: 'reduxai_vector',
+    maxEntries: 100,
+    dimensions: 128,
+    ...config
+  };
+  return VectorStorage.create(defaultConfig);
+};
