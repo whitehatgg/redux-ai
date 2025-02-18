@@ -36,18 +36,23 @@ export async function registerRoutes(app: Express) {
             role: "system",
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
 
-Current State Information:
+State Structure:
+The Redux state is structured with a 'demo' slice that contains:
+- counter: number (starts at 0)
+- message: string
+
 ${stateDescription}
 ${actionsDescription}
 
-When checking values:
-1. Look for the appropriate state value in the current state
-2. Always include the current value in your response
-3. If a state change is requested, mention both the action taken and the previous value
+When responding to queries:
+1. Look at state.demo.counter for the counter value
+2. Always mention the current counter value in your response
+3. If modifying the counter, mention both the previous and new value
+4. Use the exact action types from availableActions
 
 Respond with a JSON object containing:
 {
-  "message": "Natural language response explaining what was done and the current state values",
+  "message": "Natural language response explaining what was done, including current values",
   "action": null | {
     "type": "ACTION_TYPE",
     "payload": "PAYLOAD_IF_NEEDED"

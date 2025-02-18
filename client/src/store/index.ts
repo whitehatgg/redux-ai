@@ -19,6 +19,14 @@ export const initializeReduxAI = async () => {
       collectionName: 'interactions'
     });
 
+    // Initialize with initial state to ensure vector storage has the base state
+    const initialState = store.getState();
+    await vectorStorage.storeInteraction(
+      'Initial State',
+      'Store initialized',
+      JSON.stringify(initialState, null, 2)
+    );
+
     _reduxAI = createReduxAIState({
       store,
       vectorStorage,
@@ -34,7 +42,7 @@ export const initializeReduxAI = async () => {
       if (currentState !== lastState) {
         vectorStorage.storeInteraction(
           'State Update',
-          'Store state was updated',
+          `Store state updated from previous state: ${JSON.stringify(lastState, null, 2)}`,
           JSON.stringify(currentState, null, 2)
         ).catch(console.error);
         lastState = currentState;
