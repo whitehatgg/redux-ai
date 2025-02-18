@@ -54,18 +54,18 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                 <div 
                   key={index} 
                   className={`rounded-lg p-4 ${
-                    change.isAIAction ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-muted'
+                    change.trigger === 'ai' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-muted'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          change.isAIAction 
+                          change.trigger === 'ai'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
                         }`}>
-                          {change.isAIAction ? 'AI Action' : 'User Action'}
+                          {change.trigger === 'ai' ? 'AI Triggered' : 'UI Triggered'}
                         </span>
                         <p className="text-sm font-medium">
                           {formatAction(change.action)}

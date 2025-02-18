@@ -1,9 +1,3 @@
-declare global {
-  interface Window {
-    __LAST_ACTION__: any;
-  }
-}
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Store, Action } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
@@ -18,6 +12,7 @@ interface ReduxAIContextType {
     state: any;
     timestamp: string;
     isAIAction: boolean;
+    trigger: 'ai' | 'ui';
   }>;
 }
 
@@ -47,6 +42,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     state: any;
     timestamp: string;
     isAIAction: boolean;
+    trigger: 'ai' | 'ui';
   }>>([]);
 
   // Function to record state change
@@ -63,12 +59,24 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       return;
     }
 
-    // Determine if this is an AI-triggered action
+    // Check if this is one of the AI-available actions
     const isAIAction = availableActions.some(available => available.type === action.type);
+
+    // Determine trigger source based on window.__LAST_ACTION__
+    // If the action was dispatched through the AI interface, it will be marked as AI-triggered
+    const isAITriggered = typeof window !== 'undefined' && 
+                         window.__LAST_ACTION__ && 
+                         window.__LAST_ACTION__.__source === 'ai';
 
     setStateChanges(prev => {
       const timestamp = new Date().toISOString();
-      const newChange = { action, state, timestamp, isAIAction };
+      const newChange = { 
+        action, 
+        state, 
+        timestamp, 
+        isAIAction,
+        trigger: isAITriggered ? 'ai' : 'ui'
+      };
 
       // Check if this exact action was already recorded
       const isDuplicate = prev.some(entry =>

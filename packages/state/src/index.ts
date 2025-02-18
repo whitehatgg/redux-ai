@@ -110,10 +110,14 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
-      // If an action was returned, dispatch it without validation
+      // If an action was returned, mark it as AI-triggered and dispatch it
       if (action) {
         console.log('Dispatching action:', action);
-        this.store.dispatch(action);
+        const actionWithSource = {
+          ...action,
+          __source: 'ai'
+        };
+        this.store.dispatch(actionWithSource);
       }
 
       // Store the interaction
