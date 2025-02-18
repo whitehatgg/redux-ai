@@ -1,6 +1,6 @@
 import React from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
-import { useReduxAIContext } from './ReduxAIProvider';  // Changed from useReduxAI
+import { useReduxAIContext } from './ReduxAIProvider';
 import { X } from 'lucide-react';
 
 interface ActivityLogProps {
@@ -9,7 +9,7 @@ interface ActivityLogProps {
 }
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
-  const { stateChanges } = useReduxAIContext();  // Use context directly
+  const { stateChanges } = useReduxAIContext();
 
   if (!open) return null;
 
@@ -18,8 +18,25 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
     if (action?.type === 'applicant/setSearchTerm') {
       return `Search for: ${action.payload}`;
     }
+    if (action?.type === 'applicant/toggleSearch') {
+      return `${action.payload ? 'Enable' : 'Disable'} search`;
+    }
     return action?.type || 'Unknown action';
   };
+
+  // Filter out duplicate consecutive actions
+  const filteredChanges = stateChanges.reduce((acc: any[], current, index) => {
+    // Skip if this is a duplicate of the previous action
+    if (index > 0) {
+      const prev = stateChanges[index - 1];
+      if (prev.action?.type === current.action?.type &&
+          JSON.stringify(prev.action?.payload) === JSON.stringify(current.action?.payload) &&
+          Date.now() - new Date(prev.timestamp).getTime() < 2000) { // Within 2 seconds
+        return acc;
+      }
+    }
+    return [...acc, current];
+  }, []);
 
   return (
     <div className="fixed inset-y-0 right-0 w-80 bg-background border-l shadow-lg z-50">
@@ -37,8 +54,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       <ScrollArea.Root className="h-[calc(100vh-5rem)]">
         <ScrollArea.Viewport className="h-full w-full">
           <div className="p-4 space-y-4">
-            {stateChanges && stateChanges.length > 0 ? (
-              stateChanges.map((change, index) => (
+            {filteredChanges && filteredChanges.length > 0 ? (
+              filteredChanges.map((change, index) => (
                 <div key={index} className="bg-muted rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="space-y-1">
