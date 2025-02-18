@@ -3,10 +3,15 @@ import { createReduxAIState } from '@redux-ai/state';
 import { createReduxAIVector } from '@redux-ai/vector';
 import demoReducer from './slices/demoSlice';
 
+// Create the Redux store with the demo reducer
 export const store = configureStore({
   reducer: {
     demo: demoReducer
-  }
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    })
 });
 
 let _reduxAI: Awaited<ReturnType<typeof createReduxAIState>> | null = null;
@@ -25,6 +30,14 @@ export const initializeReduxAI = async () => {
       onError: (error) => {
         console.error('ReduxAI Error:', error);
       }
+    });
+
+    // Log initial state after ReduxAI initialization
+    console.log('Initial Redux State:', store.getState());
+
+    // Subscribe to store changes
+    store.subscribe(() => {
+      console.log('Redux State Updated:', store.getState());
     });
 
     return _reduxAI;

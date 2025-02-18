@@ -16,15 +16,18 @@ export const demoSlice = createSlice({
   reducers: {
     increment: (state) => {
       state.counter += 1;
+      console.log('Counter incremented to:', state.counter); // Add logging
     },
     decrement: (state) => {
       state.counter -= 1;
+      console.log('Counter decremented to:', state.counter); // Add logging
     },
     setMessage: (state, action: PayloadAction<string>) => {
       state.message = action.payload;
     },
     resetCounter: (state) => {
       state.counter = 0;
+      console.log('Counter reset to:', state.counter); // Add logging
     },
   },
 });
