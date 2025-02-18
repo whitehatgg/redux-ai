@@ -1,6 +1,5 @@
 import React from 'react';
 import { useReduxAI } from '../hooks/useReduxAI';
-import { useSelector } from 'react-redux';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'error';
@@ -11,7 +10,6 @@ export const ChatBubble: React.FC = () => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
   const { sendQuery, isProcessing, error, isInitialized, ragResults } = useReduxAI();
-  const counter = useSelector((state: any) => state.demo.counter);
 
   React.useEffect(() => {
     if (ragResults?.similarDocs?.length > 0) {
@@ -28,7 +26,7 @@ export const ChatBubble: React.FC = () => {
     setInput('');
 
     try {
-      console.log('Sending query:', input, 'Current counter:', counter);
+      console.log('Sending query:', input);
       const response = await sendQuery(input);
       console.log('Received response:', response);
       const assistantMessage: ChatMessage = { role: 'assistant', content: response };
@@ -54,9 +52,6 @@ export const ChatBubble: React.FC = () => {
   return (
     <div className="w-full max-w-md mx-auto rounded-lg border bg-card text-card-foreground shadow-sm">
       <div className="p-4">
-        <div className="mb-4">
-          <div className="text-sm font-medium">Current Counter: {counter}</div>
-        </div>
         <div className="h-[400px] overflow-auto pr-4">
           {messages.map((message, index) => (
             <div
