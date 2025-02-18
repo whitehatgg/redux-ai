@@ -1,13 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { useReduxAI } from '../hooks/useReduxAI';
-
-interface DebugEntry {
-  query: string;
-  response: string;
-  state: string;
-  timestamp: string;
-}
+import { useVectorDebug } from '../hooks/useVectorDebug';
 
 interface RootState {
   demo: {
@@ -16,43 +9,25 @@ interface RootState {
 }
 
 export const VectorDebugger: React.FC = () => {
-  const [debugEntries, setDebugEntries] = React.useState<DebugEntry[]>([]);
   const counter = useSelector((state: RootState) => state.demo.counter);
-  const { ragResults, isInitialized } = useReduxAI();
-
-  React.useEffect(() => {
-    // Skip if not initialized
-    if (!isInitialized) {
-      return;
-    }
-
-    // Safely check for ragResults and similarDocs
-    if (!ragResults || !Array.isArray(ragResults.similarDocs)) {
-      return;
-    }
-
-    // Get the first document if it exists
-    const doc = ragResults.similarDocs[0];
-    if (!doc) {
-      return;
-    }
-
-    // Create new entry with safe fallbacks
-    const newEntry: DebugEntry = {
-      query: doc.query ?? 'No query available',
-      response: doc.response ?? 'No response available',
-      state: doc.state ?? '{}',
-      timestamp: doc.timestamp ?? new Date().toISOString()
-    };
-
-    setDebugEntries(prev => [newEntry, ...prev].slice(0, 10));
-  }, [ragResults, isInitialized]);
+  const { entries, isLoading, error } = useVectorDebug();
 
   // Show loading state
-  if (!isInitialized) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4 text-muted-foreground">
-        <div className="animate-pulse">Initializing vector storage...</div>
+        <div className="animate-pulse">
+          Initializing vector storage...
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if any
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-4 text-destructive">
+        <div>Error: {error}</div>
       </div>
     );
   }
@@ -68,8 +43,8 @@ export const VectorDebugger: React.FC = () => {
         </div>
 
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
-          {debugEntries && debugEntries.length > 0 ? (
-            debugEntries.map((entry, index) => (
+          {entries.length > 0 ? (
+            entries.map((entry, index) => (
               <div 
                 key={`${entry.timestamp}-${index}`} 
                 className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
