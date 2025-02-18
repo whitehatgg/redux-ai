@@ -66,7 +66,6 @@ export class VectorStorage {
     }
   }
 
-
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);

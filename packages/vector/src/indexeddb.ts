@@ -2,7 +2,7 @@ import { VectorEntry } from './storage';
 
 const DB_NAME = 'reduxai_vector';
 const STORE_NAME = 'vector_entries';
-const DB_VERSION = 4;
+const DB_VERSION = 1;
 
 export class IndexedDBStorage {
   private db: IDBDatabase | null = null;
@@ -21,8 +21,8 @@ export class IndexedDBStorage {
           console.log('[IndexedDB] Successfully deleted old database');
           resolve();
         };
-        deleteRequest.onerror = () => {
-          console.warn('[IndexedDB] Error deleting old database');
+        deleteRequest.onerror = (e) => {
+          console.warn('[IndexedDB] Error deleting old database:', e);
           resolve(); // Continue even if delete fails
         };
       });
@@ -34,8 +34,13 @@ export class IndexedDBStorage {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = (event) => {
-        console.error('[IndexedDB] Database error:', request.error);
-        reject(new Error('Failed to open IndexedDB'));
+        const error = request.error;
+        console.error('[IndexedDB] Database error:', {
+          name: error?.name,
+          message: error?.message,
+          code: error?.code,
+        });
+        reject(new Error(`Failed to open IndexedDB: ${error?.message}`));
       };
 
       request.onsuccess = () => {
@@ -66,9 +71,14 @@ export class IndexedDBStorage {
 
     return new Promise((resolve, reject) => {
       try {
+        console.log('[IndexedDB] Adding entry:', { id: entry.id, timestamp: entry.timestamp });
+
         const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
-        const request = store.add(entry);
+        const request = store.add({
+          ...entry,
+          id: entry.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        });
 
         request.onsuccess = () => {
           console.log('[IndexedDB] Entry added successfully');
@@ -76,8 +86,13 @@ export class IndexedDBStorage {
         };
 
         request.onerror = () => {
-          console.error('[IndexedDB] Error adding entry:', request.error);
-          reject(new Error('Failed to add entry'));
+          const error = request.error;
+          console.error('[IndexedDB] Error adding entry:', {
+            name: error?.name,
+            message: error?.message,
+            code: error?.code,
+          });
+          reject(new Error(`Failed to add entry: ${error?.message}`));
         };
       } catch (error) {
         console.error('[IndexedDB] Critical error in addEntry:', error);
@@ -102,8 +117,13 @@ export class IndexedDBStorage {
         };
 
         request.onerror = () => {
-          console.error('[IndexedDB] Error getting entries:', request.error);
-          reject(new Error('Failed to get entries'));
+          const error = request.error;
+          console.error('[IndexedDB] Error getting entries:', {
+            name: error?.name,
+            message: error?.message,
+            code: error?.code,
+          });
+          reject(new Error(`Failed to get entries: ${error?.message}`));
         };
       } catch (error) {
         console.error('[IndexedDB] Critical error in getAllEntries:', error);
