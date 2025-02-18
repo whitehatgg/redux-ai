@@ -155,8 +155,11 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       .map(entry => {
         try {
           const data = JSON.parse(entry.state);
-          if (data.state?.demo) {
-            return `At ${data.timestamp}: counter was ${data.state.demo.counter}`;
+          const stateData = data.state?.demo || data.postState?.demo;
+          const actionType = data.action?.type;
+
+          if (stateData) {
+            return `At ${new Date(data.timestamp).toLocaleTimeString()}: ${actionType || 'State query'} - Counter: ${stateData.counter}`;
           }
           return null;
         } catch (e) {
@@ -164,6 +167,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
         }
       })
       .filter(Boolean)
+      .reverse() // Show most recent first
       .join('\n');
 
     return `Current state: ${stateInfo}\n\nHistory:\n${history}`;
