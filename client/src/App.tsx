@@ -29,6 +29,7 @@ const demoActions: ReduxAIAction[] = [
 // Custom action matching logic
 const matchAction = (query: string) => {
   const lowerQuery = query.toLowerCase().trim();
+  let lastSearchTerm = '';
 
   // Match show columns command
   const showColumnsMatch = /^show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?$/.exec(lowerQuery);
@@ -51,16 +52,31 @@ const matchAction = (query: string) => {
     }
   }
 
-  // Match search command
-  const searchMatch = /^(?:search|find|look)\s+(?:for\s+)?([a-zA-Z0-9@\s.]+)$/.exec(lowerQuery);
+  // Match search command with more variations
+  const searchPattern = /^(?:(?:search|find|look|filter)\s+(?:for\s+)?|show\s+me\s+|get\s+)([a-zA-Z0-9@\s.]+)$/i;
+  const searchMatch = searchPattern.exec(lowerQuery);
   if (searchMatch) {
     const searchTerm = searchMatch[1].trim();
+    lastSearchTerm = searchTerm;
     return {
       action: {
         type: 'applicant/setSearchTerm',
         payload: searchTerm
       },
       message: `Searching for: ${searchTerm}`
+    };
+  }
+
+  // Match navigation/history commands
+  const historyPattern = /^(?:go\s+back\s+to|return\s+to|show)\s+(?:the\s+)?(first|last|previous)\s+(?:search|query)$/i;
+  const historyMatch = historyPattern.exec(lowerQuery);
+  if (historyMatch) {
+    return {
+      action: {
+        type: 'applicant/setSearchTerm',
+        payload: lastSearchTerm
+      },
+      message: `Returning to previous search${lastSearchTerm ? ': ' + lastSearchTerm : ''}`
     };
   }
 
