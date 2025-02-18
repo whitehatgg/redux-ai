@@ -1,16 +1,20 @@
 import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
+  query?: string;
+  response?: string;
+  state?: string;
   content: string;
   metadata?: Record<string, any>;
   embedding?: number[];
-  timestamp?: string;
+  timestamp: string;
 }
 
 export interface VectorConfig {
   collectionName: string;
   maxEntries: number;
   dimensions: number;
+  onStateChange?: (action: { type: string; payload?: any; query?: string }) => void;
 }
 
 export interface VectorSearchParams {
@@ -53,72 +57,135 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
+  private onStateChange?: VectorConfig['onStateChange'];
 
-  private constructor(storage: IndexedDBStorage, dimensions: number = 128) {
+  private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
-    this.dimensions = dimensions;
+    this.dimensions = config.dimensions;
+    this.onStateChange = config.onStateChange;
   }
 
-  static async create(dimensions: number = 128): Promise<VectorStorage> {
+  static async create(config: VectorConfig): Promise<VectorStorage> {
     try {
       console.log('Initializing vector storage...');
       const storage = new IndexedDBStorage();
       await storage.initialize();
       console.log('Vector storage initialized successfully');
-      return new VectorStorage(storage, dimensions);
+      return new VectorStorage(storage, config);
     } catch (error) {
       console.error('Failed to initialize vector storage:', error);
       throw new Error(`Vector storage initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
+  private notifyStateChange(action: { type: string; payload?: any; query?: string }) {
+    if (this.onStateChange) {
+      this.onStateChange(action);
+    }
+  }
+
+  // Implement ReduxAIVector interface methods
   async addEntry(entry: VectorEntry): Promise<void> {
     try {
-      console.log('Storing entry:', entry);
-      const embedding = textToVector(entry.content, this.dimensions);
-      await this.storage.addEntry({
+      console.log('Adding entry:', entry);
+
+      // Ensure required fields are present
+      const enhancedEntry: VectorEntry = {
         ...entry,
-        embedding,
-        timestamp: new Date().toISOString()
+        content: entry.content,
+        embedding: entry.embedding || textToVector(entry.content, this.dimensions),
+        timestamp: entry.timestamp || new Date().toISOString()
+      };
+
+      await this.storage.addEntry(enhancedEntry);
+      this.notifyStateChange({
+        type: 'add',
+        payload: { entry: enhancedEntry },
+        query: entry.query
       });
-      console.log('Entry stored successfully');
     } catch (error) {
-      console.error('Error storing entry:', error);
+      console.error('Error adding entry:', error);
       throw error;
     }
   }
 
   async search(params: VectorSearchParams): Promise<VectorEntry[]> {
+    return this.retrieveSimilar(params.query, params.limit);
+  }
+
+  // Original methods
+  async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
-      console.log('Searching for similar entries:', params);
-      const queryEmbedding = textToVector(params.query, this.dimensions);
+      console.log('Storing interaction:', { query, response });
+      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+      const entry: VectorEntry = {
+        query,
+        response,
+        state: stateString,
+        content: `${query} ${response}`,
+        embedding: textToVector(`${query} ${response}`, this.dimensions),
+        timestamp: new Date().toISOString(),
+        metadata: { type: 'interaction' }
+      };
+
+      await this.storage.addEntry(entry);
+      console.log('Entry stored successfully');
+
+      this.notifyStateChange({
+        type: 'store',
+        payload: { query, response },
+        query
+      });
+    } catch (error) {
+      console.error('Error storing interaction:', error);
+      throw error;
+    }
+  }
+
+  async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
+    try {
+      console.log('Retrieving similar interactions for query:', query);
+      const queryEmbedding = textToVector(query, this.dimensions);
       const entries = await this.storage.getAllEntries();
 
-      // Sort by cosine similarity
       const scoredEntries = entries
         .map(entry => ({
           entry,
           score: cosineSimilarity(queryEmbedding, entry.embedding || [])
         }))
         .sort((a, b) => b.score - a.score)
-        .slice(0, params.limit || 5)
-        .map(({ entry }) => ({
-          content: entry.content,
-          metadata: entry.metadata,
-          embedding: entry.embedding,
-          timestamp: entry.timestamp
-        }));
+        .slice(0, limit)
+        .map(({ entry }) => entry);
+
+      this.notifyStateChange({
+        type: 'retrieve',
+        payload: { query, results: scoredEntries.length },
+        query
+      });
 
       console.log(`Found ${scoredEntries.length} similar entries`);
       return scoredEntries;
     } catch (error) {
-      console.error('Error searching entries:', error);
+      console.error('Error retrieving similar interactions:', error);
+      return [];
+    }
+  }
+
+  async getAllEntries(): Promise<VectorEntry[]> {
+    try {
+      const entries = await this.storage.getAllEntries();
+      this.notifyStateChange({
+        type: 'list',
+        payload: { count: entries.length }
+      });
+      return entries;
+    } catch (error) {
+      console.error('Error getting all entries:', error);
       return [];
     }
   }
 }
 
 export const createReduxAIVector = async (config: VectorConfig): Promise<VectorStorage> => {
-  const storage = await VectorStorage.create(config.dimensions);
-  return storage;
+  return VectorStorage.create(config);
 };

@@ -26,6 +26,8 @@ export class IndexedDBStorage {
             keyPath: 'timestamp'
           });
           store.createIndex('timestamp', 'timestamp', { unique: false });
+          store.createIndex('content', 'content', { unique: false });
+          store.createIndex('query', 'query', { unique: false });
         }
       };
     });
