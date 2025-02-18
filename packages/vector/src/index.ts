@@ -30,7 +30,7 @@ export class ReduxAIVector {
 
   async retrieveSimilar(query: string, limit: number = 5) {
     try {
-      return await this.storage.findSimilar(query, limit);
+      return await this.storage.retrieveSimilar(query, limit);
     } catch (error) {
       console.error('Error retrieving similar interactions:', error);
       return [];

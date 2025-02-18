@@ -88,7 +88,14 @@ Respond with a JSON object containing:
         return res.status(400).json({ error: 'Text is required' });
       }
 
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ error: 'OpenAI API key is not configured' });
+      }
+
+      console.log('Generating embedding for text:', text.substring(0, 50) + '...');
       const embedding = await embeddings.embedQuery(text);
+
+      console.log('Successfully generated embedding');
       res.json({ embedding });
     } catch (error: unknown) {
       console.error('Error generating embedding:', error);
