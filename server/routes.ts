@@ -14,58 +14,26 @@ try {
   console.error('Error initializing OpenAI:', error);
 }
 
-// Helper function to generate action examples based on available actions
-function generateActionExamples(actions: ReduxAIAction[]): string {
-  const categorizedActions = actions.reduce((acc, action) => {
-    const category = action.type.split('/')[0];
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(action);
-    return acc;
-  }, {} as Record<string, ReduxAIAction[]>);
-
-  return Object.entries(categorizedActions)
-    .map(([category, categoryActions]) => {
-      const example = categoryActions[0];
-      return `${category} related queries:
-- When user mentions "${example.keywords.join('" or "')}"
-- Use action type "${example.type}"
-- Example: "${example.description}"`;
-    })
-    .join('\n\n');
-}
-
-// Generate dynamic system prompt based on available actions
-function generateSystemPrompt(state: any, availableActions: ReduxAIAction[], conversationHistory: string): string {
-  const actionExamples = generateActionExamples(availableActions);
-
+function generateSystemPrompt(state: any, availableActions: ReduxAIAction[]): string {
   return `You are an AI assistant that helps users interact with a Redux store through natural language.
 
-Available Actions (IMPORTANT - use exactly these action types):
+Available Actions:
 ${JSON.stringify(availableActions, null, 2)}
 
 Current State:
 ${JSON.stringify(state, null, 2)}
 
-Your task is to convert natural language queries into Redux actions from the available list above.
+Your task is to convert natural language queries into Redux actions.
+You must respond with a JSON object containing:
+1. "message": A clear explanation of what action you're taking
+2. "action": The Redux action to dispatch, using EXACTLY one of the available action types, or null if no action matches
 
-Rules for action mapping:
-${actionExamples}
-
-Previous Conversation:
-${conversationHistory}
-
-IMPORTANT: You must return a JSON response with:
-1. "message": Clear explanation of the action taken
-2. "action": Must use one of the exact action types listed above, or null if no action matches
-
-Response format example:
+Example response format:
 {
-  "message": "I'll perform the requested action",
+  "message": "I'll help you with that request",
   "action": {
-    "type": "example/actionType",
-    "payload": "relevant data"
+    "type": "example/action",
+    "payload": "value"
   }
 }`;
 }
@@ -78,10 +46,12 @@ export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
     try {
       if (!openai) {
-        return res.status(500).json({ error: 'OpenAI client is not initialized' });
+        return res.status(500).json({ 
+          error: 'OpenAI client is not initialized. Please ensure API key is configured.' 
+        });
       }
 
-      const { query, state, availableActions, previousInteractions = [] } = req.body;
+      const { query, state, availableActions } = req.body;
 
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
@@ -91,11 +61,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      const conversationHistory = previousInteractions
-        .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
-        .join('\n');
-
-      const systemPrompt = generateSystemPrompt(state, availableActions, conversationHistory);
+      const systemPrompt = generateSystemPrompt(state, availableActions);
 
       const response = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
