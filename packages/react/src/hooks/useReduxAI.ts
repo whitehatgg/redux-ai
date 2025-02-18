@@ -13,12 +13,23 @@ interface StateChange {
   };
 }
 
+interface DemoState {
+  demo: {
+    counter: number;
+    message?: string;
+  };
+  _lastAction?: {
+    type: string;
+    payload?: any;
+  };
+}
+
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stateChanges, setStateChanges] = useState<StateChange[]>([]);
   const dispatch = useDispatch();
-  const store = useStore();
+  const store = useStore<DemoState>();
   const { isInitialized } = useReduxAIContext();
 
   // Track state changes
@@ -35,14 +46,18 @@ export function useReduxAI() {
           type: 'STATE_CHANGE',
           timestamp: new Date().toISOString(),
           state: currentState.demo,
-          action: store.getState()._lastAction
+          action: currentState._lastAction
         },
         ...prev
       ]);
 
       // Store in vector storage for history
       const reduxAI = getReduxAI();
-      reduxAI.storeStateChange(currentState).catch(console.error);
+      try {
+        reduxAI.processQuery(`State changed to: ${JSON.stringify(currentState.demo)}`).catch(console.error);
+      } catch (error) {
+        console.error('Error processing state change:', error);
+      }
     });
 
     return () => unsubscribe();
@@ -54,9 +69,7 @@ export function useReduxAI() {
 
     try {
       const reduxAI = getReduxAI();
-      const currentState = store.getState();
       const response = await reduxAI.processQuery(query);
-
       return response.message;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

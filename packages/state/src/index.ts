@@ -179,13 +179,12 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private async getStateInfo(query: string): Promise<string> {
     const currentState = this.store.getState();
 
-    // Format current state info clearly
+    // Format current state info clearly and concisely
     const stateInfo = `Current state: counter = ${currentState.demo.counter}${currentState.demo.message ? `, message = "${currentState.demo.message}"` : ''}`;
 
     try {
       // Get recent interactions for context
       const interactions = await this.vectorStorage.retrieveSimilar(query, 5);
-      console.log('Retrieved interactions for state info:', interactions);
 
       // Format recent actions if available
       const recentActions = interactions
@@ -193,20 +192,18 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
           try {
             const data = JSON.parse(entry.state);
             if (data.type === 'STATE_CHANGE') {
-              return `${new Date(data.timestamp).toLocaleTimeString()} - ${data.action.type} → counter: ${data.state.counter}`;
+              return `${new Date(data.timestamp).toLocaleTimeString()} - ${data.action.type}`;
             }
             return null;
           } catch (e) {
-            console.error('Error parsing interaction:', e);
             return null;
           }
         })
         .filter(Boolean)
         .join('\n');
 
-      return recentActions
-        ? `${stateInfo}\n\nRecent actions:\n${recentActions}`
-        : stateInfo;
+      // Return only state info if no recent actions
+      return stateInfo;
     } catch (error) {
       console.error('Error getting state history:', error);
       return stateInfo;
