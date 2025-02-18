@@ -6,7 +6,6 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function registerRoutes(app: Express) {
-  // Add health check endpoint
   app.get('/health', (_req, res) => {
     res.status(200).send('OK');
   });
@@ -26,7 +25,6 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: 'OpenAI API key is not configured' });
       }
 
-      // Format previous interactions for context
       const conversationHistory = previousInteractions
         .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
@@ -38,18 +36,23 @@ export async function registerRoutes(app: Express) {
             role: "system",
             content: `You are an AI assistant that helps users interact with a Redux application through natural language.
 
-Your primary task is to understand user queries and map them to appropriate Redux actions.
+Your task is to convert natural language queries into appropriate Redux actions.
 
-When analyzing queries:
-1. Look for key verbs and nouns that indicate user intent
-2. Map that intent to available actions
-3. Extract relevant parameters for the action payload
-4. Construct a clear response explaining what will be done
+Key Instructions:
+1. Extract Action Type:
+   - Identify the user's intent from their query
+   - Match it to an available action type
 
-For example, when users mention:
-- "search" or "find" -> Look for actions related to search/filtering
-- "show" or "hide" -> Look for actions related to visibility
-- "enable" or "disable" -> Look for toggle actions
+2. Extract Action Payload:
+   - For search/filter actions: Use the search terms or filters mentioned
+   - For toggle actions: Use boolean values
+   - For visibility actions: Use array of fields/columns mentioned
+
+3. Handle Common Patterns:
+   When users say things like:
+   - "search for X" or "find X" -> Extract X as the search term
+   - "show/hide X" -> Extract X as the field to show/hide
+   - "enable/disable X" -> Convert to true/false for toggles
 
 Available Actions:
 ${JSON.stringify(availableActions, null, 2)}
@@ -60,26 +63,44 @@ ${JSON.stringify(state, null, 2)}
 Previous Conversation:
 ${conversationHistory}
 
-You must ALWAYS return a JSON response in this format:
+Example Responses:
+
+For search queries:
 {
-  "message": "A clear explanation of what action will be taken",
+  "message": "I'll search for the term 'example'",
   "action": {
-    "type": "one of the available action types",
-    "payload": "appropriate payload based on the query"
+    "type": "someAction/setSearchTerm",
+    "payload": "example"
   }
 }
 
-If no matching action is found, return:
+For visibility:
+{
+  "message": "I'll show the requested columns",
+  "action": {
+    "type": "someAction/setVisibleColumns",
+    "payload": ["field1", "field2"]
+  }
+}
+
+For toggles:
+{
+  "message": "I'll enable the search feature",
+  "action": {
+    "type": "someAction/toggleSearch",
+    "payload": true
+  }
+}
+
+If no action matches:
 {
   "message": "I couldn't find an appropriate action for your request. Here's why...",
   "action": null
 }
 
-Focus on:
-1. Understanding the user's intent from their natural language query
-2. Matching that intent to the most appropriate available action
-3. Constructing the correct payload for that action
-4. Providing clear feedback about what will be done`
+Always return a JSON response with:
+1. A clear "message" explaining what will be done
+2. An "action" object with "type" and "payload" (or null if no match)`
           },
           {
             role: "user",
