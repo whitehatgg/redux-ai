@@ -17,8 +17,6 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@redux-ai/schema": "workspace:*",
-    "chromadb": "^1.10.4",
-    "langchain": "^0.3.15"
+    "@redux-ai/schema": "workspace:*"
   }
 }

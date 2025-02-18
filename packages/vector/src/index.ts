@@ -1,7 +1,7 @@
 import { VectorStorage } from './storage';
 
 export interface VectorConfig {
-  collectionName: string;
+  collectionName?: string; // Made optional since we're not using it with IndexedDB
 }
 
 export class ReduxAIVector {
@@ -11,13 +11,12 @@ export class ReduxAIVector {
     this.storage = storage;
   }
 
-  static async create(config: VectorConfig): Promise<ReduxAIVector> {
-    const storage = await VectorStorage.create(config.collectionName);
+  static async create(_config: VectorConfig): Promise<ReduxAIVector> {
+    const storage = await VectorStorage.create();
     return new ReduxAIVector(storage);
   }
 
   async storeInteraction(query: string, response: string, state: any) {
-    // Ensure state is properly stringified for storage
     const stateString = typeof state === 'string' ? state : JSON.stringify(state, null, 2);
 
     await this.storage.addEntry({

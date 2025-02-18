@@ -8,22 +8,22 @@ export interface VectorEntry {
 }
 
 export class VectorStorage {
-  private indexedDB: IndexedDBStorage;
+  private storage: IndexedDBStorage;
 
-  private constructor(indexedDB: IndexedDBStorage) {
-    this.indexedDB = indexedDB;
+  private constructor(storage: IndexedDBStorage) {
+    this.storage = storage;
   }
 
-  static async create(collectionName: string): Promise<VectorStorage> {
-    const indexedDB = new IndexedDBStorage();
-    await indexedDB.initialize();
-    return new VectorStorage(indexedDB);
+  static async create(): Promise<VectorStorage> {
+    const storage = new IndexedDBStorage();
+    await storage.initialize();
+    return new VectorStorage(storage);
   }
 
   async addEntry(entry: VectorEntry) {
     try {
       console.log('Adding new entry to vector storage');
-      await this.indexedDB.addEntry(entry);
+      await this.storage.addEntry(entry);
       console.log('Successfully added entry');
     } catch (error) {
       console.error('Failed to add entry:', error);
@@ -33,7 +33,7 @@ export class VectorStorage {
 
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
     try {
-      const entries = await this.indexedDB.getAllEntries();
+      const entries = await this.storage.getAllEntries();
       if (entries.length === 0) return [];
 
       // Sort by timestamp descending (most recent first) and return top N

@@ -6,6 +6,11 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function registerRoutes(app: Express) {
+  // Add health check endpoint
+  app.get('/health', (_req, res) => {
+    res.status(200).send('OK');
+  });
+
   app.post('/api/query', async (req, res) => {
     try {
       const { query } = req.body;
