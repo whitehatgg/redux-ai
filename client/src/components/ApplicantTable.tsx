@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 export function ApplicantTable() {
   const dispatch = useDispatch();
   const { applicants, tableConfig } = useSelector((state: RootState) => state.applicant);
-  
+
   const filteredApplicants = applicants.filter(applicant => {
     if (!tableConfig.enableSearch || !tableConfig.searchTerm) return true;
     const searchLower = tableConfig.searchTerm.toLowerCase();
@@ -48,7 +48,7 @@ export function ApplicantTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-muted rounded-lg">
         <div className="flex items-center gap-2">
           <Checkbox
             id="enableSearch"
@@ -62,12 +62,12 @@ export function ApplicantTable() {
             placeholder="Search applicants..."
             value={tableConfig.searchTerm}
             onChange={(e) => dispatch(setSearchTerm(e.target.value))}
-            className="max-w-xs"
+            className="w-full sm:w-auto"
           />
         )}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
         {allColumns.map(({ key, label }) => (
           <div key={key} className="flex items-center gap-2">
             <Checkbox
@@ -80,13 +80,13 @@ export function ApplicantTable() {
         ))}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="overflow-x-auto border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
               {allColumns.map(({ key, label }) => (
                 tableConfig.visibleColumns.includes(key) && (
-                  <TableHead key={key}>{label}</TableHead>
+                  <TableHead key={key} className="whitespace-nowrap">{label}</TableHead>
                 )
               ))}
             </TableRow>
@@ -96,7 +96,7 @@ export function ApplicantTable() {
               <TableRow key={applicant.id}>
                 {allColumns.map(({ key }) => (
                   tableConfig.visibleColumns.includes(key) && (
-                    <TableCell key={key}>{applicant[key]}</TableCell>
+                    <TableCell key={key} className="whitespace-nowrap">{applicant[key]}</TableCell>
                   )
                 ))}
               </TableRow>

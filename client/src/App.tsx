@@ -35,18 +35,22 @@ function AppContent() {
         </h1>
         <div className="grid gap-8">
           <div className="flex flex-col gap-4">
-            <ChatBubble />
-            <ActivityLog />
-            <div className="text-sm text-muted-foreground mb-4">
-              Try asking: "show only name and email columns" or "enable search"
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold mb-4">Applicant Management</h2>
-              <ApplicantTable />
-            </div>
+            <h2 className="text-2xl font-semibold mb-4">Applicant Management</h2>
+            <ApplicantTable />
           </div>
         </div>
       </main>
+
+      {/* Fixed Chat Bubble and Activity Log */}
+      <div className="fixed bottom-4 right-4 z-50 flex gap-4">
+        <div className="relative">
+          <ChatBubble className="w-[350px] h-[450px] shadow-lg rounded-lg bg-background border" />
+        </div>
+        <ActivityLog className="w-[300px] h-[450px] bg-background border rounded-lg shadow-lg" />
+      </div>
+      <div className="text-sm text-muted-foreground fixed bottom-20 right-4 z-50 bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
+        Try asking: "show only name and email columns" or "enable search"
+      </div>
     </div>
   );
 }
