@@ -39,17 +39,18 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 useEffect(() => {
     const initialize = async () => {
       try {
-        console.log('Initializing ReduxAI components...');
+        console.log('Starting ReduxAI initialization...');
 
         // Initialize vector storage with proper configuration
+        console.log('Initializing vector storage...');
         const vectorStorage = await createReduxAIVector({
           collectionName: 'redux-ai-store',
           initialize: true
         });
-
         console.log('Vector storage initialized successfully');
 
         // Initialize ReduxAI state manager
+        console.log('Initializing ReduxAI state manager...');
         await createReduxAIState({
           store,
           schema,
@@ -62,7 +63,7 @@ useEffect(() => {
         });
 
         setIsInitialized(true);
-        console.log('ReduxAI initialization complete with available actions:', availableActions);
+        console.log('ReduxAI initialization complete');
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to initialize ReduxAI';
         console.error('ReduxAI initialization error:', message);

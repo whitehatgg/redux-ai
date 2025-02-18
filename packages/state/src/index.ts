@@ -53,7 +53,12 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private async storeStateChange(action: TAction) {
     try {
       const state = this.store.getState();
-      console.log('Storing state change for action:', action.type);
+      console.log('Attempting to store state change for action:', action.type);
+
+      if (!this.vectorStorage) {
+        console.error('Vector storage not initialized');
+        return;
+      }
 
       const stateData = {
         type: 'STATE_CHANGE',
@@ -68,6 +73,8 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
         timestamp: new Date().toISOString()
       };
 
+      console.log('State data to store:', stateData);
+
       await this.vectorStorage.storeInteraction(
         action.type,
         JSON.stringify(stateData.state),
@@ -76,10 +83,14 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
       console.log('Successfully stored state change:', {
         action: action.type,
-        state: stateData.state
+        state: stateData.state,
+        timestamp: stateData.timestamp
       });
     } catch (error) {
       console.error('Error storing state change:', error);
+      if (this.onError) {
+        this.onError(error instanceof Error ? error : new Error('Failed to store state change'));
+      }
     }
   }
 

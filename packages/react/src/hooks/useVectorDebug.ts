@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { VectorEntry } from '@redux-ai/vector';
 import { getReduxAI } from '@redux-ai/state';
 import { useReduxAIContext } from '../components/ReduxAIProvider';
@@ -19,51 +19,54 @@ export function useVectorDebug() {
       try {
         setIsLoading(true);
         const reduxAI = getReduxAI();
+        console.log('Fetching vector entries...');
 
         // Fetch recent state changes and interactions
         const data = await reduxAI.getSimilarInteractions('', 100);
-        console.log('Retrieved vector entries:', data);
+        console.log('Raw vector entries:', data);
+
+        if (!Array.isArray(data)) {
+          console.error('Expected array of entries but got:', typeof data);
+          setError('Invalid data format received');
+          return;
+        }
 
         const formattedEntries = data
           .map(entry => {
             try {
               if (!entry.state) {
-                console.warn('Entry has no state:', entry);
+                console.warn('Entry missing state:', entry);
                 return null;
               }
 
               const parsed = JSON.parse(entry.state);
-              console.log('Processing entry:', parsed);
+              console.log('Successfully parsed entry:', parsed);
 
               return {
                 ...entry,
                 parsedState: parsed,
-                timestamp: parsed.timestamp,
-                type: parsed.type || 'UNKNOWN',
-                action: parsed.action || null,
-                query: parsed.query || null,
-                response: parsed.response || null
+                timestamp: new Date().toISOString()
               };
-            } catch (e) {
-              console.error('Error parsing entry:', e, entry);
+            } catch (error) {
+              console.error('Failed to parse entry:', error, entry);
               return null;
             }
           })
-          .filter(Boolean)
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          .filter(Boolean);
 
         console.log('Formatted entries:', formattedEntries);
         setEntries(formattedEntries);
         setError(null);
-      } catch (err) {
-        console.error('Error fetching debug entries:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch debug entries');
+      } catch (error) {
+        console.error('Error in fetchEntries:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch vector entries');
         setEntries([]);
       } finally {
         setIsLoading(false);
       }
     };
 
+    console.log('Starting vector debug polling...');
     fetchEntries();
     const interval = setInterval(fetchEntries, 2000);
 
