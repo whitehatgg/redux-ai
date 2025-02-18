@@ -33,14 +33,14 @@ const matchAction = (query: string) => {
   const lowerQuery = query.toLowerCase();
 
   // Match show columns command
-  const columnMatch = lowerQuery.match(/show\s+(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/);
-  if (columnMatch) {
-    const columns = [columnMatch[1], columnMatch[2]]
-      .filter(Boolean)
-      .filter((col): col is keyof Applicant => {
-        const validColumns: Array<keyof Applicant> = ['name', 'email', 'status', 'position', 'appliedDate'];
-        return validColumns.includes(col as keyof Applicant);
-      });
+  const showColumnsMatch = /show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/.exec(lowerQuery);
+  if (showColumnsMatch) {
+    const requestedColumns = [showColumnsMatch[1], showColumnsMatch[2]].filter(Boolean);
+    const validColumns: Array<keyof Applicant> = ['name', 'email', 'status', 'position', 'appliedDate'];
+
+    const columns = requestedColumns.filter(col => 
+      validColumns.includes(col as keyof Applicant)
+    ) as Array<keyof Applicant>;
 
     if (columns.length > 0) {
       return {
@@ -48,7 +48,7 @@ const matchAction = (query: string) => {
           type: 'applicant/setVisibleColumns',
           payload: columns
         },
-        message: `Updated visible columns to show: ${columns.join(', ')}`
+        message: `Showing only these columns: ${columns.join(', ')}`
       };
     }
   }

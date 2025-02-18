@@ -2,29 +2,30 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Store } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector } from '@redux-ai/vector';
-import { createReduxAIState } from '@redux-ai/state';
+import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
 interface ReduxAIContextType {
   isInitialized: boolean;
   error: string | null;
+  stateChanges: Array<{
+    action?: any;
+    state: any;
+    timestamp: string;
+  }>;
 }
 
 const ReduxAIContext = createContext<ReduxAIContextType>({
   isInitialized: false,
   error: null,
+  stateChanges: [],
 });
-
-export interface ReduxAIAction {
-  type: string;
-  description: string;
-  keywords: string[];
-}
 
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
   schema?: ReduxAISchema<any>;
   availableActions: ReduxAIAction[];
+  onActionMatch?: (query: string) => { action: any; message: string } | null;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
@@ -32,9 +33,15 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   store,
   schema,
   availableActions,
+  onActionMatch,
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stateChanges, setStateChanges] = useState<Array<{
+    action?: any;
+    state: any;
+    timestamp: string;
+  }>>([]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -57,10 +64,22 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           schema,
           vectorStorage,
           availableActions,
+          onActionMatch,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
             setError(error.message);
           }
+        });
+
+        // Subscribe to store changes
+        store.subscribe(() => {
+          const state = store.getState();
+          const action = store.getState()?._lastAction;
+          setStateChanges(prev => [...prev, {
+            action,
+            state,
+            timestamp: new Date().toISOString()
+          }]);
         });
 
         setIsInitialized(true);
@@ -73,7 +92,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     };
 
     initialize();
-  }, [store, schema, availableActions]);
+  }, [store, schema, availableActions, onActionMatch]);
 
   if (error) {
     return (
@@ -92,7 +111,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }
 
   return (
-    <ReduxAIContext.Provider value={{ isInitialized, error }}>
+    <ReduxAIContext.Provider value={{ isInitialized, error, stateChanges }}>
       {children}
     </ReduxAIContext.Provider>
   );
