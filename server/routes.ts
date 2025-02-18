@@ -28,31 +28,30 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
-            ${stateDescription}
 
-            Rules for generating actions:
-            1. Actions must have a 'type' field
-            2. Actions may optionally have a 'payload' field
-            3. Action types should be in SCREAMING_SNAKE_CASE
-            4. Payload should contain only serializable data
+Current State Information:
+${stateDescription}
 
-            For counter operations:
-            - Use INCREMENT to increase counter by 1
-            - Use DECREMENT to decrease counter by 1
-            - The counter value is stored in state.demo.counter
-            - Always check if counter exists in state.demo before operations
+Rules for working with the counter:
+1. The counter is stored at state.demo.counter
+2. The counter should start at 0 if not initialized
+3. Use these exact actions for counter operations:
+   - { type: 'INCREMENT' } to increase by 1
+   - { type: 'DECREMENT' } to decrease by 1
+   - { type: 'RESET_COUNTER' } to reset to 0
 
-            When asked about state values, look them up in the current state and report them accurately.
-            For the counter value, specifically check state.demo.counter.
+When checking the counter value:
+1. Look for state.demo.counter in the current state
+2. Always include the current counter value in your response
+3. If an increment/decrement is requested, mention both the action taken and the previous value
 
-            Respond with a JSON object containing:
-            {
-              "message": "Natural language response explaining what was done or found",
-              "action": {
-                "type": "ACTION_TYPE",
-                "payload": {} // Optional, include only if needed
-              }
-            }`
+Respond with a JSON object containing:
+{
+  "message": "Natural language response explaining what was done and the current counter value",
+  "action": {
+    "type": "ACTION_TYPE"
+  }
+}`
           },
           {
             role: "user",
