@@ -40,6 +40,11 @@ export class ReduxAIState<TState, TAction extends Action> {
 
   private async storeStateChange(action: TAction, message: string) {
     try {
+      if (!action || typeof action !== 'object' || !('type' in action)) {
+        console.warn('Invalid action in storeStateChange:', action);
+        return;
+      }
+
       const state = this.store.getState();
       const stateData = {
         type: 'STATE_CHANGE',
@@ -51,10 +56,8 @@ export class ReduxAIState<TState, TAction extends Action> {
       await this.vectorStorage.storeInteraction(
         message,
         JSON.stringify(stateData),
-        JSON.stringify(stateData),
-        `${action.type}-${Date.now()}` // Add unique key
+        JSON.stringify(stateData)
       );
-
     } catch (error) {
       console.error('Error storing state change:', error);
       if (this.onError) {
@@ -74,41 +77,58 @@ export class ReduxAIState<TState, TAction extends Action> {
       // Use client-provided action matching function
       if (this.onActionMatch) {
         const actionInfo = await this.onActionMatch(query);
-        if (actionInfo && actionInfo.action && typeof actionInfo.action === 'object' && 'type' in actionInfo.action) {
-          // Validate the action type against available actions
-          const isValidAction = this.availableActions.some(
-            availableAction => availableAction.type === actionInfo.action.type
-          );
 
-          if (!isValidAction) {
-            console.warn('Invalid action type:', actionInfo.action.type);
-            return {
-              message: 'Unable to perform that action.',
-              action: null
-            };
-          }
-
-          // Store the interaction with a unique key
-          const stateData = {
-            query,
-            action: actionInfo.action,
-            message: actionInfo.message,
-            timestamp: new Date().toISOString()
+        // Validate action info and structure
+        if (!actionInfo) {
+          return {
+            message: 'I could not determine an appropriate action for your request.',
+            action: null
           };
-
-          await this.vectorStorage.storeInteraction(
-            query,
-            actionInfo.message,
-            JSON.stringify(stateData),
-            `${query}-${Date.now()}` // Add unique key
-          );
-
-          // Store the state change after dispatching
-          this.store.dispatch(actionInfo.action);
-          await this.storeStateChange(actionInfo.action, actionInfo.message);
-
-          return actionInfo;
         }
+
+        const { action, message } = actionInfo;
+
+        // Validate action structure
+        if (!action || typeof action !== 'object' || !('type' in action)) {
+          console.warn('Invalid action structure:', action);
+          return {
+            message: 'Unable to process that action.',
+            action: null
+          };
+        }
+
+        // Validate action type against available actions
+        const isValidAction = this.availableActions.some(
+          availableAction => availableAction.type === action.type
+        );
+
+        if (!isValidAction) {
+          console.warn('Invalid action type:', action.type);
+          return {
+            message: 'Unable to perform that action.',
+            action: null
+          };
+        }
+
+        // Store the interaction and dispatch valid action
+        const stateData = {
+          query,
+          action,
+          message,
+          timestamp: new Date().toISOString()
+        };
+
+        await this.vectorStorage.storeInteraction(
+          query,
+          message,
+          JSON.stringify(stateData)
+        );
+
+        // Dispatch the action
+        this.store.dispatch(action);
+        await this.storeStateChange(action, message);
+
+        return { action, message };
       }
 
       return {

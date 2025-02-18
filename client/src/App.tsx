@@ -65,40 +65,7 @@ const matchAction = async (query: string) => {
     };
   }
 
-  // Match query about last search
-  const lastQueryPattern = /^(?:what|show|tell\s+me)\s+(?:was|is)\s+(?:my\s+)?(?:last|previous)\s+(?:search|query)$/i;
-  if (lastQueryPattern.test(lowerQuery)) {
-    const interactions = await vectorStorage.retrieveSimilar('search', 1);
-    if (interactions.length > 0) {
-      const lastInteraction = JSON.parse(interactions[0].data);
-      return {
-        action: null,
-        message: `Your last search query was: "${lastInteraction.query}"`
-      };
-    }
-    return {
-      action: null,
-      message: "You haven't made any searches yet."
-    };
-  }
-
-  // Match navigation/history commands
-  const historyPattern = /^(?:go\s+back\s+to|return\s+to|show)\s+(?:the\s+)?(first|last|previous)\s+(?:search|query)$/i;
-  const historyMatch = historyPattern.exec(lowerQuery);
-  if (historyMatch) {
-    const interactions = await vectorStorage.retrieveSimilar('search', 1);
-    if (interactions.length > 0) {
-      const lastInteraction = JSON.parse(interactions[0].data);
-      return {
-        action: {
-          type: 'applicant/setSearchTerm',
-          payload: lastInteraction.action.payload
-        },
-        message: `Returning to previous search: "${lastInteraction.query}"`
-      };
-    }
-  }
-
+  // If no action matches, return null
   return null;
 };
 
