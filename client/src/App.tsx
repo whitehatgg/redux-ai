@@ -1,9 +1,10 @@
 /**
- * feat(landing): Update repository URL and improve code formatting
+ * feat(app): Update repository link and improve code style
  * 
- * - Changed "Get Started" button to link to whitehatgg/redux-ai repository
- * - Standardized component prop spacing and formatting
- * - Improved readability of multiline component declarations
+ * Changes:
+ * - Updated repository URL for Get Started button to point to whitehatgg/redux-ai
+ * - Standardized component props indentation for consistency
+ * - Removed trailing whitespace in component declarations
  */
 
 import { Provider } from 'react-redux';
