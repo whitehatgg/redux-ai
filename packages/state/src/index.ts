@@ -2,7 +2,7 @@ import { createMachine } from "xstate";
 import { createConversationMachine } from "./machine";
 import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
 import { ReduxAISchema } from "@redux-ai/schema";
-import { ReduxAIVector, VectorConfig } from "@redux-ai/vector";
+import { ReduxAIVector } from "@redux-ai/vector";
 
 // Define base action type that includes optional payload and index signature
 interface BaseAction extends Action {
@@ -21,15 +21,15 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private store: Store;
   private schema?: ReduxAISchema<TAction>;
   private machine;
-  private onError?: (error: Error) => void;
   private vectorStorage: ReduxAIVector;
+  private onError?: (error: Error) => void;
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
-    this.onError = config.onError;
     this.vectorStorage = config.vectorStorage;
+    this.onError = config.onError;
   }
 
   async processQuery(query: string) {
@@ -39,10 +39,10 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
       // Get previous interactions for context
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
-      console.log('Retrieved previous interactions:', previousInteractions);
+      console.log('Previous interactions:', previousInteractions);
 
-      // Infer action from query and schema
-      const actionInfo = await this.inferActionFromQuery(query, state);
+      // Infer action from query and state
+      const actionInfo = this.inferActionFromState(query, state);
       console.log('Inferred action:', actionInfo);
 
       if (actionInfo) {
@@ -72,7 +72,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       }
 
       return {
-        message: 'Unable to determine appropriate action for your request.',
+        message: 'I could not determine an appropriate action for your request.',
         action: null
       };
     } catch (error) {
@@ -85,89 +85,81 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     }
   }
 
-  private async inferActionFromQuery(query: string, currentState: TState): Promise<{ action: TAction; message: string } | null> {
+  private inferActionFromState(query: string, currentState: TState): { action: TAction; message: string } | null {
     try {
       const lowerQuery = query.toLowerCase();
-      const stateKeys = Object.keys(currentState);
 
-      // Get available actions from schema if provided
-      const availableActions = this.schema?.actions || [];
-      console.log('Available actions from schema:', availableActions);
+      // Extract slice names and their state values
+      const stateSlices = Object.entries(currentState);
 
-      // Pattern match the query against state keys and available actions
-      for (const key of stateKeys) {
-        const stateValue = (currentState as any)[key];
-
-        // Match numeric operations
-        if (typeof stateValue === 'number') {
-          if (lowerQuery.includes('increase') || lowerQuery.includes('increment')) {
-            return {
-              action: { 
-                type: `${key}/increment`,
-                payload: 1 
-              } as TAction,
-              message: `Increasing ${key}`
-            };
-          }
-          if (lowerQuery.includes('decrease') || lowerQuery.includes('decrement')) {
-            return {
-              action: { 
-                type: `${key}/decrement`,
-                payload: 1 
-              } as TAction,
-              message: `Decreasing ${key}`
-            };
-          }
-          if (lowerQuery.includes('reset')) {
-            return {
-              action: { 
-                type: `${key}/reset`,
-                payload: 0 
-              } as TAction,
-              message: `Resetting ${key}`
-            };
+      for (const [sliceName, sliceState] of stateSlices) {
+        // Handle each type of state value
+        if (typeof sliceState === 'object') {
+          for (const [key, value] of Object.entries(sliceState)) {
+            const actionInfo = this.createActionForState(sliceName, key, value, lowerQuery);
+            if (actionInfo) {
+              return actionInfo;
+            }
           }
         }
-
-        // Match string operations
-        if (typeof stateValue === 'string') {
-          const setMatch = query.match(new RegExp(`(?:set|change)\\s+(?:the\\s+)?${key}\\s+(?:to\\s+)?["']?([^"']+)["']?`, 'i'));
-          if (setMatch) {
-            return {
-              action: { 
-                type: `${key}/set`,
-                payload: setMatch[1] 
-              } as TAction,
-              message: `Setting ${key} to: ${setMatch[1]}`
-            };
-          }
-        }
-
-        // Match boolean operations
-        if (typeof stateValue === 'boolean') {
-          if (lowerQuery.includes('toggle') && lowerQuery.includes(key.toLowerCase())) {
-            return {
-              action: { 
-                type: `${key}/toggle`
-              } as TAction,
-              message: `Toggling ${key}`
-            };
-          }
-        }
-      }
-
-      // If no pattern match found, try schema-defined actions
-      if (this.schema) {
-        // Schema-based action inference logic would go here
-        // This could involve more sophisticated NLP or pattern matching
-        // based on the schema definitions
       }
 
       return null;
     } catch (error) {
-      console.error('Error inferring action:', error);
+      console.error('Error in inferActionFromState:', error);
       return null;
     }
+  }
+
+  private createActionForState(
+    sliceName: string,
+    key: string,
+    value: any,
+    query: string
+  ): { action: TAction; message: string } | null {
+    // Handle numeric values
+    if (typeof value === 'number') {
+      if (query.includes('increase') || query.includes('increment')) {
+        return {
+          action: {
+            type: `${sliceName}/increment`
+          } as TAction,
+          message: `Increasing ${key}`
+        };
+      }
+      if (query.includes('decrease') || query.includes('decrement')) {
+        return {
+          action: {
+            type: `${sliceName}/decrement`
+          } as TAction,
+          message: `Decreasing ${key}`
+        };
+      }
+      if (query.includes('reset')) {
+        return {
+          action: {
+            type: `${sliceName}/resetCounter`
+          } as TAction,
+          message: `Resetting ${key}`
+        };
+      }
+    }
+
+    // Handle string values
+    if (typeof value === 'string') {
+      const setMatch = query.match(new RegExp(`(?:set|change)\\s+(?:the\\s+)?${key}\\s+(?:to\\s+)?["']?([^"']+)["']?`, 'i'));
+      if (setMatch) {
+        return {
+          action: {
+            type: `${sliceName}/setMessage`,
+            payload: setMatch[1]
+          } as TAction,
+          message: `Setting ${key} to: ${setMatch[1]}`
+        };
+      }
+    }
+
+    return null;
   }
 
   async getSimilarInteractions(query: string, limit: number = 5) {
