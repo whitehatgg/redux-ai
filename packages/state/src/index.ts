@@ -57,13 +57,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private async storeStateChange(action: TAction) {
     try {
       const state = this.store.getState();
-      console.log('Storing state change for action:', action.type);
-
-      if (!this.vectorStorage) {
-        console.error('Vector storage not initialized');
-        return;
-      }
-
       const stateData = {
         type: 'STATE_CHANGE',
         action: {
@@ -101,34 +94,25 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       if (this.onActionMatch) {
         const actionInfo = this.onActionMatch(query);
         if (actionInfo) {
-          // Store pre-action state
-          const preActionState = this.store.getState();
-
-          // Dispatch the action
-          this.store.dispatch(actionInfo.action);
-          console.log('Action dispatched:', actionInfo.action);
-
-          // Get post-action state and store the interaction
-          const postActionState = this.store.getState();
-
+          // Store the interaction and dispatch the action
           const stateData = {
+            query,
             action: actionInfo.action,
-            preState: preActionState,
-            postState: postActionState,
+            message: actionInfo.message,
             timestamp: new Date().toISOString()
           };
 
-          // Store the interaction with full context
+          // Dispatch the action
+          this.store.dispatch(actionInfo.action);
+
+          // Store the interaction
           await this.vectorStorage.storeInteraction(
             query,
             actionInfo.message,
             JSON.stringify(stateData)
           );
 
-          return {
-            message: actionInfo.message,
-            action: actionInfo.action
-          };
+          return actionInfo;
         }
       }
 
@@ -136,6 +120,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
         message: 'I could not determine an appropriate action for your request.',
         action: null
       };
+
     } catch (error) {
       console.error('Error in processQuery:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

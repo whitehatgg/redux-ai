@@ -48,38 +48,44 @@ export function ApplicantTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-muted rounded-lg">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="enableSearch"
-            checked={tableConfig.enableSearch}
-            onCheckedChange={() => dispatch(toggleSearch())}
-          />
-          <Label htmlFor="enableSearch">Enable Search</Label>
-        </div>
-        {tableConfig.enableSearch && (
-          <Input
-            placeholder="Search applicants..."
-            value={tableConfig.searchTerm}
-            onChange={(e) => dispatch(setSearchTerm(e.target.value))}
-            className="w-full sm:w-auto"
-          />
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-        {allColumns.map(({ key, label }) => (
-          <div key={key} className="flex items-center gap-2">
+      {/* Controls Section */}
+      <div className="flex flex-col gap-4 p-4 bg-muted rounded-lg">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
             <Checkbox
-              id={key}
-              checked={tableConfig.visibleColumns.includes(key)}
-              onCheckedChange={() => toggleColumn(key)}
+              id="enableSearch"
+              checked={tableConfig.enableSearch}
+              onCheckedChange={() => dispatch(toggleSearch())}
             />
-            <Label htmlFor={key}>{label}</Label>
+            <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
-        ))}
+          {tableConfig.enableSearch && (
+            <div className="w-full sm:w-auto flex-1">
+              <Input
+                placeholder="Search applicants..."
+                value={tableConfig.searchTerm}
+                onChange={(e) => dispatch(setSearchTerm(e.target.value))}
+                className="max-w-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          {allColumns.map(({ key, label }) => (
+            <div key={key} className="flex items-center gap-2">
+              <Checkbox
+                id={key}
+                checked={tableConfig.visibleColumns.includes(key)}
+                onCheckedChange={() => toggleColumn(key)}
+              />
+              <Label htmlFor={key}>{label}</Label>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* Table Section */}
       <div className="overflow-x-auto border rounded-lg">
         <Table>
           <TableHeader>
