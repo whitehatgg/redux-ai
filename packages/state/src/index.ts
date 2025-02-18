@@ -107,14 +107,36 @@ export class ReduxAIState<TState> {
 
       console.log('[ReduxAIState] Raw query received:', query);
 
+      // Get similar queries from vector storage
+      let conversationHistory = '';
+      try {
+        const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
+        conversationHistory = similarEntries
+          .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
+          .join('\n\n');
+        console.log('[Vector DB] Found similar entries:', similarEntries.length);
+      } catch (error) {
+        console.error('[Vector DB] Error retrieving similar entries:', error);
+        // Continue without vector DB results if there's an error
+      }
+
+      // Generate system prompt with conversation history
+      const systemPrompt = generateSystemPrompt(
+        this.store.getState(),
+        this.availableActions,
+        conversationHistory
+      );
+
       const requestBody = {
         query,
+        prompt: systemPrompt,
         availableActions: this.availableActions,
         currentState: this.store.getState()
       };
 
       console.log('[ReduxAIState] Sending request body:', {
         query: requestBody.query,
+        promptLength: systemPrompt.length,
         actionsCount: this.availableActions.length,
         state: JSON.stringify(this.store.getState()).slice(0, 200) 
       });

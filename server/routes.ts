@@ -2,6 +2,8 @@ import { createServer } from "http";
 import OpenAI from "openai";
 import type { ReduxAIAction } from "@redux-ai/state";
 import type { Express } from "express";
+//import { generateSystemPrompt, generateActionExamples } from "@redux-ai/state";
+import type { ReduxAIVector } from "@redux-ai/vector";
 
 let openai: OpenAI;
 
@@ -41,21 +43,6 @@ async function createChatCompletion(messages: any[], currentState?: any) {
   }
 }
 
-// Placeholder for the generateSystemPrompt function.  This needs a proper implementation.
-function generateSystemPrompt(currentState: any, availableActions: any[], conversationHistory: string): string {
-  //  Implementation to generate the system prompt based on currentState, availableActions, and conversationHistory.  This is crucial for the functionality.  A simple example is provided below, but this should be tailored to your specific needs.
-  let prompt = "You are a helpful assistant. ";
-  if (currentState) {
-    prompt += `Current state: ${JSON.stringify(currentState)}. `;
-  }
-  if (availableActions && availableActions.length > 0) {
-    prompt += `Available actions: ${JSON.stringify(availableActions)}. `;
-  }
-  prompt += "Respond concisely and accurately.";
-  return prompt;
-}
-
-
 export async function registerRoutes(app: Express) {
   app.get('/health', (_req, res) => {
     res.status(200).send('OK');
@@ -69,11 +56,12 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { query, availableActions, currentState } = req.body;
+      const { query, prompt, availableActions, currentState } = req.body;
 
       // Log the entire incoming request data
       console.log('[API Request - Full]:', {
         rawQuery: query,
+        promptLength: prompt?.length,
         availableActionsCount: availableActions?.length,
         availableActionTypes: availableActions?.map(a => a.type),
         hasState: !!currentState,
@@ -85,25 +73,20 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Query is required' });
       }
 
+      if (!prompt) {
+        console.log('[API Error] Missing prompt in request');
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
         console.log('[API Error] Invalid availableActions:', availableActions);
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      // Reset conversation history for each new query
-      const conversationHistory = '';
-
-      // Generate system prompt here on the server
-      const systemPrompt = generateSystemPrompt(
-        currentState,
-        availableActions,
-        conversationHistory
-      );
-
       const messages = [
         {
           role: "system",
-          content: systemPrompt
+          content: prompt
         },
         {
           role: "user",
