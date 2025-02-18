@@ -96,6 +96,10 @@ export class ReduxAIState<TState> {
 
   async processQuery(query: string) {
     try {
+      if (!query || typeof query !== 'string') {
+        throw new Error('Query must be a non-empty string');
+      }
+
       if (!this.initialized) {
         console.log('[ReduxAIState] Initializing before first query');
         await this.initialize();
@@ -103,30 +107,17 @@ export class ReduxAIState<TState> {
 
       console.log('[ReduxAIState] Raw query received:', query);
 
-      // Reset conversation history for each new query
-      const conversationHistory = '';
-
-      const systemPrompt = generateSystemPrompt(
-        this.store.getState(),
-        this.availableActions,
-        conversationHistory
-      );
-
-      console.log('[ReduxAIState] Processing query:', {
-        query,
-        promptLength: systemPrompt.length,
-        actionsCount: this.availableActions.length,
-        state: JSON.stringify(this.store.getState()).slice(0, 200) 
-      });
-
       const requestBody = {
-        prompt: systemPrompt,
-        query,  
+        query,
         availableActions: this.availableActions,
         currentState: this.store.getState()
       };
 
-      console.log('[ReduxAIState] Sending request body:', JSON.stringify(requestBody).slice(0, 200));
+      console.log('[ReduxAIState] Sending request body:', {
+        query: requestBody.query,
+        actionsCount: this.availableActions.length,
+        state: JSON.stringify(this.store.getState()).slice(0, 200) 
+      });
 
       const apiResponse = await fetch('/api/query', {
         method: 'POST',

@@ -41,6 +41,21 @@ async function createChatCompletion(messages: any[], currentState?: any) {
   }
 }
 
+// Placeholder for the generateSystemPrompt function.  This needs a proper implementation.
+function generateSystemPrompt(currentState: any, availableActions: any[], conversationHistory: string): string {
+  //  Implementation to generate the system prompt based on currentState, availableActions, and conversationHistory.  This is crucial for the functionality.  A simple example is provided below, but this should be tailored to your specific needs.
+  let prompt = "You are a helpful assistant. ";
+  if (currentState) {
+    prompt += `Current state: ${JSON.stringify(currentState)}. `;
+  }
+  if (availableActions && availableActions.length > 0) {
+    prompt += `Available actions: ${JSON.stringify(availableActions)}. `;
+  }
+  prompt += "Respond concisely and accurately.";
+  return prompt;
+}
+
+
 export async function registerRoutes(app: Express) {
   app.get('/health', (_req, res) => {
     res.status(200).send('OK');
@@ -54,23 +69,16 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { prompt, query, availableActions, currentState } = req.body;
+      const { query, availableActions, currentState } = req.body;
 
       // Log the entire incoming request data
       console.log('[API Request - Full]:', {
-        promptFirstChars: prompt?.slice(0, 200),
-        promptLength: prompt?.length,
-        rawQuery: query,  // Log the raw query
+        rawQuery: query,
         availableActionsCount: availableActions?.length,
         availableActionTypes: availableActions?.map(a => a.type),
         hasState: !!currentState,
         stateKeys: currentState ? Object.keys(currentState) : []
       });
-
-      if (!prompt) {
-        console.log('[API Error] Missing prompt in request');
-        return res.status(400).json({ error: 'Prompt is required' });
-      }
 
       if (!query) {
         console.log('[API Error] Missing query in request');
@@ -82,10 +90,20 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
+      // Reset conversation history for each new query
+      const conversationHistory = '';
+
+      // Generate system prompt here on the server
+      const systemPrompt = generateSystemPrompt(
+        currentState,
+        availableActions,
+        conversationHistory
+      );
+
       const messages = [
         {
           role: "system",
-          content: prompt
+          content: systemPrompt
         },
         {
           role: "user",
