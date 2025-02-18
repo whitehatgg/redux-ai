@@ -33,27 +33,6 @@ export class ReduxAIState<TState> {
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
-
-    // Validate available actions
-    this.availableActions.forEach(action => {
-      if (!action || typeof action.type !== 'string') {
-        throw new Error('Invalid action configuration: each action must have a type property');
-      }
-    });
-  }
-
-  private isValidAction(action: any): action is Action {
-    if (!action || typeof action !== 'object' || !('type' in action)) {
-      return false;
-    }
-
-    const matchingAction = this.availableActions.find(a => a.type === action.type);
-    if (!matchingAction) {
-      console.log('No matching action found for type:', action.type);
-      return false;
-    }
-
-    return true;
   }
 
   private async getContext(query: string) {
@@ -131,16 +110,10 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
-      // If a valid action was returned, dispatch it
-      if (action && this.isValidAction(action)) {
+      // If an action was returned, dispatch it without validation
+      if (action) {
         console.log('Dispatching action:', action);
         this.store.dispatch(action);
-      } else if (action) {
-        console.warn('Invalid action received:', action);
-        return { 
-          message: "I understand your request but I couldn't find a matching action to perform it.",
-          action: null 
-        };
       }
 
       // Store the interaction
