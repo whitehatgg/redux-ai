@@ -4,19 +4,13 @@ import { configureStore, createSlice, PayloadAction, Store, Action } from "@redu
 import { ReduxAISchema } from "@redux-ai/schema";
 import { ReduxAIVector } from "@redux-ai/vector";
 
-// Define base action type that includes optional payload and index signature
-interface BaseAction extends Action {
-  payload?: any;
-  [key: string]: any;
-}
-
 export interface ReduxAIAction {
   type: string;
   description: string;
   keywords: string[];
 }
 
-export interface AIStateConfig<TState, TAction extends BaseAction> {
+export interface AIStateConfig<TState, TAction extends Action> {
   store: Store;
   schema?: ReduxAISchema<TAction>;
   vectorStorage: ReduxAIVector;
@@ -25,7 +19,7 @@ export interface AIStateConfig<TState, TAction extends BaseAction> {
   onActionMatch?: (query: string) => Promise<{ action: TAction; message: string } | null>;
 }
 
-export class ReduxAIState<TState, TAction extends BaseAction> {
+export class ReduxAIState<TState, TAction extends Action> {
   private store: Store;
   private schema?: ReduxAISchema<TAction>;
   private machine;
@@ -44,23 +38,21 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     this.onActionMatch = config.onActionMatch;
   }
 
-  private async storeStateChange(action: TAction) {
+  private async storeStateChange(action: TAction, message: string) {
     try {
       const state = this.store.getState();
       const stateData = {
         type: 'STATE_CHANGE',
-        action: {
-          type: action.type,
-          payload: action.payload
-        },
+        action,
         state,
         timestamp: new Date().toISOString()
       };
 
       await this.vectorStorage.storeInteraction(
-        action.type,
+        message,
         JSON.stringify(stateData),
-        JSON.stringify(stateData)
+        JSON.stringify(stateData),
+        `${action.type}-${Date.now()}` // Add unique key
       );
 
     } catch (error) {
@@ -96,7 +88,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
             };
           }
 
-          // Store the interaction
+          // Store the interaction with a unique key
           const stateData = {
             query,
             action: actionInfo.action,
@@ -104,15 +96,16 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
             timestamp: new Date().toISOString()
           };
 
-          // Store the interaction before dispatching
           await this.vectorStorage.storeInteraction(
             query,
             actionInfo.message,
-            JSON.stringify(stateData)
+            JSON.stringify(stateData),
+            `${query}-${Date.now()}` // Add unique key
           );
 
-          // Dispatch the action
+          // Store the state change after dispatching
           this.store.dispatch(actionInfo.action);
+          await this.storeStateChange(actionInfo.action, actionInfo.message);
 
           return actionInfo;
         }
@@ -147,13 +140,13 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 }
 
 // Singleton instance
-let instance: ReduxAIState<any, BaseAction> | null = null;
+let instance: ReduxAIState<any, Action> | null = null;
 
-export const createReduxAIState = async <TState, TAction extends BaseAction>(
+export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
 ): Promise<ReduxAIState<TState, TAction>> => {
   try {
-    instance = new ReduxAIState(config) as ReduxAIState<any, BaseAction>;
+    instance = new ReduxAIState(config) as ReduxAIState<any, Action>;
     return instance as ReduxAIState<TState, TAction>;
   } catch (error) {
     console.error('Error creating ReduxAIState:', error);
@@ -161,7 +154,7 @@ export const createReduxAIState = async <TState, TAction extends BaseAction>(
   }
 };
 
-export const getReduxAI = <TState, TAction extends BaseAction>(): ReduxAIState<TState, TAction> => {
+export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TState, TAction> => {
   if (!instance) {
     throw new Error('ReduxAI not initialized');
   }
