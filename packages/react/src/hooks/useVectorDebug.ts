@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { IndexedDBStorage } from '@redux-ai/vector/dist/indexeddb';
 
 interface DebugEntry {
   query: string;
@@ -15,13 +16,21 @@ export function useVectorDebug() {
   useEffect(() => {
     const fetchDebugEntries = async () => {
       try {
-        const response = await fetch('/api/vector/debug');
-        if (!response.ok) {
-          throw new Error('Failed to fetch vector debug entries');
+        console.log('Initializing IndexedDB storage...');
+        const storage = new IndexedDBStorage();
+        await storage.initialize();
+
+        console.log('Fetching entries from IndexedDB...');
+        const data = await storage.getAllEntries();
+        console.log('Retrieved entries:', data);
+
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format: expected array of entries');
         }
-        const data = await response.json();
+
         setEntries(data);
       } catch (err) {
+        console.error('Error in useVectorDebug:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch debug entries');
       } finally {
         setIsLoading(false);
