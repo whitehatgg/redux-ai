@@ -3,7 +3,10 @@ import { createConversationMachine } from "./machine";
 import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
 import { ReduxAISchema } from "@redux-ai/schema";
 import { ReduxAIVector, VectorEntry } from "@redux-ai/vector";
-import { generateSystemPrompt } from './prompts';
+import { generateSystemPrompt, generateActionExamples } from './prompts';
+
+// Export the prompt generation functions
+export { generateSystemPrompt, generateActionExamples } from './prompts';
 
 export interface ReduxAIAction {
   type: string;
