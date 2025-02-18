@@ -54,21 +54,26 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { prompt, availableActions, currentState } = req.body;
+      const { prompt, query, availableActions, currentState } = req.body;
 
-      // Log the incoming request data
-      console.log('[API Request]:', {
-        prompt: prompt.slice(0, 200) + '...',
+      // Log the entire incoming request data
+      console.log('[API Request - Full]:', {
+        promptFirstChars: prompt?.slice(0, 200),
+        promptLength: prompt?.length,
+        rawQuery: query,  // Log the raw query
         availableActionsCount: availableActions?.length,
+        availableActionTypes: availableActions?.map(a => a.type),
         hasState: !!currentState,
         stateKeys: currentState ? Object.keys(currentState) : []
       });
 
       if (!prompt) {
+        console.log('[API Error] Missing prompt in request');
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
+        console.log('[API Error] Invalid availableActions:', availableActions);
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
@@ -76,6 +81,10 @@ export async function registerRoutes(app: Express) {
         {
           role: "system",
           content: prompt
+        },
+        {
+          role: "user",
+          content: query  // Add the user's query as a separate message
         }
       ], currentState);
 

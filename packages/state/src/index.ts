@@ -97,8 +97,11 @@ export class ReduxAIState<TState> {
   async processQuery(query: string) {
     try {
       if (!this.initialized) {
+        console.log('[ReduxAIState] Initializing before first query');
         await this.initialize();
       }
+
+      console.log('[ReduxAIState] Raw query received:', query);
 
       // Reset conversation history for each new query
       const conversationHistory = '';
@@ -112,19 +115,25 @@ export class ReduxAIState<TState> {
       console.log('[ReduxAIState] Processing query:', {
         query,
         promptLength: systemPrompt.length,
-        actionsCount: this.availableActions.length
+        actionsCount: this.availableActions.length,
+        state: JSON.stringify(this.store.getState()).slice(0, 200) 
       });
+
+      const requestBody = {
+        prompt: systemPrompt,
+        query,  
+        availableActions: this.availableActions,
+        currentState: this.store.getState()
+      };
+
+      console.log('[ReduxAIState] Sending request body:', JSON.stringify(requestBody).slice(0, 200));
 
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          prompt: systemPrompt,
-          availableActions: this.availableActions,
-          currentState: this.store.getState()
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!apiResponse.ok) {
