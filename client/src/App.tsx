@@ -68,14 +68,6 @@ function App() {
         <ReduxAIProvider 
           store={store} 
           availableActions={availableActions}
-          onActionMatch={async (query: string) => {
-            // Let the LLM use availableActions to determine the appropriate action
-            // The actual matching logic is handled by the LLM through ReduxAIProvider
-            return {
-              action: null,
-              message: 'I understand your request but I\'m not sure what action to take. Try asking me to search for something specific.'
-            };
-          }}
         >
           <AppContent />
         </ReduxAIProvider>
