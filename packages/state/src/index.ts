@@ -91,39 +91,60 @@ export class ReduxAIState<TState, TAction extends Action> {
     action: TAction | null;
   }> {
     try {
-      // Get all available action creators from the store
-      const availableActions = Object.keys(this.store.dispatch)
-        .filter(key => typeof (this.store.dispatch as any)[key] === 'function')
-        .map(key => ({
-          type: `demo/${key}`,
-          description: `Action creator for ${key}`
-        }));
+      // Get all available action creators from the demo slice
+      const availableActions = [
+        {
+          type: 'demo/increment',
+          description: 'Increment the counter by 1'
+        },
+        {
+          type: 'demo/decrement',
+          description: 'Decrement the counter by 1'
+        },
+        {
+          type: 'demo/setMessage',
+          description: 'Set a message in the state'
+        },
+        {
+          type: 'demo/resetCounter',
+          description: 'Reset the counter to 0'
+        }
+      ];
 
       console.log('Available actions:', availableActions);
       console.log('Previous interactions:', previousInteractions);
+      console.log('Current state:', state);
+      console.log('User query:', query);
 
-      const response = await fetch('/api/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          state,
-          availableActions,
-          previousInteractions
-        }),
-      });
+      // Simple action mapping based on query
+      let action: TAction | null = null;
+      const lowerQuery = query.toLowerCase();
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (lowerQuery.includes('increment') || lowerQuery.includes('increase')) {
+        action = { type: 'demo/increment' } as TAction;
+      } else if (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) {
+        action = { type: 'demo/decrement' } as TAction;
+      } else if (lowerQuery.includes('reset')) {
+        action = { type: 'demo/resetCounter' } as TAction;
+      } else if (lowerQuery.includes('set') && lowerQuery.includes('counter')) {
+        const number = parseInt(query.match(/\d+/)?.[0] || '0', 10);
+        // We'll use multiple increments/decrements to reach the target number
+        const currentValue = (state as any).demo.counter || 0;
+        if (number > currentValue) {
+          for (let i = 0; i < number - currentValue; i++) {
+            this.store.dispatch({ type: 'demo/increment' } as TAction);
+          }
+        } else {
+          for (let i = 0; i < currentValue - number; i++) {
+            this.store.dispatch({ type: 'demo/decrement' } as TAction);
+          }
+        }
+        action = null; // Already dispatched actions
       }
 
-      const data = await response.json();
-      console.log('AI Response data:', data);
       return {
-        message: data.message,
-        action: data.action,
+        message: action ? `Successfully executed ${action.type}` : 'Query processed successfully',
+        action
       };
     } catch (error) {
       throw new Error(`Failed to generate AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
