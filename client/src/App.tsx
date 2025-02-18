@@ -12,18 +12,18 @@ import { useState } from 'react';
 const demoActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
-    description: 'Configure which columns are visible in the applicant table',
-    keywords: ['show columns', 'hide columns', 'toggle columns', 'configure table']
+    description: 'Updated the visible columns in the applicant table',
+    keywords: ['show columns', 'hide columns', 'display columns', 'visible columns', 'show only']
   },
   {
     type: 'applicant/toggleSearch',
-    description: 'Toggle search functionality for applicants',
-    keywords: ['enable search', 'disable search', 'toggle search']
+    description: 'Toggled the search functionality',
+    keywords: ['enable search', 'disable search', 'toggle search', 'turn on search', 'turn off search']
   },
   {
     type: 'applicant/setSearchTerm',
-    description: 'Set the search term for filtering applicants',
-    keywords: ['search applicants', 'filter applicants', 'find applicant']
+    description: 'Set the search term to filter applicants',
+    keywords: ['search for', 'find', 'look for', 'filter by', 'search applicant']
   }
 ];
 
@@ -56,7 +56,7 @@ function AppContent() {
         onClose={() => setShowActivityLog(false)} 
       />
       <div className="text-sm text-muted-foreground fixed bottom-20 right-4 z-50 bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
-        Try asking: "show only name and email columns" or "enable search"
+        Try asking: "show only name and email columns" or "search for john@example.com"
       </div>
     </div>
   );

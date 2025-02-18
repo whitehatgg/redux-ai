@@ -191,9 +191,32 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {
     try {
       const lowerQuery = query.toLowerCase();
-      console.log('Matching query against available actions:', lowerQuery);
+      console.log('Processing query for action matching:', lowerQuery);
 
-      // Find an action whose keywords match the query
+      const columnMatch = lowerQuery.match(/show\s+(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/);
+      if (columnMatch) {
+        const columns = [columnMatch[1], columnMatch[2]].filter(Boolean) as (keyof Applicant)[];
+        return {
+          action: {
+            type: 'applicant/setVisibleColumns',
+            payload: columns
+          } as TAction,
+          message: `Updated visible columns to show: ${columns.join(', ')}`
+        };
+      }
+
+      const searchMatch = lowerQuery.match(/(?:search|find|look\s+for)\s+(.+)/i);
+      if (searchMatch) {
+        return {
+          action: {
+            type: 'applicant/setSearchTerm',
+            payload: searchMatch[1].trim()
+          } as TAction,
+          message: `Searching for: ${searchMatch[1].trim()}`
+        };
+      }
+
+      // Check against registered actions as fallback
       const matchedAction = this.availableActions.find(action =>
         action.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()))
       );
