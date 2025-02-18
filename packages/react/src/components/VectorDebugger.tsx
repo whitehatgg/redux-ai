@@ -1,5 +1,5 @@
 import React from 'react';
-import { useReduxAIContext } from './ReduxAIProvider';
+import { useVectorDebug } from '../hooks/useVectorDebug';
 import type { ReduxAIAction } from '@redux-ai/state';
 
 interface VectorDebuggerProps {
@@ -7,7 +7,32 @@ interface VectorDebuggerProps {
 }
 
 export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => {
-  const { availableActions } = useReduxAIContext();
+  const { availableActions, isLoading, error } = useVectorDebug();
+
+  if (isLoading) {
+    return (
+      <div className={`w-full rounded-lg border bg-card p-4 ${className || ''}`}>
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-muted rounded w-1/4"></div>
+          <div className="space-y-3">
+            <div className="h-20 bg-muted rounded"></div>
+            <div className="h-20 bg-muted rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`w-full rounded-lg border bg-card p-4 ${className || ''}`}>
+        <div className="text-destructive">
+          <h3 className="font-medium">Error loading vector data</h3>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full rounded-lg border bg-card ${className || ''}`}>

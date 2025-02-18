@@ -1,12 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { VectorEntry } from '@redux-ai/vector';
 import { useReduxAIContext } from '../components/ReduxAIProvider';
 
 export function useVectorDebug() {
-  const [entries] = useState<VectorEntry[]>([]);
-  const [isLoading] = useState(false);
-  const [error] = useState<string | null>(null);
-  const { availableActions } = useReduxAIContext();
+  const [entries, setEntries] = useState<VectorEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { availableActions, vectorStorage } = useReduxAIContext();
+
+  useEffect(() => {
+    async function fetchEntries() {
+      if (!vectorStorage) {
+        setError('Vector storage not initialized');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const vectorEntries = await vectorStorage.getAllEntries();
+        setEntries(vectorEntries);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch vector entries');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchEntries();
+  }, [vectorStorage]);
 
   return { entries, isLoading, error, availableActions };
 }
