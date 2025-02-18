@@ -65,6 +65,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       if (actionInfo) {
         // Store pre-action state
         const preActionState = this.store.getState();
+        console.log('Pre-action state:', preActionState);
 
         // Dispatch the action
         this.store.dispatch(actionInfo.action);
@@ -72,14 +73,19 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
         // Get post-action state and store the interaction
         const postActionState = this.store.getState();
+        console.log('Post-action state:', postActionState);
+
+        const stateData = {
+          action: actionInfo.action,
+          preState: preActionState,
+          postState: postActionState
+        };
+        console.log('Storing interaction data:', stateData);
+
         await this.vectorStorage.storeInteraction(
           query,
           actionInfo.message,
-          JSON.stringify({
-            action: actionInfo.action,
-            preState: preActionState,
-            postState: postActionState
-          })
+          JSON.stringify(stateData)
         );
 
         return {
@@ -107,7 +113,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       const lowerQuery = query.toLowerCase();
 
       // Find an action whose keywords match the query
-      const matchedAction = this.availableActions.find(action => 
+      const matchedAction = this.availableActions.find(action =>
         action.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()))
       );
 

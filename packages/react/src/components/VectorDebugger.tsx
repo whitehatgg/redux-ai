@@ -8,9 +8,11 @@ export const VectorDebugger: React.FC = () => {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-4 text-muted-foreground">
-        <div className="animate-pulse">
-          Initializing vector storage...
+      <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card p-6">
+        <div className="flex items-center justify-center p-4">
+          <div className="animate-pulse text-muted-foreground">
+            Loading state history...
+          </div>
         </div>
       </div>
     );
@@ -19,8 +21,10 @@ export const VectorDebugger: React.FC = () => {
   // Show error state if any
   if (error) {
     return (
-      <div className="flex items-center justify-center p-4 text-destructive">
-        <div>Error: {error}</div>
+      <div className="w-full max-w-2xl mx-auto rounded-lg border bg-destructive/10 p-6">
+        <div className="flex items-center justify-center p-4 text-destructive">
+          Error loading state history: {error}
+        </div>
       </div>
     );
   }
@@ -29,7 +33,10 @@ export const VectorDebugger: React.FC = () => {
     <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card p-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">State Debugger</h2>
+          <h2 className="text-xl font-semibold">State History</h2>
+          <span className="text-sm text-muted-foreground">
+            {entries.length} entries
+          </span>
         </div>
 
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
@@ -45,12 +52,14 @@ export const VectorDebugger: React.FC = () => {
                 <div className="text-sm text-muted-foreground">
                   Response: {entry.response}
                 </div>
-                <div className="text-sm">
-                  <div className="font-medium mb-1">State:</div>
-                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-xs">
-                    {entry.state}
-                  </pre>
-                </div>
+                {entry.state && (
+                  <div className="text-sm">
+                    <div className="font-medium mb-1">State:</div>
+                    <pre className="bg-muted p-2 rounded-md overflow-x-auto text-xs">
+                      {typeof entry.state === 'string' ? entry.state : JSON.stringify(entry.state, null, 2)}
+                    </pre>
+                  </div>
+                )}
                 <time className="text-xs text-muted-foreground">
                   {new Date(entry.timestamp).toLocaleString()}
                 </time>
@@ -58,7 +67,7 @@ export const VectorDebugger: React.FC = () => {
             ))
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No state changes recorded. Interact with your Redux store to see debug information.
+              No state changes recorded yet. Try interacting with the application.
             </div>
           )}
         </div>
