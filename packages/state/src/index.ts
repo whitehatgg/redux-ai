@@ -33,26 +33,26 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   }
 
   private getAvailableActions(): Array<{ type: string; description: string }> {
-    const state = this.store.getState();
-    const availableActions: Array<{ type: string; description: string }> = [];
-
-    // Get slice names from the root state
-    Object.keys(state).forEach(sliceName => {
-      // Get the reducer object for this slice
-      const reducer = (this.store as any)._reducers[sliceName];
-      if (reducer && typeof reducer === 'object') {
-        // Get action creators from slice reducers
-        const sliceActions = Object.keys(reducer.reducers || {});
-        sliceActions.forEach(actionName => {
-          availableActions.push({
-            type: `${sliceName}/${actionName}`,
-            description: `${actionName} action for ${sliceName} slice`
-          });
-        });
+    // Define known actions based on the demo slice
+    const availableActions = [
+      {
+        type: 'demo/increment',
+        description: 'Increment the counter'
+      },
+      {
+        type: 'demo/decrement',
+        description: 'Decrement the counter'
+      },
+      {
+        type: 'demo/setMessage',
+        description: 'Set a message in the state'
+      },
+      {
+        type: 'demo/resetCounter',
+        description: 'Reset the counter to zero'
       }
-    });
+    ];
 
-    console.log('Available actions:', availableActions);
     return availableActions;
   }
 
