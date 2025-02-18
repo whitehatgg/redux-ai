@@ -89,35 +89,15 @@ export class ReduxAIState<TState> {
         .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
 
-      console.log('[ReduxAIState] Processing query with:', {
-        query,
-        stateSize: JSON.stringify(this.store.getState()).length,
-        actionsCount: this.availableActions.length,
-        historyLength: this.interactions.length
-      });
-
-      const systemPrompt = generateSystemPrompt(
+      const prompt = generateSystemPrompt(
         this.store.getState(),
         this.availableActions,
         conversationHistory
       );
 
-      console.log('[ReduxAIState] Generated system prompt:', {
-        promptLength: systemPrompt.length,
-        actionsIncluded: this.availableActions.length > 0,
-        hasState: Object.keys(this.store.getState()).length > 0
-      });
-
-      const requestBody = {
-        query,
-        systemPrompt,
-        availableActions: this.availableActions,
-      };
-
-      console.log('[ReduxAIState] Sending API request with body:', {
-        queryLength: requestBody.query?.length,
-        systemPromptLength: requestBody.systemPrompt?.length,
-        actionsCount: requestBody.availableActions?.length
+      console.log('[ReduxAIState] Sending request:', {
+        promptLength: prompt.length,
+        actionsCount: this.availableActions.length
       });
 
       const apiResponse = await fetch('/api/query', {
@@ -125,15 +105,17 @@ export class ReduxAIState<TState> {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          prompt,
+          availableActions: this.availableActions
+        }),
       });
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
         console.error('[ReduxAIState] API request failed:', {
           status: apiResponse.status,
-          error: errorText,
-          requestBody: requestBody
+          error: errorText
         });
         throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
       }

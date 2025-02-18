@@ -20,7 +20,8 @@ async function createChatCompletion(messages: any[]) {
       model: "gpt-3.5-turbo",
       messages,
       temperature: 0.7,
-      max_tokens: 200
+      max_tokens: 200,
+      response_format: { type: "json_object" }
     });
 
     return response;
@@ -43,37 +44,22 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { query, systemPrompt, availableActions } = req.body;
+      const { prompt, availableActions } = req.body;
 
-      console.log('[API] Received query request:', {
-        queryLength: query?.length,
-        systemPromptLength: systemPrompt?.length,
-        actionsCount: availableActions?.length
-      });
-
-      if (!query) {
-        return res.status(400).json({ error: 'Query is required' });
-      }
-
-      if (!systemPrompt) {
-        console.error('[API] Missing system prompt in request');
-        return res.status(400).json({ error: 'System prompt is required' });
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
       }
 
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      console.log('[API] Creating chat completion with prompt length:', systemPrompt.length);
+      console.log('[API] Processing query with prompt length:', prompt.length);
 
       const response = await createChatCompletion([
         {
           role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: query
+          content: prompt
         }
       ]);
 
@@ -96,7 +82,6 @@ export async function registerRoutes(app: Express) {
     } catch (error: unknown) {
       console.error('Error processing query:', error);
 
-      // Handle specific OpenAI API errors
       if (error instanceof Error) {
         if (error.message.includes('API key')) {
           return res.status(401).json({ 
