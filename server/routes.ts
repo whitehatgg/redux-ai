@@ -2,6 +2,7 @@ import { createServer } from "http";
 import OpenAI from "openai";
 import type { ReduxAIAction } from "@redux-ai/state";
 import type { Express } from "express";
+import { generateSystemPrompt } from "../client/src/lib/prompts";
 
 let openai: OpenAI;
 
@@ -12,30 +13,6 @@ try {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 } catch (error) {
   console.error('Error initializing OpenAI:', error);
-}
-
-function generateSystemPrompt(state: any, availableActions: ReduxAIAction[]): string {
-  return `You are an AI assistant that helps users interact with a Redux store through natural language.
-
-Available Actions:
-${JSON.stringify(availableActions, null, 2)}
-
-Current State:
-${JSON.stringify(state, null, 2)}
-
-Your task is to convert natural language queries into Redux actions.
-You must respond with a JSON object containing:
-1. "message": A clear explanation of what action you're taking
-2. "action": The Redux action to dispatch, using EXACTLY one of the available action types, or null if no action matches
-
-Example response format:
-{
-  "message": "I'll help you with that request",
-  "action": {
-    "type": "example/action",
-    "payload": "value"
-  }
-}`;
 }
 
 export async function registerRoutes(app: Express) {
@@ -51,7 +28,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { query, state, availableActions } = req.body;
+      const { query, state, availableActions, previousInteractions = [] } = req.body;
 
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
@@ -61,7 +38,11 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      const systemPrompt = generateSystemPrompt(state, availableActions);
+      const conversationHistory = previousInteractions
+        .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
+        .join('\n');
+
+      const systemPrompt = generateSystemPrompt(state, availableActions, conversationHistory);
 
       const response = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
