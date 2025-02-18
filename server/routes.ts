@@ -16,6 +16,12 @@ try {
 
 async function createChatCompletion(messages: any[], currentState?: any) {
   try {
+    // Log the input to the OpenAI request
+    console.log('[OpenAI Request]:', {
+      messages: messages,
+      state: currentState ? JSON.stringify(currentState).slice(0, 200) + '...' : 'No state'
+    });
+
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -24,6 +30,9 @@ async function createChatCompletion(messages: any[], currentState?: any) {
       max_tokens: 200,
       response_format: { type: "json_object" }
     });
+
+    // Log the raw response from OpenAI
+    console.log('[OpenAI Response]:', response.choices[0].message.content);
 
     return response;
   } catch (error) {
@@ -47,6 +56,14 @@ export async function registerRoutes(app: Express) {
 
       const { prompt, availableActions, currentState } = req.body;
 
+      // Log the incoming request data
+      console.log('[API Request]:', {
+        prompt: prompt.slice(0, 200) + '...',
+        availableActionsCount: availableActions?.length,
+        hasState: !!currentState,
+        stateKeys: currentState ? Object.keys(currentState) : []
+      });
+
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
@@ -54,12 +71,6 @@ export async function registerRoutes(app: Express) {
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
-
-      console.log('[API] Processing query:', {
-        promptLength: prompt.length,
-        actionsCount: availableActions.length,
-        hasState: !!currentState
-      });
 
       const response = await createChatCompletion([
         {
@@ -78,9 +89,11 @@ export async function registerRoutes(app: Express) {
         throw new Error('Invalid response format: missing message');
       }
 
-      console.log('[API] Generated response:', {
+      // Log the processed response being sent back
+      console.log('[API Response]:', {
         message: content.message,
-        hasAction: !!content.action
+        hasAction: !!content.action,
+        action: content.action
       });
 
       res.json({ 
