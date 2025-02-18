@@ -11,6 +11,10 @@ interface RAGResultsProps {
       state: string;
       timestamp: string;
       embedding?: number[];
+      action?: {
+        type: string;
+        payload?: any;
+      };
     }>;
     timestamp: string;
   } | null;
@@ -66,6 +70,14 @@ export const RAGResults: React.FC<RAGResultsProps> = ({ results }) => {
                         <div>
                           <p className="text-sm font-medium">Query: {doc.query}</p>
                           <p className="text-sm text-muted-foreground">Response: {doc.response}</p>
+                          {doc.action && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Action:</p>
+                              <pre className="text-xs bg-background p-2 rounded mt-1 overflow-x-auto">
+                                {JSON.stringify(doc.action, null, 2)}
+                              </pre>
+                            </div>
+                          )}
                         </div>
                         <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                           Match Score: {((index === 0 ? 1 : 0.8 - index * 0.2) * 100).toFixed(1)}%
