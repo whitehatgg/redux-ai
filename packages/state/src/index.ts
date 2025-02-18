@@ -97,7 +97,7 @@ export class ReduxAIState<TState> {
       }
 
       // Make API call to process the query
-      const response = await fetch('/api/query', {
+      const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,14 +110,24 @@ export class ReduxAIState<TState> {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error('API Error:', errorText);
+        throw new Error(`API request failed: ${apiResponse.statusText}`);
       }
 
-      const { message, action } = await response.json();
+      const result = await apiResponse.json();
+      console.log('API Response:', result);
+
+      const { message, action } = result;
+
+      if (!message) {
+        throw new Error('Invalid response format from API');
+      }
 
       // If a valid action was returned, dispatch it
       if (action && this.isValidAction(action)) {
+        console.log('Dispatching action:', action);
         this.store.dispatch(action);
       }
 

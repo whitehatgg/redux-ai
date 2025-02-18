@@ -14,6 +14,10 @@ export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
     try {
       const { query, state, availableActions, previousInteractions = [] } = req.body;
+
+      console.log('Received query:', query);
+      console.log('Available actions:', availableActions);
+
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -45,15 +49,19 @@ Previous Conversation:
 ${conversationHistory}
 
 Instructions:
-1. Analyze the user's query and the current state
-2. Determine if any available action matches the user's intent
-3. Return a JSON response with:
+1. For search queries, use the 'applicant/setSearchTerm' action with the search term as payload
+2. Return a JSON response with:
    - A natural language message explaining what action will be taken
-   - The action to dispatch (if applicable)
+   - The action to dispatch with type and payload
 
-Notes:
-- Only return actions that are in the availableActions list
-- If no appropriate action is found, return null for the action`
+Example for search query:
+{
+  "message": "I'll search for 'bob' in the applicants list",
+  "action": {
+    "type": "applicant/setSearchTerm",
+    "payload": "bob"
+  }
+}`
           },
           {
             role: "user",
