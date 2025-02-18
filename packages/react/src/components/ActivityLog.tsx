@@ -1,7 +1,14 @@
 import React from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
-import { useReduxAIContext } from './ReduxAIProvider';
 import { X } from 'lucide-react';
+import { useStore } from 'react-redux';
+
+interface ActivityEntry {
+  type: string;
+  timestamp: string;
+  state: any;
+  query?: string;
+}
 
 interface ActivityLogProps {
   open?: boolean;
@@ -9,7 +16,23 @@ interface ActivityLogProps {
 }
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
-  const { availableActions } = useReduxAIContext();
+  const store = useStore();
+  const [entries, setEntries] = React.useState<ActivityEntry[]>([]);
+
+  // Subscribe to store changes
+  React.useEffect(() => {
+    return store.subscribe(() => {
+      const lastAction = (store as any).lastAction;
+      if (lastAction) {
+        setEntries(prev => [...prev, {
+          type: lastAction.type,
+          timestamp: new Date().toISOString(),
+          state: store.getState(),
+          query: lastAction.__source === 'ai' ? lastAction.query : undefined
+        }]);
+      }
+    });
+  }, [store]);
 
   if (!open) return null;
 
@@ -29,44 +52,32 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       <ScrollArea.Root className="h-[calc(100vh-5rem)]">
         <ScrollArea.Viewport className="h-full w-full">
           <div className="p-4 space-y-4">
-            {availableActions && availableActions.length > 0 ? (
-              availableActions.map((action, index) => (
+            {entries.length > 0 ? (
+              entries.map((entry, index) => (
                 <div 
                   key={index} 
                   className="rounded-lg p-4 bg-muted"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium">{action.type}</h4>
+                      <h4 className="font-medium text-sm">Activity: {entry.type}</h4>
                       <span className="text-xs text-muted-foreground">
-                        {new Date().toLocaleString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: true,
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                        {new Date(entry.timestamp).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {action.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                        Activity: {action.type}
-                      </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                        State: Active
-                      </span>
-                      {action.keywords.map((keyword, idx) => (
-                        <span 
-                          key={idx}
-                          className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
-                        >
-                          Query: {keyword}
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <span className="font-medium">State: </span>
+                        <span className="text-muted-foreground">
+                          {JSON.stringify(entry.state).substring(0, 100)}...
                         </span>
-                      ))}
+                      </div>
+                      {entry.query && (
+                        <div className="text-sm">
+                          <span className="font-medium">Query: </span>
+                          <span className="text-muted-foreground">{entry.query}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

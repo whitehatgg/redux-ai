@@ -2,7 +2,7 @@ import { createMachine } from "xstate";
 import { createConversationMachine } from "./machine";
 import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
 import { ReduxAISchema } from "@redux-ai/schema";
-import { ReduxAIVector } from "@redux-ai/vector";
+import { ReduxAIVector, VectorEntry } from "@redux-ai/vector";
 
 export interface ReduxAIAction {
   type: string;
@@ -18,6 +18,12 @@ export interface AIStateConfig<TState> {
   onError?: (error: Error) => void;
 }
 
+export interface Interaction {
+  query: string;
+  response: string;
+  timestamp: string;
+}
+
 export class ReduxAIState<TState> {
   private store: Store;
   private schema?: ReduxAISchema<Action>;
@@ -25,6 +31,7 @@ export class ReduxAIState<TState> {
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
+  private interactions: Interaction[] = [];
 
   constructor(config: AIStateConfig<TState>) {
     this.store = config.store;
@@ -35,11 +42,52 @@ export class ReduxAIState<TState> {
     this.availableActions = config.availableActions || [];
   }
 
+  private async storeInteraction(query: string, response: string) {
+    const interaction: Interaction = {
+      query,
+      response,
+      timestamp: new Date().toISOString()
+    };
+
+    this.interactions.push(interaction);
+
+    // Store in vector database for semantic search
+    try {
+      await this.vectorStorage.addEntry({
+        content: JSON.stringify(interaction),
+        metadata: {
+          type: 'interaction',
+          timestamp: interaction.timestamp
+        }
+      });
+    } catch (error) {
+      console.error('Error storing interaction in vector database:', error);
+    }
+  }
+
+  private async getRelevantHistory(query: string): Promise<Interaction[]> {
+    try {
+      const results = await this.vectorStorage.search({
+        query,
+        limit: 5
+      });
+
+      return results.map((result: VectorEntry) => JSON.parse(result.content));
+    } catch (error) {
+      console.error('Error retrieving conversation history:', error);
+      return [];
+    }
+  }
+
   private async getContext(query: string) {
     try {
+      // Get relevant conversation history
+      const relevantHistory = await this.getRelevantHistory(query);
+
       return JSON.stringify({
         currentState: this.store.getState(),
-        availableActions: this.availableActions
+        availableActions: this.availableActions,
+        previousInteractions: relevantHistory
       });
     } catch (error) {
       console.error('Error getting context:', error);
@@ -68,7 +116,8 @@ export class ReduxAIState<TState> {
         body: JSON.stringify({
           query,
           state: this.store.getState(),
-          availableActions: this.availableActions
+          availableActions: this.availableActions,
+          previousInteractions: this.interactions
         }),
       });
 
@@ -85,10 +134,17 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
-      // If an action was returned, dispatch it
+      // Store the interaction
+      await this.storeInteraction(query, message);
+
+      // If an action was returned, dispatch it with source information
       if (action) {
         console.log('Dispatching action:', action);
-        this.store.dispatch(action);
+        this.store.dispatch({
+          ...action,
+          __source: 'ai',
+          query
+        });
       }
 
       return { message, action };

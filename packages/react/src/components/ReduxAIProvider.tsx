@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { Store, Action } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
-import { createReduxAIVector } from '@redux-ai/vector';
+import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
 interface ReduxAIContextType {
@@ -37,7 +37,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         await createReduxAIState({
           store,
           schema,
-          vectorStorage,
+          vectorStorage: vectorStorage as VectorStorage,
           availableActions,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
