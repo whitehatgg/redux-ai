@@ -26,37 +26,19 @@ const demoActions: ReduxAIAction[] = [
   }
 ];
 
-// LLM interaction handler with proper validation
+// LLM interaction handler that relies solely on provided actions
 const matchActionWithLLM = async (query: string, contextData: any) => {
   try {
-    // In a real implementation, this would be an OpenAI API call
-    // For now, we'll simulate the response based on the query and context
+    // Here you would make the actual OpenAI API call with:
+    // 1. The user's query
+    // 2. The context from vector DB (contextData)
+    // 3. The available actions (contextData.availableActions)
 
-    const searchTerms = ['search', 'find', 'look', 'filter'];
-    const isSearchQuery = searchTerms.some(term => query.toLowerCase().includes(term));
-
-    if (isSearchQuery) {
-      // Extract the search term by removing the command words
-      const searchTerm = query.toLowerCase()
-        .replace(/^(search|find|look|filter)(\s+for)?/i, '')
-        .trim();
-
-      return {
-        action: {
-          type: 'applicant/setSearchTerm',
-          payload: searchTerm
-        },
-        message: `Searching for "${searchTerm}" in applicants.`
-      };
-    }
-
-    // If no specific action is determined, return a response based on context
-    const recentInteractions = contextData.chatHistory || [];
+    // For now, we'll simulate an LLM response
+    // In production, replace this with actual OpenAI API call
     return {
       action: null,
-      message: recentInteractions.length > 0
-        ? `Based on your recent activity, I can help you search or filter the applicants. What would you like to do?`
-        : `I can help you search through applicants or manage table columns. What would you like to do?`
+      message: `I understand you want to "${query}". Based on the available actions, I can help you search for applicants or manage table columns. What would you like to do?`
     };
 
   } catch (error) {
@@ -115,7 +97,6 @@ function App() {
               const contextData = JSON.parse(context);
               const result = await matchActionWithLLM(query, contextData);
 
-              // Validate the result before returning
               if (!result) {
                 return null;
               }
@@ -126,7 +107,7 @@ function App() {
               if (action && (!action.type || !demoActions.some(a => a.type === action.type))) {
                 return {
                   action: null,
-                  message: 'Invalid action type. Please try a different command.'
+                  message: 'I could not determine an appropriate action. Please try rephrasing your request.'
                 };
               }
 
