@@ -37,33 +37,13 @@ export class ReduxAIState<TState> {
 
   private async getContext(query: string) {
     try {
-      const chatHistory = await this.vectorStorage.retrieveSimilar(query, 3);
-      const stateChanges = await this.vectorStorage.retrieveSimilar(query, 3);
-
       return JSON.stringify({
-        chatHistory: chatHistory.map(entry => ({ query: entry.query, response: entry.response })),
-        stateChanges: stateChanges.map(entry => ({ query: entry.query, state: entry.state })),
         currentState: this.store.getState(),
         availableActions: this.availableActions
       });
     } catch (error) {
       console.error('Error getting context:', error);
       return null;
-    }
-  }
-
-  private async storeInteraction(query: string, response: string, metadata: any) {
-    try {
-      await this.vectorStorage.storeInteraction(
-        query,
-        response,
-        metadata
-      );
-    } catch (error) {
-      console.error('Error storing interaction:', error);
-      if (this.onError) {
-        this.onError(error instanceof Error ? error : new Error('Failed to store interaction'));
-      }
     }
   }
 
@@ -76,9 +56,7 @@ export class ReduxAIState<TState> {
       console.log('Retrieved context:', context);
 
       if (!context) {
-        const message = 'Failed to get context for query.';
-        await this.storeInteraction(query, message, { query, error: message });
-        return { message, action: null };
+        throw new Error('Failed to get context for query.');
       }
 
       // Make API call to process the query
@@ -90,14 +68,11 @@ export class ReduxAIState<TState> {
         body: JSON.stringify({
           query,
           state: this.store.getState(),
-          availableActions: this.availableActions,
-          previousInteractions: await this.vectorStorage.getAllEntries()
+          availableActions: this.availableActions
         }),
       });
 
       if (!apiResponse.ok) {
-        const errorText = await apiResponse.text();
-        console.error('API Error:', errorText);
         throw new Error(`API request failed: ${apiResponse.statusText}`);
       }
 
@@ -110,18 +85,11 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
-      // If an action was returned, mark it as AI-triggered and dispatch it
+      // If an action was returned, dispatch it
       if (action) {
         console.log('Dispatching action:', action);
-        const actionWithSource = {
-          ...action,
-          __source: 'ai'
-        };
-        this.store.dispatch(actionWithSource);
+        this.store.dispatch(action);
       }
-
-      // Store the interaction
-      await this.storeInteraction(query, message, { query, action, message });
 
       return { message, action };
 
@@ -131,19 +99,6 @@ export class ReduxAIState<TState> {
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
-      await this.storeInteraction(query, errorMessage, { query, error: errorMessage });
-      throw error;
-    }
-  }
-
-  async getSimilarInteractions(query: string, limit: number = 5) {
-    try {
-      console.log('Retrieving similar interactions for query:', query);
-      const interactions = await this.vectorStorage.retrieveSimilar(query, limit);
-      console.log('Retrieved interactions:', interactions);
-      return interactions;
-    } catch (error) {
-      console.error('Error getting similar interactions:', error);
       throw error;
     }
   }
