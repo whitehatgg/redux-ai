@@ -9,7 +9,7 @@ export const store = configureStore({
   }
 });
 
-let _reduxAI: ReturnType<typeof createReduxAIState> | null = null;
+let _reduxAI: Awaited<ReturnType<typeof createReduxAIState>> | null = null;
 
 export const initializeReduxAI = async () => {
   if (_reduxAI) return _reduxAI;
@@ -19,7 +19,7 @@ export const initializeReduxAI = async () => {
       collectionName: 'interactions'
     });
 
-    _reduxAI = createReduxAIState({
+    _reduxAI = await createReduxAIState({
       store,
       vectorStorage,
       onError: (error) => {

@@ -106,8 +106,18 @@ export class ReduxAIState<TState, TAction extends Action> {
   }
 }
 
-export const createReduxAIState = <TState, TAction extends Action>(
+export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
 ) => {
-  return new ReduxAIState<TState, TAction>(config);
+  const instance = new ReduxAIState<TState, TAction>(config);
+
+  // Store initial state in vector storage
+  const initialState = config.store.getState();
+  await config.vectorStorage.storeInteraction(
+    'Initial State',
+    'Redux store initialized with initial state',
+    JSON.stringify(initialState, null, 2)
+  );
+
+  return instance;
 };
