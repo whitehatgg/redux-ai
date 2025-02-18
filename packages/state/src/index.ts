@@ -32,26 +32,28 @@ export class ReduxAIState<TState> {
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
   private interactions: Interaction[] = [];
-  private isProcessing = false;
+  private static instanceCount = 0;
+  private instanceId: number;
 
   constructor(config: AIStateConfig<TState>) {
+    ReduxAIState.instanceCount++;
+    this.instanceId = ReduxAIState.instanceCount;
+    console.log(`[ReduxAIState ${this.instanceId}] Initializing...`);
+
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
-    console.log('ReduxAIState: Initialized with vector storage:', this.vectorStorage);
   }
 
   private async storeInteraction(query: string, response: string) {
-    if (this.isProcessing) {
-      console.log('ReduxAIState: Skipping duplicate storeInteraction call');
-      return;
-    }
-
-    console.log('ReduxAIState: Starting storeInteraction', { query, response });
-    this.isProcessing = true;
+    console.log(`[ReduxAIState ${this.instanceId}] Storing interaction:`, {
+      query: query?.substring(0, 50),
+      response: response?.substring(0, 50),
+      stack: new Error().stack
+    });
 
     try {
       const interaction: Interaction = {
@@ -61,75 +63,24 @@ export class ReduxAIState<TState> {
       };
 
       this.interactions.push(interaction);
-      console.log('ReduxAIState: Added interaction to local cache');
+      console.log(`[ReduxAIState ${this.instanceId}] Added to local cache`);
 
-      // Only store in vector database, no need to dispatch additional actions
-      await this.vectorStorage.addEntry({
-        content: JSON.stringify(interaction),
-        metadata: {
-          type: 'interaction',
-          timestamp: interaction.timestamp,
-          state: JSON.stringify(this.store.getState())
-        }
-      });
-      console.log('ReduxAIState: Successfully stored interaction in vector storage');
+      // Instead of using addEntry directly, use storeInteraction which is designed for this purpose
+      await this.vectorStorage.storeInteraction(query, response, this.store.getState());
+
+      console.log(`[ReduxAIState ${this.instanceId}] Successfully stored in vector storage`);
     } catch (error) {
-      console.error('ReduxAIState: Error storing interaction:', error);
+      console.error(`[ReduxAIState ${this.instanceId}] Error storing:`, error);
       if (this.onError) {
         this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
       }
-    } finally {
-      this.isProcessing = false;
-    }
-  }
-
-  private async getRelevantHistory(query: string): Promise<Interaction[]> {
-    try {
-      console.log('ReduxAIState: Retrieving relevant history for query:', query);
-      const results = await this.vectorStorage.search({
-        query,
-        limit: 5
-      });
-      console.log('ReduxAIState: Retrieved history results:', results.length);
-      return results.map((result: VectorEntry) => JSON.parse(result.content));
-    } catch (error) {
-      console.error('ReduxAIState: Error retrieving conversation history:', error);
-      return [];
-    }
-  }
-
-  private async getContext(query: string) {
-    try {
-      console.log('ReduxAIState: Building context for query:', query);
-      const relevantHistory = await this.getRelevantHistory(query);
-
-      return JSON.stringify({
-        currentState: this.store.getState(),
-        availableActions: this.availableActions,
-        previousInteractions: relevantHistory
-      });
-    } catch (error) {
-      console.error('ReduxAIState: Error getting context:', error);
-      return null;
     }
   }
 
   async processQuery(query: string) {
-    if (this.isProcessing) {
-      console.log('ReduxAIState: Skipping duplicate processQuery call');
-      return;
-    }
-
-    this.isProcessing = true;
-    console.log('ReduxAIState: Starting processQuery:', query);
+    console.log(`[ReduxAIState ${this.instanceId}] Processing query:`, query);
 
     try {
-      const context = await this.getContext(query);
-
-      if (!context) {
-        throw new Error('Failed to get context for query.');
-      }
-
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
@@ -148,7 +99,7 @@ export class ReduxAIState<TState> {
       }
 
       const result = await apiResponse.json();
-      console.log('ReduxAIState: Received API response:', result);
+      console.log(`[ReduxAIState ${this.instanceId}] API Response:`, result);
 
       const { message, action } = result;
 
@@ -156,26 +107,24 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
-      // Store the interaction first
+      // First store the interaction
       await this.storeInteraction(query, message);
 
-      // Then dispatch the Redux action
+      // Then dispatch the action if provided
       if (action) {
-        console.log('ReduxAIState: Dispatching action:', action);
+        console.log(`[ReduxAIState ${this.instanceId}] Dispatching action:`, action);
         this.store.dispatch(action);
       }
 
       return { message, action };
 
     } catch (error) {
-      console.error('ReduxAIState: Error in processQuery:', error);
+      console.error(`[ReduxAIState ${this.instanceId}] Error:`, error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
       throw error;
-    } finally {
-      this.isProcessing = false;
     }
   }
 }
@@ -186,11 +135,11 @@ export const createReduxAIState = async <TState>(
   config: AIStateConfig<TState>
 ): Promise<ReduxAIState<TState>> => {
   try {
-    console.log('Creating ReduxAIState instance...');
+    console.log('[ReduxAIState] Creating new instance...');
     instance = new ReduxAIState(config);
     return instance as ReduxAIState<TState>;
   } catch (error) {
-    console.error('Error creating ReduxAIState:', error);
+    console.error('[ReduxAIState] Creation error:', error);
     throw error;
   }
 };

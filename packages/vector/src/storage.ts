@@ -16,22 +16,19 @@ export interface VectorConfig {
   dimensions: number;
 }
 
-// Event bus for vector operations
 type VectorEventListener = (entry: VectorEntry) => void;
 
-// Simple text to vector function for demo purposes
 function textToVector(text: string, dimensions: number = 128): number[] {
   const vector = new Array(dimensions).fill(0);
   const normalized = text.toLowerCase().trim();
 
   for (let i = 0; i < normalized.length && i < dimensions; i++) {
-    vector[i] = normalized.charCodeAt(i) / 255; // Normalize to [0,1]
+    vector[i] = normalized.charCodeAt(i) / 255;
   }
 
   return vector;
 }
 
-// Cosine similarity between two vectors
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
 
@@ -55,131 +52,89 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private listeners: Set<VectorEventListener> = new Set();
-  private operationInProgress = false;
-  private operationId: string | null = null;
+  private static instanceCount = 0;
+  private instanceId: number;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
+    VectorStorage.instanceCount++;
+    this.instanceId = VectorStorage.instanceCount;
     this.storage = storage;
     this.dimensions = config.dimensions;
-    console.log('VectorStorage: Initialized with dimensions:', this.dimensions);
+    console.log(`[VectorStorage ${this.instanceId}] Created new instance`);
   }
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
     try {
-      console.log('VectorStorage: Creating new instance...');
+      console.log('[VectorStorage] Creating new instance...');
       const storage = new IndexedDBStorage();
       await storage.initialize();
-      console.log('VectorStorage: IndexedDB storage initialized');
       return new VectorStorage(storage, config);
     } catch (error) {
-      console.error('VectorStorage: Creation failed:', error);
+      console.error('[VectorStorage] Creation failed:', error);
       throw error;
     }
   }
 
   subscribe(listener: VectorEventListener) {
-    console.log('VectorStorage: Adding new listener');
+    console.log(`[VectorStorage ${this.instanceId}] Adding new listener. Current count: ${this.listeners.size}`);
     this.listeners.add(listener);
     return () => {
-      console.log('VectorStorage: Removing listener');
+      console.log(`[VectorStorage ${this.instanceId}] Removing listener. Remaining count: ${this.listeners.size - 1}`);
       this.listeners.delete(listener);
     };
   }
 
-  private generateOperationId(): string {
-    return Math.random().toString(36).substring(2, 15);
-  }
-
   private notifyListeners(entry: VectorEntry) {
-    if (this.operationInProgress) {
-      console.log('VectorStorage: Skipping notification during operation:', this.operationId);
-      return;
-    }
-    console.log('VectorStorage: Notifying listeners of new entry');
+    console.log(`[VectorStorage ${this.instanceId}] Notifying ${this.listeners.size} listeners of new entry`);
     this.listeners.forEach(listener => listener(entry));
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
-    const newOperationId = this.generateOperationId();
+    console.log(`[VectorStorage ${this.instanceId}] Adding entry:`, {
+      content: entry.content?.substring(0, 50),
+      metadata: entry.metadata,
+      stack: new Error().stack
+    });
 
-    if (this.operationInProgress) {
-      console.log('VectorStorage: Operation in progress, skipping duplicate addEntry:', {
-        currentOp: this.operationId,
-        newOp: newOperationId
-      });
-      return;
-    }
+    const enhancedEntry: VectorEntry = {
+      ...entry,
+      content: entry.content,
+      embedding: entry.embedding || textToVector(entry.content, this.dimensions),
+      timestamp: entry.timestamp || new Date().toISOString()
+    };
 
-    try {
-      this.operationInProgress = true;
-      this.operationId = newOperationId;
-      console.log('VectorStorage: Starting addEntry operation:', this.operationId);
-
-      const enhancedEntry: VectorEntry = {
-        ...entry,
-        content: entry.content,
-        embedding: entry.embedding || textToVector(entry.content, this.dimensions),
-        timestamp: entry.timestamp || new Date().toISOString()
-      };
-
-      await this.storage.addEntry(enhancedEntry);
-      console.log('VectorStorage: Entry added successfully:', this.operationId);
-      this.notifyListeners(enhancedEntry);
-    } catch (error) {
-      console.error('VectorStorage: Error in addEntry:', error);
-      throw error;
-    } finally {
-      console.log('VectorStorage: Completing operation:', this.operationId);
-      this.operationInProgress = false;
-      this.operationId = null;
-    }
+    await this.storage.addEntry(enhancedEntry);
+    this.notifyListeners(enhancedEntry);
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
-    const newOperationId = this.generateOperationId();
+    console.log(`[VectorStorage ${this.instanceId}] Storing interaction:`, {
+      query: query?.substring(0, 50),
+      response: response?.substring(0, 50),
+      stack: new Error().stack
+    });
 
-    if (this.operationInProgress) {
-      console.log('VectorStorage: Operation in progress, skipping duplicate storeInteraction:', {
-        currentOp: this.operationId,
-        newOp: newOperationId
-      });
-      return;
-    }
+    const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+    const timestamp = new Date().toISOString();
 
-    try {
-      this.operationInProgress = true;
-      this.operationId = newOperationId;
-      console.log('VectorStorage: Starting storeInteraction:', this.operationId);
+    const entry: VectorEntry = {
+      query,
+      response,
+      state: stateString,
+      content: `${query} ${response}`,
+      embedding: textToVector(`${query} ${response}`, this.dimensions),
+      timestamp,
+      metadata: { type: 'interaction' }
+    };
 
-      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
-      const timestamp = new Date().toISOString();
-
-      const entry: VectorEntry = {
-        query,
-        response,
-        state: stateString,
-        content: `${query} ${response}`,
-        embedding: textToVector(`${query} ${response}`, this.dimensions),
-        timestamp,
-        metadata: { type: 'interaction' }
-      };
-
-      await this.storage.addEntry(entry);
-      console.log('VectorStorage: Interaction stored successfully:', this.operationId);
-      this.notifyListeners(entry);
-    } catch (error) {
-      console.error('VectorStorage: Error in storeInteraction:', error);
-      throw error;
-    } finally {
-      console.log('VectorStorage: Completing operation:', this.operationId);
-      this.operationInProgress = false;
-      this.operationId = null;
-    }
+    await this.storage.addEntry(entry);
+    console.log(`[VectorStorage ${this.instanceId}] Successfully stored interaction`);
+    this.notifyListeners(entry);
   }
 
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
+    console.log(`[VectorStorage ${this.instanceId}] Retrieving similar entries for query:`, query);
     try {
-      console.log('Retrieving similar interactions for query:', query);
       const queryEmbedding = textToVector(query, this.dimensions);
       const entries = await this.storage.getAllEntries();
 
@@ -192,10 +147,10 @@ export class VectorStorage {
         .slice(0, limit)
         .map(({ entry }) => entry);
 
-      console.log(`Found ${scoredEntries.length} similar entries`);
+      console.log(`[VectorStorage ${this.instanceId}] Found ${scoredEntries.length} similar entries`);
       return scoredEntries;
     } catch (error) {
-      console.error('Error retrieving similar interactions:', error);
+      console.error(`[VectorStorage ${this.instanceId}] Error retrieving similar:`, error);
       return [];
     }
   }
@@ -203,28 +158,13 @@ export class VectorStorage {
   async getAllEntries(): Promise<VectorEntry[]> {
     try {
       const entries = await this.storage.getAllEntries();
+      console.log(`[VectorStorage ${this.instanceId}] Retrieved ${entries.length} entries`);
       return entries;
     } catch (error) {
-      console.error('Error getting all entries:', error);
+      console.error(`[VectorStorage ${this.instanceId}] Error getting all entries:`, error);
       return [];
     }
   }
-}
-
-export async function resetVectorStorage(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase('reduxai_vector');
-
-    request.onerror = () => {
-      console.error('Error deleting database:', request.error);
-      reject(request.error);
-    };
-
-    request.onsuccess = () => {
-      console.log('Successfully deleted vector database');
-      resolve();
-    };
-  });
 }
 
 export const createReduxAIVector = async (config: VectorConfig): Promise<VectorStorage> => {

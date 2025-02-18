@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Store } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
-import { createReduxAIVector, VectorStorage, resetVectorStorage } from '@redux-ai/vector';
+import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
 interface ReduxAIContextType {
@@ -33,40 +33,36 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
 
   useEffect(() => {
+    console.log('[ReduxAIProvider] Starting initialization...');
+
     const initialize = async () => {
       try {
-        console.log('Initializing ReduxAI Provider...');
-
-        // Reset the vector database to apply schema changes
-        await resetVectorStorage();
-        console.log('Vector database reset successfully');
-
-        // Create vector storage for semantic search
+        console.log('[ReduxAIProvider] Creating vector storage...');
         const vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128
         });
 
-        console.log('Vector storage initialized:', vectorDb);
+        console.log('[ReduxAIProvider] Vector storage created:', vectorDb);
         setVectorStorage(vectorDb);
 
-        // Initialize ReduxAI state management
+        console.log('[ReduxAIProvider] Initializing ReduxAI state...');
         await createReduxAIState({
           store,
           schema,
           vectorStorage: vectorDb,
           availableActions,
           onError: (error: Error) => {
-            console.error('ReduxAI Error:', error);
+            console.error('[ReduxAIProvider] Error:', error);
             store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
           }
         });
 
         setIsInitialized(true);
-        console.log('ReduxAI Provider initialized successfully');
+        console.log('[ReduxAIProvider] Initialization complete');
       } catch (error) {
-        console.error('ReduxAI initialization error:', error);
+        console.error('[ReduxAIProvider] Initialization error:', error);
       }
     };
 
