@@ -7,15 +7,6 @@ export interface VectorEntry {
   timestamp: string;
   embedding?: number[];
   id?: string;
-  action?: {
-    type: string;
-    payload?: any;
-  };
-  stateDiff?: {
-    before: string;
-    after: string;
-    changedPaths: string[];
-  };
 }
 
 export interface VectorConfig {
@@ -85,34 +76,15 @@ export class VectorStorage {
     }
   }
 
-  async storeInteraction(query: string, response: string, state: any, action?: any): Promise<void> {
+  async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
-      const prevState = typeof state === 'string' ? state : JSON.stringify(state);
-      const actionData = action ? {
-        type: action.type,
-        payload: action.payload
-      } : undefined;
-
-      // Simple state diff calculation
-      const getChangedPaths = (prev: any, curr: any, path = ''): string[] => {
-        if (typeof prev !== 'object' || typeof curr !== 'object') {
-          return prev !== curr ? [path] : [];
-        }
-
-        return Object.keys({ ...prev, ...curr }).reduce((paths: string[], key) => {
-          const currentPath = path ? `${path}.${key}` : key;
-          const childPaths = getChangedPaths(prev?.[key], curr?.[key], currentPath);
-          return [...paths, ...childPaths];
-        }, []);
-      };
-
+      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
       const entry: VectorEntry = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         query,
         response,
-        state: prevState,
-        action: actionData,
-        embedding: textToVector(`${query} ${response} ${actionData?.type || ''}`, this.dimensions),
+        state: stateString,
+        embedding: textToVector(`${query} ${response}`, this.dimensions),
         timestamp: new Date().toISOString()
       };
 
