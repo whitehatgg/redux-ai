@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import applicantReducer, { type ApplicantState } from './slices/applicantSlice';
+import { actionTrackingMiddleware } from './actionTrackingMiddleware';
 
 export interface RootState {
   applicant: ApplicantState;
@@ -21,7 +22,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
-    }).concat(actionValidationMiddleware)
+    }).concat([actionValidationMiddleware, actionTrackingMiddleware])
 });
 
 export type AppDispatch = typeof store.dispatch;

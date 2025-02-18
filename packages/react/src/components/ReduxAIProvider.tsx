@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    __LAST_ACTION__: any;
+  }
+}
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Store, Action } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
@@ -23,7 +29,7 @@ const ReduxAIContext = createContext<ReduxAIContextType>({
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema?: ReduxAISchema<Action>;  // Update to use Action type
+  schema?: ReduxAISchema<Action>;
   availableActions: ReduxAIAction[];
   onActionMatch?: (query: string) => Promise<{ action: Action | null; message: string } | null>;
 }
@@ -42,6 +48,29 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     state: any;
     timestamp: string;
   }>>([]);
+
+  // Function to record state change
+  const recordStateChange = (action: any, state: any) => {
+    console.log('Recording state change:', { action, state });
+    const stateChange = {
+      action,
+      state,
+      timestamp: new Date().toISOString()
+    };
+
+    // Ensure we don't add duplicate state changes
+    setStateChanges(prev => {
+      const lastChange = prev[prev.length - 1];
+      if (lastChange && 
+          JSON.stringify(lastChange.action) === JSON.stringify(action) &&
+          JSON.stringify(lastChange.state) === JSON.stringify(state)) {
+        return prev;
+      }
+      return [...prev, stateChange];
+    });
+
+    return stateChange;
+  };
 
   useEffect(() => {
     let isCleanedUp = false;
@@ -85,7 +114,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         // Initialize vector storage with fresh configuration
         console.log('Initializing vector storage...');
         const vectorStorage = await createReduxAIVector({
-          collectionName: 'reduxai_vector', // Use consistent name
+          collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128
         });
@@ -98,26 +127,26 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.log('Initializing ReduxAI state manager...');
         await createReduxAIState({
           store,
-          schema: schema as ReduxAISchema<Action>, // Cast schema to expected type
+          schema: schema as ReduxAISchema<Action>,
           vectorStorage,
           availableActions,
           onActionMatch: async (query: string, context: string) => {
             if (!onActionMatch) return null;
 
             try {
+              console.log('Matching action for query:', query);
               const result = await onActionMatch(query);
+              console.log('Action match result:', result);
+
               if (!result) return null;
 
-              // Validate action structure
-              if (result.action && typeof result.action === 'object' && 'type' in result.action) {
-                return result;
+              // Record state change when action is matched
+              if (result.action) {
+                const stateChange = recordStateChange(result.action, store.getState());
+                console.log('Recorded state change from action match:', stateChange);
               }
 
-              console.warn('Invalid action structure received:', result.action);
-              return {
-                action: null,
-                message: result.message || 'Invalid action structure received'
-              };
+              return result;
             } catch (error) {
               console.error('Error in action match:', error);
               return null;
@@ -137,19 +166,18 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         unsubscribe = store.subscribe(() => {
           if (isCleanedUp) return;
 
+          // Get the current state
           const state = store.getState();
-          const lastAction = (store as any)._lastAction;
+
+          // Access the last action from our tracking middleware
+          const lastAction = typeof window !== 'undefined' ? window.__LAST_ACTION__ : null;
 
           if (lastAction && typeof lastAction === 'object' && 'type' in lastAction) {
-            const stateChange = {
-              action: lastAction,
-              state,
-              timestamp: new Date().toISOString()
-            };
+            console.log('State change detected:', { action: lastAction, state });
+            const stateChange = recordStateChange(lastAction, state);
+            console.log('Recorded state change from store:', stateChange);
 
-            setStateChanges(prev => [...prev, stateChange]);
-
-            // Store the interaction in vector storage using the correct method name
+            // Store the interaction in vector storage
             vectorStorage.storeInteraction(
               lastAction.type,
               JSON.stringify(stateChange),
