@@ -36,7 +36,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-useEffect(() => {
+  useEffect(() => {
     const initialize = async () => {
       try {
         console.log('Starting ReduxAI initialization...');
@@ -45,7 +45,8 @@ useEffect(() => {
         console.log('Initializing vector storage...');
         const vectorStorage = await createReduxAIVector({
           collectionName: 'redux-ai-store',
-          initialize: true
+          maxEntries: 100,
+          dimensions: 128
         });
         console.log('Vector storage initialized successfully');
 
