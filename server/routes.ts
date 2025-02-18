@@ -2,7 +2,6 @@ import { createServer } from "http";
 import OpenAI from "openai";
 import type { ReduxAIAction } from "@redux-ai/state";
 import type { Express } from "express";
-import { generateSystemPrompt } from "../client/src/lib/prompts";
 
 let openai: OpenAI;
 
@@ -44,21 +43,19 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      const { query, state, availableActions, previousInteractions = [] } = req.body;
+      const { query, systemPrompt, availableActions } = req.body;
 
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
 
+      if (!systemPrompt) {
+        return res.status(400).json({ error: 'System prompt is required' });
+      }
+
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
-
-      const conversationHistory = previousInteractions
-        .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
-        .join('\n');
-
-      const systemPrompt = generateSystemPrompt(state, availableActions, conversationHistory);
 
       const response = await createChatCompletion([
         {

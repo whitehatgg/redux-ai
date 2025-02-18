@@ -3,6 +3,7 @@ import { createConversationMachine } from "./machine";
 import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
 import { ReduxAISchema } from "@redux-ai/schema";
 import { ReduxAIVector, VectorEntry } from "@redux-ai/vector";
+import { generateSystemPrompt } from './prompts';
 
 export interface ReduxAIAction {
   type: string;
@@ -81,6 +82,16 @@ export class ReduxAIState<TState> {
     }
 
     try {
+      const conversationHistory = this.interactions
+        .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
+        .join('\n');
+
+      const systemPrompt = generateSystemPrompt(
+        this.store.getState(),
+        this.availableActions,
+        conversationHistory
+      );
+
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
@@ -88,9 +99,8 @@ export class ReduxAIState<TState> {
         },
         body: JSON.stringify({
           query,
-          state: this.store.getState(),
+          systemPrompt,
           availableActions: this.availableActions,
-          previousInteractions: this.interactions
         }),
       });
 
