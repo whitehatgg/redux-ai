@@ -13,10 +13,6 @@ interface RAGResponse {
   timestamp: string;
 }
 
-/**
- * Hook for natural language interaction with Redux store
- * Allows querying and updating store state through AI
- */
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,22 +67,30 @@ export function useReduxAI() {
 
       let similarDocs = [];
       try {
-        similarDocs = await reduxAI.getSimilarInteractions(query) || [];
-        console.log('Similar docs:', similarDocs);
+        const fetchedDocs = await reduxAI.getSimilarInteractions(query);
+        console.log('Raw similar docs:', fetchedDocs);
+        similarDocs = Array.isArray(fetchedDocs) ? fetchedDocs : [];
       } catch (err) {
         console.warn('Failed to get similar interactions:', err);
       }
 
+      console.log('Processed similarDocs:', similarDocs);
+
       // Create RAG results with proper type safety and defaults
       const ragResponse: RAGResponse = {
-        ragResponse: response.message || '',
-        similarDocs: Array.isArray(similarDocs) ? similarDocs : [],
+        ragResponse: response?.message || '',
+        similarDocs: similarDocs.map(doc => ({
+          query: doc.query || '',
+          response: doc.response || '',
+          state: doc.state || '',
+          timestamp: doc.timestamp || new Date().toISOString()
+        })),
         timestamp: new Date().toISOString()
       };
 
       console.log('Setting RAG results:', ragResponse);
       setRagResults(ragResponse);
-      return response.message;
+      return response?.message || '';
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       console.error('Error in sendQuery:', errorMessage);

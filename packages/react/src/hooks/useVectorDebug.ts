@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IndexedDBStorage } from '@redux-ai/vector/src/indexeddb';
+import type { IndexedDBStorage } from '@redux-ai/vector';
 
 interface DebugEntry {
   query: string;
@@ -12,14 +12,13 @@ export function useVectorDebug() {
   const [entries, setEntries] = useState<DebugEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [storage] = useState(() => new IndexedDBStorage());
 
   useEffect(() => {
     const fetchDebugEntries = async () => {
       try {
-        if (!storage.db) {
-          await storage.initialize();
-        }
+        const { IndexedDBStorage } = await import('@redux-ai/vector');
+        const storage = new IndexedDBStorage();
+        await storage.initialize();
 
         const data = await storage.getAllEntries();
         if (!Array.isArray(data)) {
@@ -42,7 +41,7 @@ export function useVectorDebug() {
     return () => {
       clearInterval(interval);
     };
-  }, [storage]);
+  }, []);
 
   return { entries, isLoading, error };
 }
