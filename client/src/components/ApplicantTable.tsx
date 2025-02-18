@@ -55,7 +55,7 @@ export function ApplicantTable() {
             <Checkbox
               id="enableSearch"
               checked={tableConfig.enableSearch}
-              onCheckedChange={() => dispatch(toggleSearch())}
+              onCheckedChange={() => dispatch(toggleSearch(undefined))}
             />
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>

@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, Slice } from '@reduxjs/toolkit';
 
 export interface Applicant {
   id: string;
@@ -54,7 +54,7 @@ const initialState: ApplicantState = {
   },
 };
 
-export const applicantSlice = createSlice({
+export const applicantSlice: Slice<ApplicantState> = createSlice({
   name: 'applicant',
   initialState,
   reducers: {
