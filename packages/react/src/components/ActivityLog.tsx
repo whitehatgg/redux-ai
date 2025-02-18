@@ -14,7 +14,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-background border-l shadow-lg transform transition-transform ease-in-out duration-300 z-50">
+    <div className="fixed inset-y-0 right-0 w-80 bg-background border-l shadow-lg transform transition-transform ease-in-out duration-300">
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-semibold">Activity Log</h3>
         <button

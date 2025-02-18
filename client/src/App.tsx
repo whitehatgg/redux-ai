@@ -53,15 +53,16 @@ const matchAction = (query: string) => {
     }
   }
 
-  // Match search command
-  const searchMatch = lowerQuery.match(/(?:search|find|look\s+for)\s+(.+)/i);
+  // Match search command - Extract only the search term without the "for" prefix
+  const searchMatch = /(?:search|find|look\s+for)\s+(?:for\s+)?(.+)/i.exec(lowerQuery);
   if (searchMatch) {
+    const searchTerm = searchMatch[1].trim();
     return {
       action: {
         type: 'applicant/setSearchTerm',
-        payload: searchMatch[1].trim()
+        payload: searchTerm
       },
-      message: `Searching for: ${searchMatch[1].trim()}`
+      message: `Searching for: ${searchTerm}`
     };
   }
 
