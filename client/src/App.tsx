@@ -25,7 +25,7 @@ const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setSearchTerm',
     description: 'Set search filter value to find specific applicants',
-    keywords: ['search', 'find', 'filter', 'query']
+    keywords: ['search', 'find', 'filter', 'query', 'look', 'for']
   }
 ];
 
