@@ -13,17 +13,20 @@ export function useReduxAI() {
 
     try {
       const reduxAI = getReduxAI();
+      if (!reduxAI) {
+        throw new Error('ReduxAI not initialized');
+      }
       const response = await reduxAI.processQuery(query);
       return response.message;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      console.error('Error in sendQuery:', error);
+      console.error('Error in sendQuery:', errorMessage);
       setError(errorMessage);
       throw error;
     } finally {
       setIsProcessing(false);
     }
-  }, [store]);
+  }, []);
 
   return {
     sendQuery,

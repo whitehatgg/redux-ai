@@ -32,6 +32,7 @@ export class ReduxAIState<TState> {
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
   private interactions: Interaction[] = [];
+  private initialized: boolean = false;
 
   constructor(config: AIStateConfig<TState>) {
     this.store = config.store;
@@ -40,6 +41,21 @@ export class ReduxAIState<TState> {
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
+  }
+
+  async initialize() {
+    if (this.initialized) {
+      return;
+    }
+
+    try {
+      // Any async initialization can go here
+      this.initialized = true;
+      console.log('[ReduxAIState] Initialization complete');
+    } catch (error) {
+      console.error('[ReduxAIState] Initialization failed:', error);
+      throw error;
+    }
   }
 
   private async storeInteraction(query: string, response: string) {
@@ -60,6 +76,10 @@ export class ReduxAIState<TState> {
   }
 
   async processQuery(query: string) {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
     try {
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
@@ -108,17 +128,23 @@ let instance: ReduxAIState<any> | null = null;
 export const createReduxAIState = async <TState>(
   config: AIStateConfig<TState>
 ): Promise<ReduxAIState<TState>> => {
+  if (instance) {
+    return instance as ReduxAIState<TState>;
+  }
+
   try {
     instance = new ReduxAIState(config);
-    return instance as ReduxAIState<TState>;
+    await instance.initialize();
+    return instance;
   } catch (error) {
+    console.error('[createReduxAIState] Failed to create instance:', error);
     throw error;
   }
 };
 
 export const getReduxAI = <TState>(): ReduxAIState<TState> => {
   if (!instance) {
-    throw new Error('ReduxAI not initialized');
+    throw new Error('ReduxAI not initialized. Call createReduxAIState first.');
   }
   return instance as ReduxAIState<TState>;
 };
