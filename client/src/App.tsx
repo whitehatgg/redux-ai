@@ -28,10 +28,10 @@ const demoActions: ReduxAIAction[] = [
 
 // Custom action matching logic
 const matchAction = (query: string) => {
-  const lowerQuery = query.toLowerCase();
+  const lowerQuery = query.toLowerCase().trim();
 
   // Match show columns command
-  const showColumnsMatch = /show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/.exec(lowerQuery);
+  const showColumnsMatch = /^show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?$/.exec(lowerQuery);
   if (showColumnsMatch) {
     const requestedColumns = [showColumnsMatch[1], showColumnsMatch[2]].filter(Boolean);
     const validColumns = ['name', 'email', 'status', 'position', 'appliedDate'];
@@ -52,7 +52,7 @@ const matchAction = (query: string) => {
   }
 
   // Match search command
-  const searchMatch = /(?:search|find|look\s+for)\s+(?:for\s+)?(.+)/i.exec(lowerQuery);
+  const searchMatch = /^(?:search|find|look)\s+(?:for\s+)?([a-zA-Z0-9@\s.]+)$/.exec(lowerQuery);
   if (searchMatch) {
     const searchTerm = searchMatch[1].trim();
     return {
