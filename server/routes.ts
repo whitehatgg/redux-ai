@@ -24,7 +24,9 @@ export async function registerRoutes(app: Express) {
 
       // Get the current Redux state
       const currentState = state || {};
-      const stateDescription = `Current Redux state:\n${JSON.stringify(currentState, null, 2)}`;
+      const counterValue = currentState.demo?.counter ?? 0;
+
+      const stateDescription = `Current Redux state:\n${JSON.stringify(currentState, null, 2)}\nCurrent counter value: ${counterValue}`;
       const actionsDescription = availableActions 
         ? `\nAvailable actions:\n${JSON.stringify(availableActions, null, 2)}`
         : '';
@@ -46,17 +48,17 @@ ${actionsDescription}
 
 Instructions for State Interactions:
 1. The counter value is accessed at state.demo.counter
-2. For counter operations, use the exact action types from availableActions
+2. For counter operations, use the actions 'increment', 'decrement', or 'resetCounter'
 3. When responding to queries:
-   - Always mention the current counter value
+   - Always mention the current counter value from state.demo.counter
    - For increment/decrement, mention both before and after values
-   - Use exact action types, don't modify them
+   - Use exact action types: 'increment', 'decrement', 'resetCounter', 'setMessage'
 
 Respond with a JSON object:
 {
   "message": "Natural language response that includes the current counter value and any changes made",
   "action": null | {
-    "type": "ACTION_TYPE",  // Use exact action type from availableActions
+    "type": "increment" | "decrement" | "resetCounter" | "setMessage",
     "payload": "PAYLOAD_IF_NEEDED"
   }
 }`
@@ -73,7 +75,9 @@ Respond with a JSON object:
         throw new Error('Invalid response format from AI');
       }
 
+      console.log('OpenAI Response:', response.choices[0].message.content);
       const content = JSON.parse(response.choices[0].message.content);
+
       res.json({ 
         message: content.message,
         action: content.action || null

@@ -96,6 +96,8 @@ export class ReduxAIState<TState, TAction extends Action> {
       }
 
       const data = await response.json();
+      console.log('AI Response:', data);
+      console.log('Current State:', state);
       return {
         message: data.message,
         action: data.action,
