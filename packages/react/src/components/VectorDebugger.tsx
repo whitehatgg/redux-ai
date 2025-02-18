@@ -33,7 +33,7 @@ export const VectorDebugger: React.FC = () => {
         </div>
 
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
-          {Array.isArray(entries) && entries.length > 0 ? (
+          {entries && entries.length > 0 ? (
             entries.map((entry: VectorEntry, index: number) => (
               <div 
                 key={`${entry.timestamp}-${index}`} 

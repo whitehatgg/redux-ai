@@ -6,13 +6,14 @@ export function useVectorDebug() {
   const [entries, setEntries] = useState<VectorEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [vectorInstance, setVectorInstance] = useState<Awaited<ReturnType<typeof createReduxAIVector>> | null>(null);
 
   useEffect(() => {
-    const fetchDebugEntries = async () => {
+    const initVectorAndFetch = async () => {
       try {
-        const vectorInstance = await createReduxAIVector();
-        const data = await vectorInstance.getAllEntries();
-
+        const instance = await createReduxAIVector();
+        setVectorInstance(instance);
+        const data = await instance.getAllEntries();
         setEntries(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
@@ -24,13 +25,13 @@ export function useVectorDebug() {
       }
     };
 
-    fetchDebugEntries();
-    const interval = setInterval(fetchDebugEntries, 5000);
+    initVectorAndFetch();
+    const interval = setInterval(initVectorAndFetch, 5000);
 
     return () => {
       clearInterval(interval);
     };
   }, []);
 
-  return { entries, isLoading, error };
+  return { entries, isLoading, error, vectorInstance };
 }
