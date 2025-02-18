@@ -7,7 +7,18 @@ interface VectorDebuggerProps {
 }
 
 export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => {
-  const { availableActions, isLoading, error } = useVectorDebug();
+  const { availableActions, isLoading, error, isInitialized } = useVectorDebug();
+
+  if (!isInitialized) {
+    return (
+      <div className={`w-full rounded-lg border bg-card p-4 ${className || ''}`}>
+        <div className="text-muted-foreground">
+          <h3 className="font-medium">Initializing ReduxAI</h3>
+          <p className="text-sm">Please wait while the system initializes...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
