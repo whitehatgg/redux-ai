@@ -1,9 +1,8 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { ChatBubble, ActivityLog, ReduxAIProvider } from '@redux-ai/react';
+import { ChatBubble, ActivityLog, ReduxAIProvider, VectorDebugger } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
-import { Toaster } from './components/ui/toaster';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
 import { useState } from 'react';
@@ -53,7 +52,7 @@ const matchAction = (query: string) => {
     }
   }
 
-  // Match search command - Extract only the search term without the "for" prefix
+  // Match search command - Remove "for" from being included in the search term
   const searchMatch = /(?:search|find|look\s+for)\s+(?:for\s+)?(.+)/i.exec(lowerQuery);
   if (searchMatch) {
     const searchTerm = searchMatch[1].trim();
@@ -71,29 +70,36 @@ const matchAction = (query: string) => {
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto py-8 px-4">
+      <main className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold text-center mb-8">
           Redux AI Demo
         </h1>
         <div className="grid gap-8">
           <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-semibold mb-4">Applicant Management</h2>
+            <h2 className="text-2xl font-semibold">Applicant Management</h2>
             <ApplicantTable />
+          </div>
+          <div className="flex flex-col gap-4">
+            <h2 className="text-2xl font-semibold">Activity Log</h2>
+            <VectorDebugger />
           </div>
         </div>
       </main>
 
       {/* Fixed Chat Bubble and Activity Log */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-4">
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-4">
         <div className="max-w-[200px] sm:max-w-none text-sm text-muted-foreground bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
           Try asking: "show only name and email columns" or "search for john@example.com"
         </div>
         <ChatBubble 
-          className="w-[350px] h-[450px] shadow-lg rounded-lg bg-background border" 
+          className="w-[350px] sm:w-[400px] shadow-lg rounded-lg bg-background border" 
           onToggleActivityLog={() => setShowActivityLog(!showActivityLog)}
+          isMinimized={isMinimized}
+          onMinimize={() => setIsMinimized(!isMinimized)}
         />
       </div>
 
@@ -115,7 +121,6 @@ function App() {
           onActionMatch={matchAction}
         >
           <AppContent />
-          <Toaster />
         </ReduxAIProvider>
       </Provider>
     </QueryClientProvider>

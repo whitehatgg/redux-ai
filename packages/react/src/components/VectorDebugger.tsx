@@ -2,12 +2,16 @@ import React from 'react';
 import { useVectorDebug } from '../hooks/useVectorDebug';
 import type { VectorEntry } from '@redux-ai/vector';
 
-export const VectorDebugger: React.FC = () => {
+interface VectorDebuggerProps {
+  className?: string;
+}
+
+export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => {
   const { entries = [], isLoading, error } = useVectorDebug();
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card p-6">
+      <div className={`w-full max-w-2xl mx-auto rounded-lg border bg-card p-6 ${className || ''}`}>
         <div className="flex items-center justify-center p-4">
           <div className="animate-pulse text-muted-foreground">
             Loading activity log...
@@ -19,7 +23,7 @@ export const VectorDebugger: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-full max-w-2xl mx-auto rounded-lg border bg-destructive/10 p-6">
+      <div className={`w-full max-w-2xl mx-auto rounded-lg border bg-destructive/10 p-6 ${className || ''}`}>
         <div className="flex items-center justify-center p-4 text-destructive">
           Error loading activity log: {error}
         </div>
@@ -28,7 +32,7 @@ export const VectorDebugger: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card p-6">
+    <div className={`w-full max-w-2xl mx-auto rounded-lg border bg-card p-6 ${className || ''}`}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Activity Log</h2>
@@ -42,8 +46,6 @@ export const VectorDebugger: React.FC = () => {
             entries.map((entry: VectorEntry, index: number) => {
               try {
                 const data = JSON.parse(entry.state);
-                console.log('Rendering entry:', data);
-
                 return (
                   <div 
                     key={`${data.timestamp}-${index}`} 
@@ -63,10 +65,7 @@ export const VectorDebugger: React.FC = () => {
                     </div>
 
                     <div className="text-sm text-muted-foreground">
-                      Counter: {data.state.counter}
-                      {data.state.message && (
-                        <span className="ml-2">| Message: {data.state.message}</span>
-                      )}
+                      {data.state && JSON.stringify(data.state, null, 2)}
                     </div>
 
                     {data.response && (
@@ -81,7 +80,7 @@ export const VectorDebugger: React.FC = () => {
             }).filter(Boolean)
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No activity recorded yet. Try interacting with the counter.
+              No activity recorded yet. Try interacting with the table or AI assistant.
             </div>
           )}
         </div>

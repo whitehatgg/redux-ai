@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useReduxAI } from '../hooks/useReduxAI';
-import { MessageSquare, X, Sidebar } from 'lucide-react';
+import { MessageSquare, X, Sidebar, Minimize2, Maximize2 } from 'lucide-react';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'error';
@@ -10,12 +10,18 @@ export interface ChatMessage {
 interface ChatBubbleProps {
   className?: string;
   onToggleActivityLog?: () => void;
+  isMinimized?: boolean;
+  onMinimize?: () => void;
 }
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({ className, onToggleActivityLog }) => {
+export const ChatBubble: React.FC<ChatBubbleProps> = ({ 
+  className, 
+  onToggleActivityLog,
+  isMinimized = false, // Added default value
+  onMinimize
+}) => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
-  const [isOpen, setIsOpen] = useState(false);
   const { sendQuery, isProcessing, error, isInitialized } = useReduxAI();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,11 +52,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ className, onToggleActiv
     return null;
   }
 
-  if (!isOpen) {
+  if (isMinimized) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 p-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+        onClick={onMinimize}
+        className="p-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
       >
         <MessageSquare className="w-6 h-6" />
       </button>
@@ -71,11 +77,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ className, onToggleActiv
               <Sidebar className="w-5 h-5" />
             </button>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={onMinimize}
               className="p-1 hover:bg-muted rounded-md"
-              title="Close Chat"
+              title="Minimize Chat"
             >
-              <X className="w-5 h-5" />
+              <Minimize2 className="w-5 h-5" />
             </button>
           </div>
         </div>
