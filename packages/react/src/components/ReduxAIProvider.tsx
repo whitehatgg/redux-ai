@@ -64,6 +64,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         if (!mounted) return;
 
         setIsInitialized(true);
+        console.log('[ReduxAIProvider] Initialization complete');
       } catch (error) {
         console.error('[ReduxAIProvider] Initialization error:', error);
         if (mounted) {
