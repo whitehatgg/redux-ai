@@ -15,6 +15,27 @@ try {
   console.error('Error initializing OpenAI:', error);
 }
 
+async function createChatCompletion(messages: any[], retryCount = 0) {
+  const models = ["gpt-3.5-turbo", "gpt-3.5-turbo-instruct"];
+  const maxRetries = 2;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: models[retryCount],
+      messages,
+      response_format: { type: "json_object" }
+    });
+
+    return response;
+  } catch (error: any) {
+    if (error?.message?.includes('does not have access to model') && retryCount < models.length - 1) {
+      console.log(`Retrying with model: ${models[retryCount + 1]}`);
+      return createChatCompletion(messages, retryCount + 1);
+    }
+    throw error;
+  }
+}
+
 export async function registerRoutes(app: Express) {
   app.get('/health', (_req, res) => {
     res.status(200).send('OK');
@@ -44,20 +65,16 @@ export async function registerRoutes(app: Express) {
 
       const systemPrompt = generateSystemPrompt(state, availableActions, conversationHistory);
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          {
-            role: "user",
-            content: query
-          }
-        ],
-        response_format: { type: "json_object" }
-      });
+      const response = await createChatCompletion([
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: query
+        }
+      ]);
 
       if (!response.choices[0].message.content) {
         throw new Error('Invalid response format from AI');
@@ -75,6 +92,26 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error: unknown) {
       console.error('Error processing query:', error);
+
+      // Handle specific OpenAI API errors
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          return res.status(401).json({ 
+            error: 'Invalid or missing OpenAI API key. Please check your configuration.'
+          });
+        }
+        if (error.message.includes('does not have access to model')) {
+          return res.status(403).json({ 
+            error: 'Your OpenAI API key does not have access to any supported models (GPT-3.5 Turbo or GPT-3.5 Turbo-instruct). Please check your OpenAI account settings.'
+          });
+        }
+        if (error.message.includes('rate limit')) {
+          return res.status(429).json({
+            error: 'Rate limit exceeded. Please try again later.'
+          });
+        }
+      }
+
       res.status(500).json({ 
         error: error instanceof Error ? error.message : 'An unknown error occurred'
       });
