@@ -137,16 +137,16 @@ await reduxAI.processQuery("increase the counter");`}
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Provider store={store}>
-        <ReduxAIProvider 
-          store={store} 
-          availableActions={availableActions}
-        >
+    <Provider store={store}>
+      <ReduxAIProvider 
+        store={store} 
+        availableActions={availableActions}
+      >
+        <QueryClientProvider client={queryClient}>
           <AppContent />
-        </ReduxAIProvider>
-      </Provider>
-    </QueryClientProvider>
+        </QueryClientProvider>
+      </ReduxAIProvider>
+    </Provider>
   );
 }
 
