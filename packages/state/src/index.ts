@@ -6,14 +6,14 @@ import { ReduxAIVector } from "@redux-ai/vector";
 
 export interface AIStateConfig<TState, TAction extends Action> {
   store: Store<TState>;
-  schema: ReduxAISchema<TAction>;
+  schema?: ReduxAISchema<TAction>;
   vectorStorage: ReduxAIVector;
   onError?: (error: Error) => void;
 }
 
 export class ReduxAIState<TState, TAction extends Action> {
   private store: Store<TState>;
-  private schema: ReduxAISchema<TAction>;
+  private schema?: ReduxAISchema<TAction>;
   private machine;
   private onError?: (error: Error) => void;
   private vectorStorage: ReduxAIVector;
@@ -32,8 +32,8 @@ export class ReduxAIState<TState, TAction extends Action> {
       const response = await this.generateAIResponse(query, state);
 
       if (response.action) {
-        // Validate action against schema before dispatching
-        if (!this.schema.validateAction(response.action)) {
+        // If schema is provided, validate action
+        if (this.schema && !this.schema.validateAction(response.action)) {
           throw new Error('Invalid action format returned from AI');
         }
         this.store.dispatch(response.action);
@@ -65,6 +65,14 @@ export class ReduxAIState<TState, TAction extends Action> {
     action: TAction | null;
   }> {
     try {
+      // Get all available action creators from the store
+      const availableActions = Object.keys(this.store.dispatch)
+        .filter(key => typeof this.store.dispatch[key] === 'function')
+        .map(key => ({
+          type: `${key}`,
+          description: `Action creator for ${key}`
+        }));
+
       const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
@@ -72,7 +80,8 @@ export class ReduxAIState<TState, TAction extends Action> {
         },
         body: JSON.stringify({
           query,
-          state
+          state,
+          availableActions
         }),
       });
 

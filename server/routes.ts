@@ -13,7 +13,7 @@ export async function registerRoutes(app: Express) {
 
   app.post('/api/query', async (req, res) => {
     try {
-      const { query, state } = req.body;
+      const { query, state, availableActions } = req.body;
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -25,6 +25,9 @@ export async function registerRoutes(app: Express) {
       // Get the current Redux state
       const currentState = state || {};
       const stateDescription = `Current Redux state:\n${JSON.stringify(currentState, null, 2)}`;
+      const actionsDescription = availableActions 
+        ? `\nAvailable actions:\n${JSON.stringify(availableActions, null, 2)}`
+        : '';
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -35,25 +38,17 @@ export async function registerRoutes(app: Express) {
 
 Current State Information:
 ${stateDescription}
+${actionsDescription}
 
-Rules for working with the counter:
-1. The counter is stored at state.demo.counter
-2. The counter should start at 0 if not initialized
-3. Use these exact actions for counter operations:
-   - { type: 'demo/increment' } to increase by 1
-   - { type: 'demo/decrement' } to decrease by 1
-   - { type: 'demo/resetCounter' } to reset to 0
-   - { type: 'demo/setMessage', payload: string } to set a message
-
-When checking the counter value:
-1. Look for state.demo.counter in the current state
-2. Always include the current counter value in your response
-3. If an increment/decrement is requested, mention both the action taken and the previous value
+When checking values:
+1. Look for the appropriate state value in the current state
+2. Always include the current value in your response
+3. If a state change is requested, mention both the action taken and the previous value
 
 Respond with a JSON object containing:
 {
-  "message": "Natural language response explaining what was done and the current counter value",
-  "action": {
+  "message": "Natural language response explaining what was done and the current state values",
+  "action": null | {
     "type": "ACTION_TYPE",
     "payload": "PAYLOAD_IF_NEEDED"
   }
