@@ -21,7 +21,12 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false,
+      serializableCheck: {
+        // Ignore these field paths in actions
+        ignoredActionPaths: ['__source'],
+        // Ignore these field paths in the state
+        ignoredPaths: ['lastAction']
+      },
     }).concat([actionValidationMiddleware, actionTrackingMiddleware])
 });
 

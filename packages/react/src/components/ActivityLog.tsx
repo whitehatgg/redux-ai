@@ -10,6 +10,7 @@ interface ActivityLogProps {
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   const { stateChanges } = useReduxAIContext();
+  console.log('ActivityLog - Current state changes:', stateChanges);
 
   if (!open) return null;
 
@@ -33,8 +34,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
     return [...acc, current];
   }, []);
 
+  console.log('ActivityLog - Filtered changes:', filteredChanges);
+
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-background border-l shadow-lg z-50">
+    <div className="fixed inset-y-0 left-0 w-80 bg-background border-r shadow-lg z-50">
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-semibold">Activity Log</h3>
         <button

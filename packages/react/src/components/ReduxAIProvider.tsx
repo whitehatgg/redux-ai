@@ -47,33 +47,36 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
   // Function to record state change
   const recordStateChange = (action: any, state: any) => {
+    console.log('ReduxAIProvider - Recording state change:', { action, state });
+
     // Only record valid Redux actions
     if (!action || typeof action !== 'object' || !('type' in action)) {
-      console.warn('Invalid action:', action);
+      console.warn('ReduxAIProvider - Invalid action:', action);
       return;
     }
 
-    // Skip internal actions or non-state-changing actions
-    const isInternalAction = action.type.startsWith('@@') ||
-                           action.type === 'INVALID_ACTION';
-    if (isInternalAction) {
+    // Skip internal actions
+    if (action.type.startsWith('@@') || action.type === 'INVALID_ACTION') {
+      console.log('ReduxAIProvider - Skipping internal action:', action.type);
       return;
     }
 
     // Check if this is one of the AI-available actions
     const isAIAction = availableActions.some(available => available.type === action.type);
+    console.log('ReduxAIProvider - Is AI action:', isAIAction);
 
     // Determine trigger source
-    const trigger = action.__source === 'ai' ? 'ai' : 'ui';
+    const triggerType = action.__source === 'ai' ? 'ai' as const : 'ui' as const;
+    console.log('ReduxAIProvider - Trigger type:', triggerType);
 
     setStateChanges(prev => {
       const timestamp = new Date().toISOString();
-      const newChange = { 
-        action, 
-        state, 
-        timestamp, 
+      const newChange = {
+        action,
+        state,
+        timestamp,
         isAIAction,
-        trigger
+        trigger: triggerType
       };
 
       // Check if this exact action was already recorded
@@ -84,9 +87,11 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       );
 
       if (isDuplicate) {
+        console.log('ReduxAIProvider - Duplicate action detected, skipping');
         return prev;
       }
 
+      console.log('ReduxAIProvider - Adding new state change:', newChange);
       return [...prev, newChange];
     });
   };
@@ -97,7 +102,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
     const initialize = async () => {
       try {
-        console.log('Starting ReduxAI initialization...');
+        console.log('ReduxAIProvider - Starting initialization...');
 
         // Delete both potential database names to ensure clean start
         await Promise.all([
@@ -125,8 +130,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           })
         ]);
 
-        await new Promise(resolve => setTimeout(resolve, 100));
-
         if (isCleanedUp) return;
 
         const vectorStorage = await createReduxAIVector({
@@ -153,9 +156,11 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         if (isCleanedUp) return;
 
         // Subscribe to store changes to track actions and state
+        console.log('ReduxAIProvider - Setting up store subscription');
         unsubscribe = store.subscribe(() => {
           const state = store.getState();
           const action = (store as any).lastAction;
+          console.log('ReduxAIProvider - Store subscription triggered:', { action, state });
           if (action) {
             recordStateChange(action, state);
           }
@@ -163,7 +168,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (!isCleanedUp) {
           setIsInitialized(true);
-          console.log('ReduxAI initialization complete');
+          console.log('ReduxAIProvider - Initialization complete');
         }
 
       } catch (error) {
