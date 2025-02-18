@@ -40,11 +40,12 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const initialize = async () => {
       try {
         console.log('Initializing ReduxAI components...');
-        console.log('Available actions:', availableActions);
 
         // Initialize vector storage with proper configuration
         const vectorStorage = await createReduxAIVector({
-          collectionName: 'redux-ai-interactions'
+          collectionName: 'redux-ai-store',
+          dimensions: 1536, // OpenAI embedding dimensions
+          initialize: true
         });
 
         console.log('Vector storage initialized');
