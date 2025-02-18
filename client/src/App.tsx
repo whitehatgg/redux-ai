@@ -26,69 +26,20 @@ const demoActions: ReduxAIAction[] = [
   }
 ];
 
-// Enhanced action matching logic with context
-const matchAction = async (query: string, context?: string) => {
-  const lowerQuery = query.toLowerCase().trim();
-  const contextData = context ? JSON.parse(context) : null;
+// Placeholder for the actual LLM interaction.  Replace with your OpenAI API call.
+const matchActionWithLLM = async (query: string, contextData: any) => {
+  //  Replace this with your actual OpenAI API call.  This is a placeholder.
+  //  The API call should take the query and contextData as input and return an action and a message.
 
-  // If we have context and it's a history-related query, don't trigger an action
-  if (contextData && /^(?:what|show|tell\s+me)\s+(?:about|what)\s+happened/i.test(lowerQuery)) {
-    const recentChanges = contextData.stateChanges[0];
-    if (recentChanges) {
-      return {
-        action: null,
-        message: `Recent activity: ${recentChanges.message}`
-      };
-    }
-  }
+  // Example placeholder: Simulate a successful API call.  Remove this for production
+  const simulatedResponse = {
+    action: contextData.chatHistory.length > 0 && query.includes("search") ? null : { type: 'applicant/setSearchTerm', payload: query },
+    message: `Simulated LLM Response:  Query: ${query} Context: ${JSON.stringify(contextData)}`
+  };
 
-  // Match show columns command
-  const showColumnsMatch = /^show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?$/.exec(lowerQuery);
-  if (showColumnsMatch) {
-    const requestedColumns = [showColumnsMatch[1], showColumnsMatch[2]].filter(Boolean);
-    const validColumns = ['name', 'email', 'status', 'position', 'appliedDate'];
-
-    const columns = requestedColumns.filter(col =>
-      validColumns.includes(col as any)
-    );
-
-    if (columns.length > 0) {
-      return {
-        action: {
-          type: 'applicant/setVisibleColumns',
-          payload: columns
-        },
-        message: `Showing only these columns: ${columns.join(', ')}`
-      };
-    }
-  }
-
-  // Match search command with context awareness
-  const searchPattern = /^(?:(?:search|find|look|filter)\s+(?:for\s+)?|show\s+me\s+|get\s+)([a-zA-Z0-9@\s.]+)$/i;
-  const searchMatch = searchPattern.exec(lowerQuery);
-  if (searchMatch) {
-    const searchTerm = searchMatch[1].trim();
-
-    // Check if this is a repeated search
-    if (contextData?.chatHistory.some(h => h.query === query)) {
-      return {
-        action: null,
-        message: `You've already searched for "${searchTerm}". Would you like to try a different search?`
-      };
-    }
-
-    return {
-      action: {
-        type: 'applicant/setSearchTerm',
-        payload: searchTerm
-      },
-      message: `Searching for: ${searchTerm}`
-    };
-  }
-
-  // If no action matches, return null to let the RAG system handle it
-  return null;
+  return simulatedResponse;
 };
+
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -132,9 +83,11 @@ function App() {
         <ReduxAIProvider 
           store={store} 
           availableActions={demoActions}
-          onActionMatch={async (query: string, context?: string) => {
+          onActionMatch={async (query: string, context: string) => {
             try {
-              return await matchAction(query, context);
+              const contextData = JSON.parse(context);
+              const { action, message } = await matchActionWithLLM(query, contextData);
+              return { action, message };
             } catch (error) {
               console.error('Error matching action:', error);
               return null;
