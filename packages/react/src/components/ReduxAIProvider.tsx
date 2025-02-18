@@ -61,6 +61,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       return;
     }
 
+    // Only record actions that were dispatched through the AI interface
+    // These actions will have been processed by the processQuery function in ReduxAIState
+    const isAIAction = availableActions.some(available => available.type === action.type);
+    if (!isAIAction) {
+      return;
+    }
+
     setStateChanges(prev => {
       const timestamp = new Date().toISOString();
       const newChange = { action, state, timestamp };
@@ -68,7 +75,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       // Check if this exact action was already recorded
       const isDuplicate = prev.some(entry =>
         entry.action?.type === action.type &&
-        JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload)
+        JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload) &&
+        Date.now() - new Date(entry.timestamp).getTime() < 2000 // Within 2 seconds
       );
 
       if (isDuplicate) {
