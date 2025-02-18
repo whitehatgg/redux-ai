@@ -7,6 +7,7 @@ import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
   isInitialized: boolean;
+  store?: Store;
 }
 
 const ReduxAIContext = createContext<ReduxAIContextType>({
@@ -33,12 +34,15 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const initialize = async () => {
       try {
         console.log('Initializing ReduxAI Provider...');
+
+        // Create vector storage for semantic search
         const vectorStorage = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128
         });
 
+        // Initialize ReduxAI state management
         await createReduxAIState({
           store,
           schema,
@@ -48,6 +52,9 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             console.error('ReduxAI Error:', error);
           }
         });
+
+        // Make store accessible on window for development
+        (window as any).__REDUX_STORE__ = store;
 
         setIsInitialized(true);
         console.log('ReduxAI Provider initialized successfully');
@@ -60,7 +67,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }, [store, schema, availableActions]);
 
   return (
-    <ReduxAIContext.Provider value={{ availableActions, isInitialized }}>
+    <ReduxAIContext.Provider value={{ availableActions, isInitialized, store }}>
       {children}
     </ReduxAIContext.Provider>
   );

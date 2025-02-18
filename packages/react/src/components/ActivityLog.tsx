@@ -2,6 +2,7 @@ import React from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { X } from 'lucide-react';
 import { useStore } from 'react-redux';
+import type { AnyAction } from '@reduxjs/toolkit';
 
 interface ActivityEntry {
   type: string;
@@ -15,15 +16,28 @@ interface ActivityLogProps {
   onClose?: () => void;
 }
 
+interface ExtendedStore {
+  getState: () => any;
+  subscribe: (listener: () => void) => () => void;
+  lastAction?: AnyAction & {
+    timestamp?: string;
+    response?: string;
+  };
+}
+
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
-  const store = useStore();
+  const store = useStore() as ExtendedStore;
   const [entries, setEntries] = React.useState<ActivityEntry[]>([]);
 
   React.useEffect(() => {
+    let mounted = true;
     console.log('ActivityLog: Setting up store subscription');
+
     const unsubscribe = store.subscribe(() => {
-      const lastAction = (store as any).lastAction;
-      if (lastAction) {
+      if (!mounted) return;
+
+      const lastAction = store.lastAction;
+      if (lastAction?.type) {
         console.log('ActivityLog: New action detected:', lastAction);
         setEntries(prev => [...prev, {
           type: lastAction.type,
@@ -36,6 +50,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
 
     return () => {
       console.log('ActivityLog: Cleaning up store subscription');
+      mounted = false;
       unsubscribe();
     };
   }, [store]);
