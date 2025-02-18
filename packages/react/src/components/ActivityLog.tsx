@@ -21,13 +21,13 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
 
   React.useEffect(() => {
     const unsubscribe = store.subscribe(() => {
-      const state = store.getState();
-      const lastAction = state._lastAction; // Access from the library's state
+      const lastAction = (store as any).lastAction;
       if (lastAction) {
+        console.log('New action detected:', lastAction);
         setEntries(prev => [...prev, {
           type: lastAction.type,
-          timestamp: new Date().toISOString(),
-          state: state,
+          timestamp: lastAction.timestamp || new Date().toISOString(),
+          state: store.getState(),
           response: lastAction.response
         }]);
       }
