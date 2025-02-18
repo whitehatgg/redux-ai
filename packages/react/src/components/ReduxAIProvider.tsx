@@ -42,10 +42,12 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.log('Initializing ReduxAI components...');
         console.log('Available actions:', availableActions);
 
-        // Initialize vector storage
+        // Initialize vector storage with proper configuration
         const vectorStorage = await createReduxAIVector({
           collectionName: 'redux-ai-interactions'
         });
+
+        console.log('Vector storage initialized');
 
         // Initialize ReduxAI state manager
         await createReduxAIState({

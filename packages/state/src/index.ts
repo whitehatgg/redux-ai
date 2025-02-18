@@ -52,11 +52,12 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   async processQuery(query: string) {
     try {
       const state = this.store.getState();
+      console.log('Processing query:', query);
       console.log('Current state:', state);
 
       // Get previous interactions for context
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
-      console.log('Previous interactions:', previousInteractions);
+      console.log('Previous similar interactions:', previousInteractions);
 
       // Analyze state and action history to infer the next action
       const actionInfo = this.inferActionFromKeywords(query);
@@ -78,15 +79,22 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
         const stateData = {
           action: actionInfo.action,
           preState: preActionState,
-          postState: postActionState
+          postState: postActionState,
+          timestamp: new Date().toISOString()
         };
-        console.log('Storing interaction data:', stateData);
 
+        // Store the interaction with full context
         await this.vectorStorage.storeInteraction(
           query,
           actionInfo.message,
           JSON.stringify(stateData)
         );
+
+        console.log('Stored interaction in vector storage:', {
+          query,
+          response: actionInfo.message,
+          state: stateData
+        });
 
         return {
           message: actionInfo.message,
@@ -111,11 +119,14 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {
     try {
       const lowerQuery = query.toLowerCase();
+      console.log('Matching query against available actions:', lowerQuery);
 
       // Find an action whose keywords match the query
       const matchedAction = this.availableActions.find(action =>
         action.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()))
       );
+
+      console.log('Matched action:', matchedAction);
 
       if (matchedAction) {
         return {
@@ -133,7 +144,10 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
   async getSimilarInteractions(query: string, limit: number = 5) {
     try {
-      return await this.vectorStorage.retrieveSimilar(query, limit);
+      console.log('Retrieving similar interactions for query:', query);
+      const interactions = await this.vectorStorage.retrieveSimilar(query, limit);
+      console.log('Retrieved interactions:', interactions);
+      return interactions;
     } catch (error) {
       console.error('Error getting similar interactions:', error);
       throw error;
