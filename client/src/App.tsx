@@ -1,3 +1,11 @@
+/**
+ * feat(landing): Update GitHub repository URL
+ * 
+ * - Updated the "Get Started" button URL to point to the official Redux AI repository
+ * - Link now directs users to https://github.com/whitehatgg/redux-ai
+ * - Fixed code formatting for consistent spacing in component props
+ */
+
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { ChatBubble, ActivityLog, ReduxAIProvider } from '@redux-ai/react';
