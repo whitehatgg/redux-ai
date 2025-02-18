@@ -15,10 +15,14 @@ export async function registerRoutes(app: Express) {
       const { query, state, availableActions, previousInteractions = [] } = req.body;
 
       console.log('Received query:', query);
-      console.log('Available actions:', availableActions);
+      console.log('Available actions:', JSON.stringify(availableActions, null, 2));
 
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
+      }
+
+      if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
+        return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
       if (!process.env.OPENAI_API_KEY) {
@@ -29,59 +33,57 @@ export async function registerRoutes(app: Express) {
         .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
 
+      const systemPrompt = `You are an AI assistant that helps users interact with a Redux store through natural language.
+
+Available Actions (IMPORTANT - use exactly these action types):
+${JSON.stringify(availableActions, null, 2)}
+
+Current State:
+${JSON.stringify(state, null, 2)}
+
+Your task is to convert natural language queries into Redux actions from the available list above.
+
+Rules for action mapping:
+1. For search related queries:
+   - When user mentions "search", "find", "lookup", "filter"
+   - Extract the search term and use it as payload
+   - Use the appropriate search action type from available actions
+   - Example: "search for bob" would use an action like "applicant/setSearchTerm" with payload "bob"
+
+2. For visibility related queries:
+   - When user mentions "show", "hide", "display"
+   - Extract the field names and use them as payload array
+   - Use the appropriate visibility action type
+
+3. For toggle queries:
+   - When user mentions "enable", "disable", "turn on/off"
+   - Use boolean true/false as payload
+   - Use the appropriate toggle action type
+
+Previous Conversation:
+${conversationHistory}
+
+IMPORTANT: You must return a JSON response with:
+1. "message": Clear explanation of the action
+2. "action": Must use one of the exact action types listed above, or null if no match
+
+Example Response:
+{
+  "message": "I'll search for 'bob' in the records",
+  "action": {
+    "type": "applicant/setSearchTerm",
+    "payload": "bob"
+  }
+}`;
+
+      console.log('Sending prompt to OpenAI with available actions:', availableActions.map(a => a.type));
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
             role: "system",
-            content: `You are an AI assistant that helps users interact with a Redux store through natural language commands.
-
-Your task is to convert user queries into Redux actions. Each query must be mapped to one of the available actions if appropriate.
-
-Available Actions:
-${JSON.stringify(availableActions, null, 2)}
-
-Current Application State:
-${JSON.stringify(state, null, 2)}
-
-Action Mapping Rules:
-1. Search Queries:
-   - When user asks to "search", "find", or "look for" something
-   - Use the search/filter related action (e.g. setSearchTerm)
-   - Extract the search term from their query
-   - Example: "search for X" -> Use action type that includes "search" with payload "X"
-
-2. Toggle Queries:
-   - When user wants to "enable", "disable", "turn on/off" features
-   - Use the relevant toggle action
-   - Set payload to true/false appropriately
-
-3. Visibility Queries:
-   - When user wants to "show", "hide", or modify visible elements
-   - Use the visibility related action
-   - Include relevant fields in payload array
-
-Previous Conversation:
-${conversationHistory}
-
-REQUIRED: Your response must be a JSON object with:
-1. "message": A clear explanation of what action will be taken
-2. "action": The Redux action to dispatch, or null if no matching action found
-
-Example Response:
-{
-  "message": "I'll search for 'example'",
-  "action": {
-    "type": "anyType/setSearchTerm",
-    "payload": "example"
-  }
-}
-
-OR if no action matches:
-{
-  "message": "I couldn't find an appropriate action for your request. Here's why...",
-  "action": null
-}`
+            content: systemPrompt
           },
           {
             role: "user",
@@ -97,6 +99,10 @@ OR if no action matches:
 
       console.log('OpenAI Response:', response.choices[0].message.content);
       const content = JSON.parse(response.choices[0].message.content);
+
+      if (!content.message) {
+        throw new Error('Invalid response format: missing message');
+      }
 
       res.json({ 
         message: content.message,
