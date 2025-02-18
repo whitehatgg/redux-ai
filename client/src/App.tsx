@@ -12,17 +12,17 @@ const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
     description: 'Set which columns are visible in the table',
-    keywords: []
+    keywords: ['show', 'hide', 'column', 'field']
   },
   {
     type: 'applicant/toggleSearch',
     description: 'Enable or disable the search functionality',
-    keywords: []
+    keywords: ['enable', 'disable', 'search']
   },
   {
     type: 'applicant/setSearchTerm',
     description: 'Set the search term for filtering applicants',
-    keywords: []
+    keywords: ['search', 'find', 'filter', 'look for']
   }
 ];
 
@@ -68,18 +68,25 @@ function App() {
         <ReduxAIProvider 
           store={store} 
           availableActions={availableActions}
-          onActionMatch={async (query: string, context: string) => {
+          onActionMatch={async (query: string) => {
             try {
-              // In production, this would be replaced with the actual OpenAI API call
-              // The LLM would receive:
-              // 1. The user's query
-              // 2. The context from vector DB
-              // 3. The available actions list
-              // And would return the appropriate action and message
+              // Check if the query is a search request
+              const searchMatch = query.match(/search(?:\s+for)?\s+(.+)/i);
+
+              if (searchMatch) {
+                const searchTerm = searchMatch[1].trim();
+                return {
+                  action: {
+                    type: 'applicant/setSearchTerm',
+                    payload: searchTerm
+                  },
+                  message: `Searching for "${searchTerm}" in applicants...`
+                };
+              }
 
               return {
                 action: null,
-                message: 'This is a demo. In production, an LLM would determine the appropriate action based on your query.'
+                message: 'I understand your request but I\'m not sure what action to take. Try asking me to search for something specific.'
               };
             } catch (error) {
               console.error('Error in onActionMatch:', error);

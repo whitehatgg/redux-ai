@@ -25,7 +25,7 @@ export interface ReduxAIProviderProps {
   store: Store;
   schema?: ReduxAISchema<any>;
   availableActions: ReduxAIAction[];
-  onActionMatch?: (query: string) => Promise<{ action: any; message: string } | null>;
+  onActionMatch?: (query: string) => Promise<{ action: any | null; message: string } | null>;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
@@ -78,7 +78,32 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           schema,
           vectorStorage,
           availableActions,
-          onActionMatch,
+          onActionMatch: async (query: string, context: string) => {
+            if (!onActionMatch) return null;
+
+            try {
+              const result = await onActionMatch(query);
+
+              if (!result) return null;
+
+              // Ensure action is properly typed
+              const { action, message } = result;
+
+              // Validate action structure if present
+              if (action !== null && (!action || typeof action !== 'object' || !('type' in action))) {
+                console.warn('Invalid action structure:', action);
+                return {
+                  action: null,
+                  message: 'Invalid action structure received'
+                };
+              }
+
+              return { action, message };
+            } catch (error) {
+              console.error('Error in action match:', error);
+              return null;
+            }
+          },
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
             if (!isCleanedUp) {
@@ -96,7 +121,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           const state = store.getState();
           const lastAction = (store as any)._lastAction;
 
-          if (lastAction && lastAction.type) {
+          if (lastAction && typeof lastAction === 'object' && 'type' in lastAction) {
             const stateChange = {
               action: lastAction,
               state,
