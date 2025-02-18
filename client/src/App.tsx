@@ -1,6 +1,6 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { ChatBubble, ActivityLog, ReduxAIProvider, VectorDebugger } from '@redux-ai/react';
+import { ChatBubble, ActivityLog, ReduxAIProvider } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import type { ReduxAIAction } from '@redux-ai/state';
@@ -81,10 +81,6 @@ function AppContent() {
           <div className="flex flex-col gap-4">
             <h2 className="text-2xl font-semibold">Applicant Management</h2>
             <ApplicantTable />
-          </div>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-semibold">Activity Log</h2>
-            <VectorDebugger />
           </div>
         </div>
       </main>
