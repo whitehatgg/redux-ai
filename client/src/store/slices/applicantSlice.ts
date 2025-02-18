@@ -85,3 +85,4 @@ export const {
 } = applicantSlice.actions;
 
 export default applicantSlice.reducer;
+export type { ApplicantState };

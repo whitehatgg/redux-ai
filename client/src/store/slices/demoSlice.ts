@@ -10,7 +10,7 @@ const initialState: DemoState = {
   message: '',
 };
 
-export const demoSlice = createSlice({
+const demoSlice = createSlice({
   name: 'demo',
   initialState,
   reducers: {
@@ -35,3 +35,4 @@ export const demoSlice = createSlice({
 
 export const { increment, decrement, setMessage, resetCounter } = demoSlice.actions;
 export default demoSlice.reducer;
+export type { DemoState };

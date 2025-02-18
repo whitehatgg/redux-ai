@@ -1,6 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
-import demoReducer from './slices/demoSlice';
-import applicantReducer from './slices/applicantSlice';
+import demoReducer, { type DemoState } from './slices/demoSlice';
+import applicantReducer, { type ApplicantState } from './slices/applicantSlice';
+
+export interface RootState {
+  demo: DemoState;
+  applicant: ApplicantState;
+}
 
 // Create the Redux store with the demo reducer
 export const store = configureStore({
@@ -14,5 +19,4 @@ export const store = configureStore({
     })
 });
 
-export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
