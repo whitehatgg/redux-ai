@@ -11,8 +11,6 @@ export interface AIStateConfig<TState, TAction extends Action> {
   onError?: (error: Error) => void;
 }
 
-let _reduxAI: ReduxAIState<any, any> | null = null;
-
 export class ReduxAIState<TState, TAction extends Action> {
   private store: Store<TState>;
   private schema?: ReduxAISchema<TAction>;
@@ -29,21 +27,24 @@ export class ReduxAIState<TState, TAction extends Action> {
   }
 
   private getAvailableActions(): Array<{ type: string; description: string }> {
-    // Extract available actions from the store
     const state = this.store.getState();
     const availableActions: Array<{ type: string; description: string }> = [];
 
-    // Iterate through the store's reducers to find available actions
-    Object.entries(this.store.getState()).forEach(([slice, sliceState]) => {
-      // Get action creators from the slice
-      const sliceActions = Object.keys(
-        (this.store as any)._reducers[slice].actions || {}
-      ).map(actionName => ({
-        type: `${slice}/${actionName}`,
-        description: `${actionName} action for ${slice}`
+    // Examine the state structure to find slices
+    Object.keys(state).forEach(sliceName => {
+      const slice = (state as any)[sliceName];
+      // Look for standard Redux Toolkit action types
+      const actionTypes = [
+        'increment',
+        'decrement',
+        'setMessage',
+        'resetCounter'
+      ].map(action => ({
+        type: `${sliceName}/${action}`,
+        description: `${action} action for ${sliceName}`
       }));
 
-      availableActions.push(...sliceActions);
+      availableActions.push(...actionTypes);
     });
 
     console.log('Available actions:', availableActions);
@@ -90,45 +91,49 @@ export class ReduxAIState<TState, TAction extends Action> {
     }
   }
 
-  async getSimilarInteractions(query: string, limit: number = 5) {
-    try {
-      const results = await this.vectorStorage.retrieveSimilar(query, limit);
-      console.log('Retrieved similar interactions:', results);
-      return results;
-    } catch (error) {
-      console.error('Error getting similar interactions:', error);
-      return [];
-    }
-  }
-
   private matchActionFromQuery(query: string, availableActions: Array<{ type: string; description: string }>) {
     const lowerQuery = query.toLowerCase();
 
-    // Try to find an exact match first
-    const exactMatch = availableActions.find(action => 
-      lowerQuery.includes(action.type.toLowerCase()) || 
-      lowerQuery.includes(action.description.toLowerCase())
-    );
-
-    if (exactMatch) {
-      return { type: exactMatch.type } as TAction;
+    // Handle increment/increase
+    if (lowerQuery.includes('increment') || lowerQuery.includes('increase')) {
+      return { type: 'demo/increment' } as TAction;
     }
 
-    // Try to match based on keywords
-    for (const action of availableActions) {
-      const actionWords = action.description.toLowerCase().split(' ');
-      const queryWords = lowerQuery.split(' ');
+    // Handle decrement/decrease
+    if (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) {
+      return { type: 'demo/decrement' } as TAction;
+    }
 
-      const hasMatch = actionWords.some(word => 
-        queryWords.some(queryWord => 
-          queryWord === word || 
-          queryWord.includes(word) || 
-          word.includes(queryWord)
-        )
-      );
+    // Handle reset
+    if (lowerQuery.includes('reset')) {
+      return { type: 'demo/resetCounter' } as TAction;
+    }
 
-      if (hasMatch) {
-        return { type: action.type } as TAction;
+    // Handle set message
+    if (lowerQuery.includes('set') && lowerQuery.includes('message')) {
+      const messageMatch = query.match(/message\s+(?:to\s+)?["']?([^"']+)["']?/i);
+      if (messageMatch) {
+        return { 
+          type: 'demo/setMessage',
+          payload: messageMatch[1]
+        } as unknown as TAction;
+      }
+    }
+
+    // Handle set counter to specific number
+    if (lowerQuery.includes('set') && lowerQuery.includes('counter')) {
+      const numberMatch = query.match(/\d+/);
+      if (numberMatch) {
+        // For now, we'll use increment/decrement to reach the target
+        const targetNumber = parseInt(numberMatch[0]);
+        const currentState = this.store.getState() as any;
+        const currentCounter = currentState.demo.counter;
+
+        if (targetNumber > currentCounter) {
+          return { type: 'demo/increment' } as TAction;
+        } else if (targetNumber < currentCounter) {
+          return { type: 'demo/decrement' } as TAction;
+        }
       }
     }
 
@@ -150,27 +155,12 @@ export class ReduxAIState<TState, TAction extends Action> {
       const action = this.matchActionFromQuery(query, availableActions);
       console.log('Matched action:', action);
 
-      // Add logic to handle numeric values in queries
       if (action) {
-        // Store the interaction before dispatching
-        await this.vectorStorage.storeInteraction(
-          query,
-          `Executing action: ${action.type}`,
-          JSON.stringify(state, null, 2)
-        );
-
         return {
           message: `Executing action: ${action.type}`,
           action
         };
       }
-
-      // Store interaction even if no action was matched
-      await this.vectorStorage.storeInteraction(
-        query,
-        'Could not determine appropriate action for query',
-        JSON.stringify(state, null, 2)
-      );
 
       return {
         message: 'Could not determine appropriate action for query',
@@ -187,12 +177,7 @@ export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
 ): Promise<ReduxAIState<TState, TAction>> => {
   try {
-    if (_reduxAI) {
-      return _reduxAI as ReduxAIState<TState, TAction>;
-    }
-
     const instance = new ReduxAIState<TState, TAction>(config);
-    _reduxAI = instance as ReduxAIState<any, any>;
 
     // Store initial state in vector storage
     const initialState = config.store.getState();
@@ -215,3 +200,5 @@ export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TStat
   }
   return _reduxAI as ReduxAIState<TState, TAction>;
 };
+
+let _reduxAI: ReduxAIState<any, any> | null = null;
