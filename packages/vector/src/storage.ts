@@ -1,13 +1,13 @@
 import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
-  content: string;
   query?: string;
   response?: string;
   state?: string;
   metadata?: Record<string, any>;
   embedding?: number[];
   timestamp: string;
+  id?: string;
 }
 
 export interface VectorConfig {
@@ -71,14 +71,14 @@ export class VectorStorage {
   async addEntry(entry: VectorEntry): Promise<void> {
     try {
       console.log('[VectorStorage] Adding entry:', {
-        content: entry.content?.substring(0, 50),
+        query: entry.query?.substring(0, 50),
+        response: entry.response?.substring(0,50),
         metadata: entry.metadata
       });
 
       const enhancedEntry: VectorEntry = {
         ...entry,
-        content: entry.content,
-        embedding: entry.embedding || textToVector(entry.content, this.dimensions),
+        embedding: entry.embedding || textToVector(entry.query || entry.response || "", this.dimensions),
         timestamp: entry.timestamp || new Date().toISOString()
       };
 
@@ -99,12 +99,13 @@ export class VectorStorage {
 
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
       const timestamp = new Date().toISOString();
+      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       const entry: VectorEntry = {
+        id,
         query,
         response,
         state: stateString,
-        content: `${query} ${response}`,
         embedding: textToVector(`${query} ${response}`, this.dimensions),
         timestamp,
         metadata: { type: 'interaction' }

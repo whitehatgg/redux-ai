@@ -2,7 +2,7 @@ import { VectorEntry } from './storage';
 
 const DB_NAME = 'reduxai_vector';
 const STORE_NAME = 'vector_entries';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Increment version to trigger database upgrade
 
 export class IndexedDBStorage {
   private db: IDBDatabase | null = null;
@@ -31,14 +31,15 @@ export class IndexedDBStorage {
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
           try {
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-              console.log('[IndexedDB] Creating vector entries store');
-              const store = db.createObjectStore(STORE_NAME, { 
-                keyPath: 'timestamp'
-              });
-              store.createIndex('content', 'content', { unique: false });
-              store.createIndex('timestamp', 'timestamp', { unique: true });
+            if (db.objectStoreNames.contains(STORE_NAME)) {
+              db.deleteObjectStore(STORE_NAME);
             }
+            console.log('[IndexedDB] Creating vector entries store');
+            const store = db.createObjectStore(STORE_NAME, { 
+              keyPath: 'id'
+            });
+            store.createIndex('timestamp', 'timestamp', { unique: false });
+            store.createIndex('id', 'id', { unique: true });
           } catch (error) {
             console.error('[IndexedDB] Error in upgrade:', error);
             reject(error);
@@ -58,15 +59,16 @@ export class IndexedDBStorage {
       if (!this.db) throw new Error('Failed to initialize database');
     }
 
+    if (!entry.id) {
+      entry.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
     return new Promise((resolve, reject) => {
       try {
         const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
 
-        const request = store.add({
-          ...entry,
-          timestamp: entry.timestamp || new Date().toISOString()
-        });
+        const request = store.add(entry);
 
         request.onerror = () => {
           console.error('[IndexedDB] Error adding entry:', request.error);
