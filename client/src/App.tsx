@@ -1,13 +1,11 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { ChatBubble, VectorDebugger, useVectorDebug } from '@redux-ai/react';
+import { ChatBubble } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
-  const { entries, isLoading, error } = useVectorDebug();
-
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
@@ -23,16 +21,6 @@ function App() {
                   Try asking: "increment the counter" or "set a message"
                 </div>
               </div>
-              {error && (
-                <div className="text-red-500">
-                  Error loading debug entries: {error}
-                </div>
-              )}
-              {isLoading ? (
-                <div>Loading debug entries...</div>
-              ) : (
-                <VectorDebugger entries={entries} />
-              )}
             </div>
           </main>
         </div>
