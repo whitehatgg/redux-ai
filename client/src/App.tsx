@@ -1,9 +1,9 @@
 /**
- * feat(landing): Update GitHub repository URL
+ * feat(landing): Update repository URL and improve code formatting
  * 
- * - Updated the "Get Started" button URL to point to the official Redux AI repository
- * - Link now directs users to https://github.com/whitehatgg/redux-ai
- * - Fixed code formatting for consistent spacing in component props
+ * - Changed "Get Started" button to link to whitehatgg/redux-ai repository
+ * - Standardized component prop spacing and formatting
+ * - Improved readability of multiline component declarations
  */
 
 import { Provider } from 'react-redux';
