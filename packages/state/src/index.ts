@@ -43,14 +43,14 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   async processQuery(query: string) {
     try {
       const state = this.store.getState();
-      console.log('Current state before processing:', state);
+      console.log('Current state:', state);
 
       // Get previous interactions for context
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
       console.log('Previous interactions:', previousInteractions);
 
-      // Analyze action history and state to infer the next action
-      const actionInfo = this.inferActionFromHistory(query, state);
+      // Analyze state and action history to infer the next action
+      const actionInfo = this.inferActionFromHistory(query);
       console.log('Inferred action:', actionInfo);
 
       if (actionInfo) {
@@ -93,7 +93,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     }
   }
 
-  private inferActionFromHistory(query: string, currentState: TState): { action: TAction; message: string } | null {
+  private inferActionFromHistory(query: string): { action: TAction; message: string } | null {
     try {
       const lowerQuery = query.toLowerCase();
 
@@ -109,7 +109,10 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
         // Match action patterns
         if (this.matchesActionPattern(lowerQuery, actionName)) {
-          const lastSimilarAction = this.actionTrace.findLast(a => a.type === actionType);
+          // Use Array.prototype.find instead of findLast for better compatibility
+          const lastSimilarAction = [...this.actionTrace]
+            .reverse()
+            .find((a: TAction) => a.type === actionType);
 
           if (lastSimilarAction) {
             return {
