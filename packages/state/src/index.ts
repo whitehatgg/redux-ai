@@ -43,11 +43,17 @@ export class ReduxAIState<TState> {
   }
 
   private isValidAction(action: any): action is Action {
-    return action && 
-           typeof action === 'object' && 
-           'type' in action && 
-           typeof action.type === 'string' &&
-           this.availableActions.some(availableAction => availableAction.type === action.type);
+    if (!action || typeof action !== 'object' || !('type' in action)) {
+      return false;
+    }
+
+    const matchingAction = this.availableActions.find(a => a.type === action.type);
+    if (!matchingAction) {
+      console.log('No matching action found for type:', action.type);
+      return false;
+    }
+
+    return true;
   }
 
   private async getContext(query: string) {
@@ -129,6 +135,12 @@ export class ReduxAIState<TState> {
       if (action && this.isValidAction(action)) {
         console.log('Dispatching action:', action);
         this.store.dispatch(action);
+      } else if (action) {
+        console.warn('Invalid action received:', action);
+        return { 
+          message: "I understand your request but I couldn't find a matching action to perform it.",
+          action: null 
+        };
       }
 
       // Store the interaction

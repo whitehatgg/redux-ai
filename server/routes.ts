@@ -68,7 +68,13 @@ Example Response Format:
     "type": "[matched action type]",
     "payload": "[appropriate payload]"
   }
-}`
+}
+
+Remember:
+- Only return actions from the available actions list
+- If no action matches the intent, explain why in the message and return null for action
+- Always provide clear, user-friendly explanations
+- Consider the current state and previous interactions for context`
           },
           {
             role: "user",
