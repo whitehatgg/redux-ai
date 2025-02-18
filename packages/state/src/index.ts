@@ -36,6 +36,21 @@ export class ReduxAIState<TState, TAction extends Action> {
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
     this.onActionMatch = config.onActionMatch;
+
+    // Validate available actions
+    this.availableActions.forEach(action => {
+      if (!action || typeof action.type !== 'string') {
+        throw new Error('Invalid action configuration: each action must have a type property');
+      }
+    });
+  }
+
+  private isValidAction(action: any): action is TAction {
+    return action && 
+           typeof action === 'object' && 
+           'type' in action && 
+           typeof action.type === 'string' &&
+           this.availableActions.some(availableAction => availableAction.type === action.type);
   }
 
   private async getContext(query: string) {
@@ -81,50 +96,48 @@ export class ReduxAIState<TState, TAction extends Action> {
       // Store the initial query
       await this.storeInteraction(query, '', { query });
 
-      // Process with LLM using context
-      if (this.onActionMatch && context) {
-        const result = await this.onActionMatch(query, context);
-
-        if (!result) {
-          const message = 'I could not determine an appropriate response based on the context.';
-          await this.storeInteraction(query, message, { query, response: message });
-          return { message, action: null };
-        }
-
-        const { action, message } = result;
-
-        // If there's an action, validate and execute it
-        if (action && typeof action === 'object' && 'type' in action) {
-          const isValidAction = this.availableActions.some(
-            availableAction => availableAction.type === action.type
-          );
-
-          if (isValidAction) {
-            // Store interaction and dispatch action
-            await this.storeInteraction(
-              query,
-              message,
-              { query, action, message, context }
-            );
-
-            this.store.dispatch(action);
-            return { message, action };
-          }
-        }
-
-        // Store the response without action
-        await this.storeInteraction(
-          query,
-          message,
-          { query, response: message }
-        );
-
+      if (!this.onActionMatch) {
+        const message = 'No action matching handler configured.';
+        await this.storeInteraction(query, message, { query, error: message });
         return { message, action: null };
       }
 
-      const message = 'No action matching handler configured.';
-      await this.storeInteraction(query, message, { query, error: message });
-      return { message, action: null };
+      if (!context) {
+        const message = 'Failed to get context for query.';
+        await this.storeInteraction(query, message, { query, error: message });
+        return { message, action: null };
+      }
+
+      // Process with LLM using context
+      const result = await this.onActionMatch(query, context);
+
+      if (!result) {
+        const message = 'Could not determine an appropriate response.';
+        await this.storeInteraction(query, message, { query, response: message });
+        return { message, action: null };
+      }
+
+      const { action, message } = result;
+
+      // If there's an action, validate it
+      if (action !== null && !this.isValidAction(action)) {
+        const errorMessage = 'Invalid action returned from action matcher.';
+        await this.storeInteraction(query, errorMessage, { query, error: errorMessage });
+        return { message: errorMessage, action: null };
+      }
+
+      // Store the interaction and dispatch valid action
+      await this.storeInteraction(
+        query,
+        message,
+        { query, action, message, context }
+      );
+
+      if (action) {
+        this.store.dispatch(action);
+      }
+
+      return { message, action };
 
     } catch (error) {
       console.error('Error in processQuery:', error);
