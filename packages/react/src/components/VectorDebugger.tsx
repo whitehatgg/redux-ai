@@ -45,7 +45,7 @@ export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => 
 
                 <div className="text-sm text-muted-foreground">
                   <strong>State: </strong>
-                  {JSON.stringify(entry.state.applicant, null, 2)}
+                  {JSON.stringify(entry.state, null, 2)}
                 </div>
               </div>
             ))
