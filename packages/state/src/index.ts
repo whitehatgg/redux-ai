@@ -2,7 +2,7 @@ import { createMachine } from "xstate";
 import { createConversationMachine } from "./machine";
 import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
 import { ReduxAISchema } from "@redux-ai/schema";
-import { ReduxAIVector } from "@redux-ai/vector";
+import { ReduxAIVector, VectorConfig } from "@redux-ai/vector";
 
 export interface AIStateConfig<TState, TAction extends Action> {
   store: Store<TState>;
@@ -133,28 +133,33 @@ export class ReduxAIState<TState, TAction extends Action> {
 
 export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
-) => {
-  if (_reduxAI) {
-    return _reduxAI as ReduxAIState<TState, TAction>;
+): Promise<ReduxAIState<TState, TAction>> => {
+  try {
+    if (_reduxAI) {
+      return _reduxAI as ReduxAIState<TState, TAction>;
+    }
+
+    const instance = new ReduxAIState<TState, TAction>(config);
+    _reduxAI = instance as ReduxAIState<any, any>;
+
+    // Store initial state in vector storage
+    const initialState = config.store.getState();
+    await config.vectorStorage.storeInteraction(
+      'Initial State',
+      'Redux store initialized with initial state',
+      JSON.stringify(initialState, null, 2)
+    );
+
+    return instance;
+  } catch (error) {
+    console.error('Error creating ReduxAIState:', error);
+    throw error;
   }
-
-  const instance = new ReduxAIState<TState, TAction>(config);
-  _reduxAI = instance;
-
-  // Store initial state in vector storage
-  const initialState = config.store.getState();
-  await config.vectorStorage.storeInteraction(
-    'Initial State',
-    'Redux store initialized with initial state',
-    JSON.stringify(initialState, null, 2)
-  );
-
-  return instance;
 };
 
-export const getReduxAI = () => {
+export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TState, TAction> => {
   if (!_reduxAI) {
     throw new Error('ReduxAI not initialized');
   }
-  return _reduxAI;
+  return _reduxAI as ReduxAIState<TState, TAction>;
 };

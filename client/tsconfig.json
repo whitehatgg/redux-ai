@@ -1,0 +1,24 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["./*"],
+      "@shared/*": ["../../shared/*"],
+      "@redux-ai/state": ["../../packages/state/src"],
+      "@redux-ai/schema": ["../../packages/schema/src"],
+      "@redux-ai/vector": ["../../packages/vector/src"],
+      "@redux-ai/react": ["../../packages/react/src"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "../server/**/*"],
+  "references": [
+    { "path": "../packages/schema" },
+    { "path": "../packages/vector" },
+    { "path": "../packages/state" },
+    { "path": "../packages/react" }
+  ]
+}

@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*",
+    "@redux-ai/vector": "workspace:*",
     "@reduxjs/toolkit": "^2.5.1",
     "xstate": "^5.19.2"
   }
