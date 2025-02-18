@@ -48,17 +48,17 @@ ${actionsDescription}
 
 Instructions for State Interactions:
 1. The counter value is accessed at state.demo.counter
-2. For counter operations, use the actions 'increment', 'decrement', or 'resetCounter'
+2. For counter operations, use the actions 'demo/increment', 'demo/decrement', or 'demo/resetCounter'
 3. When responding to queries:
    - Always mention the current counter value from state.demo.counter
    - For increment/decrement, mention both before and after values
-   - Use exact action types: 'increment', 'decrement', 'resetCounter', 'setMessage'
+   - Use exact action types: 'demo/increment', 'demo/decrement', 'demo/resetCounter', 'demo/setMessage'
 
 Respond with a JSON object:
 {
   "message": "Natural language response that includes the current counter value and any changes made",
   "action": null | {
-    "type": "increment" | "decrement" | "resetCounter" | "setMessage",
+    "type": "demo/increment" | "demo/decrement" | "demo/resetCounter" | "demo/setMessage",
     "payload": "PAYLOAD_IF_NEEDED"
   }
 }`

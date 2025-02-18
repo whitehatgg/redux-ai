@@ -13,13 +13,6 @@ interface RAGResponse {
   timestamp: string;
 }
 
-interface QueryResponse {
-  message: string;
-  action: any | null;
-  ragResults?: RAGResponse;
-  error?: string;
-}
-
 /**
  * Hook for natural language interaction with Redux store
  * Allows querying and updating store state through AI
@@ -34,7 +27,7 @@ export function useReduxAI() {
   useEffect(() => {
     initializeReduxAI()
       .then(() => setIsInitialized(true))
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error('Failed to initialize ReduxAI:', err);
         setError('Failed to initialize AI functionality');
       });
@@ -54,10 +47,18 @@ export function useReduxAI() {
       const response = await reduxAI.processQuery(query);
       const similarDocs = await reduxAI.getSimilarInteractions(query);
 
-      // Create RAG results
+      // Safely convert similarDocs to the expected format
+      const formattedSimilarDocs = (Array.isArray(similarDocs) ? similarDocs : []).map(doc => ({
+        query: doc?.query || 'No query available',
+        response: doc?.response || 'No response available',
+        state: doc?.state || '{}',
+        timestamp: doc?.timestamp || new Date().toISOString()
+      }));
+
+      // Create RAG results with proper type safety
       const ragResponse: RAGResponse = {
         ragResponse: response.message,
-        similarDocs,
+        similarDocs: formattedSimilarDocs,
         timestamp: new Date().toISOString()
       };
 

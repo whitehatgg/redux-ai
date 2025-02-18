@@ -1,6 +1,6 @@
 import { Provider } from 'react-redux';
 import { store, initializeReduxAI } from './store';
-import { ChatBubble } from '@redux-ai/react';
+import { ChatBubble, VectorDebugger } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
@@ -15,7 +15,10 @@ function AppContent() {
 
   useEffect(() => {
     initializeReduxAI()
-      .then(() => setIsInitialized(true))
+      .then(() => {
+        setIsInitialized(true);
+        console.log('ReduxAI initialized with counter:', counter);
+      })
       .catch((err) => {
         console.error('Failed to initialize ReduxAI:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize AI functionality');
@@ -50,6 +53,7 @@ function AppContent() {
               Current Counter: {counter}
             </div>
             <ChatBubble />
+            <VectorDebugger />
             <div className="text-sm text-muted-foreground">
               Try asking: "increment the counter" or "set a message"
             </div>

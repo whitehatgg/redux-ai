@@ -29,7 +29,9 @@ export class ReduxAIState<TState, TAction extends Action> {
   async processQuery(query: string) {
     try {
       const state = this.store.getState();
+      console.log('Current state before processing:', state);
       const response = await this.generateAIResponse(query, state);
+      console.log('AI Response:', response);
 
       if (response.action) {
         // If schema is provided, validate action
@@ -39,12 +41,15 @@ export class ReduxAIState<TState, TAction extends Action> {
 
         // Store the pre-action state
         const preActionState = JSON.stringify(this.store.getState(), null, 2);
+        console.log('Pre-action state:', preActionState);
 
         // Dispatch the action
         this.store.dispatch(response.action);
+        console.log('Action dispatched:', response.action);
 
         // Get post-action state and store the interaction
         const postActionState = JSON.stringify(this.store.getState(), null, 2);
+        console.log('Post-action state:', postActionState);
         await this.vectorStorage.storeInteraction(
           query,
           response.message,
@@ -55,6 +60,7 @@ export class ReduxAIState<TState, TAction extends Action> {
       return response;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error('Error in processQuery:', errorMessage);
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
@@ -79,6 +85,8 @@ export class ReduxAIState<TState, TAction extends Action> {
           description: `Action creator for ${key}`
         }));
 
+      console.log('Available actions:', availableActions);
+
       const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
@@ -96,8 +104,7 @@ export class ReduxAIState<TState, TAction extends Action> {
       }
 
       const data = await response.json();
-      console.log('AI Response:', data);
-      console.log('Current State:', state);
+      console.log('AI Response data:', data);
       return {
         message: data.message,
         action: data.action,
