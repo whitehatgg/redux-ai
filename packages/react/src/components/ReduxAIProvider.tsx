@@ -14,16 +14,24 @@ const ReduxAIContext = createContext<ReduxAIContextType>({
   error: null,
 });
 
+export interface ReduxAIAction {
+  type: string;
+  description: string;
+  keywords: string[];
+}
+
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
   schema?: ReduxAISchema<any>;
+  availableActions: ReduxAIAction[];
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   children,
   store,
   schema,
+  availableActions,
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +40,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const initialize = async () => {
       try {
         console.log('Initializing ReduxAI components...');
+        console.log('Available actions:', availableActions);
 
         // Initialize vector storage
         const vectorStorage = await createReduxAIVector({
@@ -43,6 +52,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           store,
           schema,
           vectorStorage,
+          availableActions,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
             setError(error.message);
@@ -59,7 +69,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     };
 
     initialize();
-  }, [store, schema]);
+  }, [store, schema, availableActions]);
 
   if (error) {
     return (

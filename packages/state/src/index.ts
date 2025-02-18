@@ -10,10 +10,17 @@ interface BaseAction extends Action {
   [key: string]: any;
 }
 
+export interface ReduxAIAction {
+  type: string;
+  description: string;
+  keywords: string[];
+}
+
 export interface AIStateConfig<TState, TAction extends BaseAction> {
   store: Store;
   schema?: ReduxAISchema<TAction>;
   vectorStorage: ReduxAIVector;
+  availableActions: ReduxAIAction[];
   onError?: (error: Error) => void;
 }
 
@@ -23,6 +30,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private machine;
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
+  private availableActions: ReduxAIAction[];
   private actionTrace: TAction[] = [];
 
   constructor(config: AIStateConfig<TState, TAction>) {
@@ -31,6 +39,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     this.machine = createConversationMachine();
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
+    this.availableActions = config.availableActions;
 
     // Add middleware to track actions
     const originalDispatch = this.store.dispatch;
@@ -50,7 +59,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       console.log('Previous interactions:', previousInteractions);
 
       // Analyze state and action history to infer the next action
-      const actionInfo = this.inferActionFromHistory(query);
+      const actionInfo = this.inferActionFromKeywords(query);
       console.log('Inferred action:', actionInfo);
 
       if (actionInfo) {
@@ -93,61 +102,27 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     }
   }
 
-  private inferActionFromHistory(query: string): { action: TAction; message: string } | null {
+  private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {
     try {
       const lowerQuery = query.toLowerCase();
 
-      // Get unique action types from history
-      const uniqueActions = Array.from(new Set(this.actionTrace.map(action => action.type)));
-      console.log('Available actions from history:', uniqueActions);
+      // Find an action whose keywords match the query
+      const matchedAction = this.availableActions.find(action => 
+        action.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()))
+      );
 
-      // Find similar actions based on the query
-      for (const actionType of uniqueActions) {
-        const [slice, actionName] = actionType.split('/');
-
-        if (!slice || !actionName) continue;
-
-        // Match action patterns
-        if (this.matchesActionPattern(lowerQuery, actionName)) {
-          // Use Array.prototype.find instead of findLast for better compatibility
-          const lastSimilarAction = [...this.actionTrace]
-            .reverse()
-            .find((a: TAction) => a.type === actionType);
-
-          if (lastSimilarAction) {
-            return {
-              action: {
-                type: actionType,
-                payload: lastSimilarAction.payload
-              } as TAction,
-              message: `Executing ${actionName} on ${slice}`
-            };
-          }
-        }
+      if (matchedAction) {
+        return {
+          action: { type: matchedAction.type } as TAction,
+          message: matchedAction.description
+        };
       }
 
       return null;
     } catch (error) {
-      console.error('Error in inferActionFromHistory:', error);
+      console.error('Error in inferActionFromKeywords:', error);
       return null;
     }
-  }
-
-  private matchesActionPattern(query: string, actionName: string): boolean {
-    // Common action word mappings
-    const actionMappings: Record<string, string[]> = {
-      'increment': ['increase', 'increment', 'add', 'plus'],
-      'decrement': ['decrease', 'decrement', 'subtract', 'minus'],
-      'set': ['set', 'change', 'update', 'modify'],
-      'reset': ['reset', 'clear', 'zero'],
-      'toggle': ['toggle', 'switch', 'flip']
-    };
-
-    // Find all possible word variations for this action
-    const actionWords = Object.entries(actionMappings)
-      .find(([key]) => actionName.toLowerCase().includes(key))?.[1] || [];
-
-    return actionWords.some(word => query.includes(word));
   }
 
   async getSimilarInteractions(query: string, limit: number = 5) {

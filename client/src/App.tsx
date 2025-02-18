@@ -1,11 +1,35 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { ChatBubble, VectorDebugger, ReduxAIProvider } from '@redux-ai/react';
+import { ChatBubble, VectorDebugger, ReduxAIProvider, ReduxAIAction } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
+
+// Define available actions for the demo
+const demoActions: ReduxAIAction[] = [
+  {
+    type: 'demo/increment',
+    description: 'Incrementing the counter',
+    keywords: ['increment', 'increase', 'add', 'plus']
+  },
+  {
+    type: 'demo/decrement',
+    description: 'Decrementing the counter',
+    keywords: ['decrement', 'decrease', 'subtract', 'minus']
+  },
+  {
+    type: 'demo/resetCounter',
+    description: 'Resetting the counter to zero',
+    keywords: ['reset', 'clear', 'zero']
+  },
+  {
+    type: 'demo/setMessage',
+    description: 'Setting a new message',
+    keywords: ['set message', 'change message', 'update message']
+  }
+];
 
 function AppContent() {
   const counter = useSelector((state: RootState) => state.demo.counter);
@@ -37,7 +61,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <ReduxAIProvider store={store}>
+        <ReduxAIProvider store={store} availableActions={demoActions}>
           <AppContent />
           <Toaster />
         </ReduxAIProvider>
