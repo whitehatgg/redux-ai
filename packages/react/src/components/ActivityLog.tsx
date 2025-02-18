@@ -28,11 +28,12 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
     const unsubscribe = vectorStorage.subscribe((entry: VectorEntry) => {
       console.log('ActivityLog: Received vector entry:', entry);
 
+      const metadata = entry.metadata as Record<string, unknown>;
       const newEntry: ActivityLogEntry = {
         type: 'vector/store',
-        timestamp: entry.timestamp,
-        query: entry.query,
-        response: entry.response
+        timestamp: new Date(entry.timestamp).toISOString(),
+        query: typeof metadata.query === 'string' ? metadata.query : undefined,
+        response: typeof metadata.response === 'string' ? metadata.response : undefined
       };
 
       setEntries(prev => [...prev, newEntry]);

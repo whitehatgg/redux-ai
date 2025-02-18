@@ -1,11 +1,5 @@
-import type { VectorEntry } from './types';
+import type { VectorEntry, VectorConfig } from './types';
 import { IndexedDBStorage } from './indexeddb';
-
-export interface VectorConfig {
-  collectionName: string;
-  maxEntries: number;
-  dimensions: number;
-}
 
 function textToVector(text: string, dimensions = 128): number[] {
   const vector = new Array(dimensions).fill(0);
@@ -40,7 +34,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
-  private listeners = new Set<(entry: VectorEntry) => void>();
+  private readonly listeners = new Set<(entry: VectorEntry) => void>();
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -122,15 +116,3 @@ export class VectorStorage {
     });
   }
 }
-
-export const createReduxAIVector = async (
-  config: Partial<VectorConfig> = {}
-): Promise<VectorStorage> => {
-  const defaultConfig: VectorConfig = {
-    collectionName: 'reduxai_vector',
-    maxEntries: 100,
-    dimensions: 128,
-    ...config
-  };
-  return VectorStorage.create(defaultConfig);
-};

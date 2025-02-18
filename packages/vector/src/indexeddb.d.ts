@@ -1,4 +1,4 @@
-import { VectorEntry } from './storage';
+import type { VectorEntry } from './types';
 export declare class IndexedDBStorage {
     private db;
     initialize(): Promise<void>;

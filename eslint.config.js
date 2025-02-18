@@ -19,20 +19,22 @@ export default [
         }
       },
       globals: {
-        // Jest globals
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        indexedDB: 'readonly',
+        IDBDatabase: 'readonly',
+        IDBOpenDBRequest: 'readonly',
+        IDBTransaction: 'readonly',
+        IDBObjectStore: 'readonly',
+        // Test globals
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',
-        jest: 'readonly',
-        // Browser globals
-        window: 'readonly',
-        console: 'readonly',
-        IDBDatabase: 'readonly',
-        IDBOpenDBRequest: 'readonly',
-        IDBTransaction: 'readonly',
-        IDBObjectStore: 'readonly'
+        jest: 'readonly'
       }
     },
     plugins: {
@@ -41,17 +43,31 @@ export default [
       'react-hooks': reactHooksPlugin
     },
     rules: {
+      // React rules
       'react/react-in-jsx-scope': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { 
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
-      }],
+
+      // TypeScript rules
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-non-null-assertion': 'warn'
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        // Allow unused parameters in type definitions
+        ignoreRestSiblings: true,
+        varsIgnorePattern: '^(entry|data|searchQuery|resultLimit|userQuery|systemResponse|currentState|callback|newEntry)$'
+      }],
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+
+      // Disable base rule as it can report incorrect errors
+      'no-unused-vars': 'off',
+
+      // General rules
+      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
+      'prefer-const': 'error',
+      'no-var': 'error'
     },
     settings: {
       react: {

@@ -1,5 +1,4 @@
-import type { ReduxAIAction } from '@redux-ai/state';
-import type { VectorEntry, VectorConfig, ReduxAIVector } from './types';
+import type { VectorEntry, VectorConfig, ReduxAIVector, ReduxAIAction } from './types';
 import { VectorStorage } from './storage';
 import { IndexedDBStorage } from './indexeddb';
 

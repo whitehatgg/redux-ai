@@ -1,4 +1,7 @@
-import type { ReduxAIAction } from '@redux-ai/state';
+export interface ReduxAIAction {
+  type: string;
+  payload?: unknown;
+}
 
 export interface VectorEntry {
   id: string;
@@ -14,11 +17,9 @@ export interface VectorConfig {
 }
 
 export interface ReduxAIVector {
-  addEntry: (entry: VectorEntry) => Promise<void>;
-  retrieveSimilar: (query: string, limit?: number) => Promise<VectorEntry[]>;
+  addEntry: (data: VectorEntry) => Promise<void>;
+  retrieveSimilar: (searchQuery: string, resultLimit?: number) => Promise<VectorEntry[]>;
   getAllEntries: () => Promise<VectorEntry[]>;
-  storeInteraction: (query: string, response: string, state: unknown) => Promise<void>;
-  subscribe: (callback: (entry: VectorEntry) => void) => () => void;
+  storeInteraction: (userQuery: string, systemResponse: string, currentState: unknown) => Promise<void>;
+  subscribe: (callback: (newEntry: VectorEntry) => void) => () => void;
 }
-
-export type { ReduxAIAction };

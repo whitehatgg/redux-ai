@@ -14,13 +14,13 @@ export class IndexedDBStorage {
     }
 
     try {
-      await new Promise<void>((resolve, _reject) => {
+      await new Promise<void>(resolve => {
         const deleteRequest = window.indexedDB.deleteDatabase(DB_NAME);
         deleteRequest.onsuccess = () => {
-          console.log('[IndexedDB] Successfully deleted old database');
+          console.debug('[IndexedDB] Successfully deleted old database');
           resolve();
         };
-        deleteRequest.onerror = (_e) => {
+        deleteRequest.onerror = () => {
           console.warn('[IndexedDB] Error deleting old database');
           resolve(); // Continue even if delete fails
         };
@@ -32,7 +32,7 @@ export class IndexedDBStorage {
     return new Promise((resolve, reject) => {
       const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = (_event) => {
+      request.onerror = () => {
         const error = request.error;
         console.error('[IndexedDB] Database error:', {
           name: error?.name,
@@ -44,11 +44,11 @@ export class IndexedDBStorage {
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('[IndexedDB] Successfully opened database');
+        console.debug('[IndexedDB] Successfully opened database');
         resolve();
       };
 
-      request.onupgradeneeded = (_event) => {
+      request.onupgradeneeded = () => {
         const db = request.result;
 
         if (db.objectStoreNames.contains(STORE_NAME)) {
@@ -58,7 +58,7 @@ export class IndexedDBStorage {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         store.createIndex('timestamp', 'timestamp', { unique: false });
 
-        console.log('[IndexedDB] Store created successfully');
+        console.debug('[IndexedDB] Store created successfully');
       };
     });
   }
@@ -70,7 +70,7 @@ export class IndexedDBStorage {
 
     return new Promise((resolve, reject) => {
       try {
-        console.log('[IndexedDB] Adding entry:', { id: entry.id, timestamp: entry.timestamp });
+        console.debug('[IndexedDB] Adding entry:', { id: entry.id, timestamp: entry.timestamp });
 
         const transaction = this.db?.transaction([STORE_NAME], 'readwrite');
         if (!transaction) {
@@ -84,7 +84,7 @@ export class IndexedDBStorage {
         });
 
         request.onsuccess = () => {
-          console.log('[IndexedDB] Entry added successfully');
+          console.debug('[IndexedDB] Entry added successfully');
           resolve();
         };
 
