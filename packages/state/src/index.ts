@@ -5,14 +5,14 @@ import { ReduxAISchema } from "@redux-ai/schema";
 import { ReduxAIVector, VectorConfig } from "@redux-ai/vector";
 
 export interface AIStateConfig<TState, TAction extends Action> {
-  store: Store<TState>;
+  store: Store;
   schema?: ReduxAISchema<TAction>;
   vectorStorage: ReduxAIVector;
   onError?: (error: Error) => void;
 }
 
 export class ReduxAIState<TState, TAction extends Action> {
-  private store: Store<TState>;
+  private store: Store;
   private schema?: ReduxAISchema<TAction>;
   private machine;
   private onError?: (error: Error) => void;
@@ -30,21 +30,20 @@ export class ReduxAIState<TState, TAction extends Action> {
     const state = this.store.getState();
     const availableActions: Array<{ type: string; description: string }> = [];
 
-    // Examine the state structure to find slices
+    // Get slice names from the root state
     Object.keys(state).forEach(sliceName => {
-      const slice = (state as any)[sliceName];
-      // Look for standard Redux Toolkit action types
-      const actionTypes = [
-        'increment',
-        'decrement',
-        'setMessage',
-        'resetCounter'
-      ].map(action => ({
-        type: `${sliceName}/${action}`,
-        description: `${action} action for ${sliceName}`
-      }));
-
-      availableActions.push(...actionTypes);
+      // Get the reducer object for this slice
+      const reducer = (this.store as any)._reducers[sliceName];
+      if (reducer && typeof reducer === 'object') {
+        // Get action creators from slice reducers
+        const sliceActions = Object.keys(reducer.reducers || {});
+        sliceActions.forEach(actionName => {
+          availableActions.push({
+            type: `${sliceName}/${actionName}`,
+            description: `${actionName} action for ${sliceName} slice`
+          });
+        });
+      }
     });
 
     console.log('Available actions:', availableActions);
@@ -65,19 +64,30 @@ export class ReduxAIState<TState, TAction extends Action> {
 
       if (response.action) {
         console.log('Dispatching action:', response.action);
+
         // Store the pre-action state
-        const preActionState = JSON.stringify(this.store.getState(), null, 2);
+        const preActionState = this.store.getState();
 
         // Dispatch the action
         this.store.dispatch(response.action);
 
         // Get post-action state and store the interaction
-        const postActionState = JSON.stringify(this.store.getState(), null, 2);
+        const postActionState = this.store.getState();
         await this.vectorStorage.storeInteraction(
           query,
           response.message,
-          postActionState
+          JSON.stringify({
+            action: response.action,
+            preState: preActionState,
+            postState: postActionState
+          })
         );
+
+        // Log state changes
+        console.log('State changes:', {
+          pre: preActionState,
+          post: postActionState
+        });
       }
 
       return response;
@@ -91,48 +101,33 @@ export class ReduxAIState<TState, TAction extends Action> {
     }
   }
 
-  private matchActionFromQuery(query: string, availableActions: Array<{ type: string; description: string }>) {
+  private matchActionFromQuery(query: string, availableActions: Array<{ type: string; description: string }>): TAction | null {
     const lowerQuery = query.toLowerCase();
 
-    // Handle increment/increase
-    if (lowerQuery.includes('increment') || lowerQuery.includes('increase')) {
-      return { type: 'demo/increment' } as TAction;
-    }
+    // Find action that best matches the query
+    for (const action of availableActions) {
+      const actionType = action.type.toLowerCase();
+      const actionParts = actionType.split('/')[1]; // Get the action name without slice prefix
 
-    // Handle decrement/decrease
-    if (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) {
-      return { type: 'demo/decrement' } as TAction;
-    }
-
-    // Handle reset
-    if (lowerQuery.includes('reset')) {
-      return { type: 'demo/resetCounter' } as TAction;
-    }
-
-    // Handle set message
-    if (lowerQuery.includes('set') && lowerQuery.includes('message')) {
-      const messageMatch = query.match(/message\s+(?:to\s+)?["']?([^"']+)["']?/i);
-      if (messageMatch) {
-        return {
-          type: 'demo/setMessage',
-          payload: messageMatch[1]
-        } as unknown as TAction;
-      }
-    }
-
-    // Handle set counter to specific number
-    if (lowerQuery.includes('set') && lowerQuery.includes('counter')) {
-      const numberMatch = query.match(/\d+/);
-      if (numberMatch) {
-        // For now, we'll use increment/decrement to reach the target
-        const targetNumber = parseInt(numberMatch[0]);
-        const currentState = this.store.getState() as any;
-        const currentCounter = currentState.demo.counter;
-
-        if (targetNumber > currentCounter) {
-          return { type: 'demo/increment' } as TAction;
-        } else if (targetNumber < currentCounter) {
-          return { type: 'demo/decrement' } as TAction;
+      // Handle various action patterns
+      if (
+        (lowerQuery.includes('increment') || lowerQuery.includes('increase')) && actionParts.includes('increment') ||
+        (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) && actionParts.includes('decrement') ||
+        (lowerQuery.includes('reset') && actionParts.includes('reset')) ||
+        (lowerQuery.includes(actionParts))
+      ) {
+        // Special handling for setMessage action
+        if (actionParts === 'setmessage') {
+          const messageMatch = query.match(/message\s+(?:to\s+)?["']?([^"']+)["']?/i);
+          if (messageMatch) {
+            return {
+              type: action.type,
+              payload: messageMatch[1]
+            } as TAction;
+          }
+        } else {
+          // For simple actions without payload
+          return { type: action.type } as TAction;
         }
       }
     }
@@ -157,7 +152,7 @@ export class ReduxAIState<TState, TAction extends Action> {
 
       if (action) {
         return {
-          message: `Executing action: ${action.type}`,
+          message: `Executing action: ${action.type}${action.payload ? ` with payload: ${action.payload}` : ''}`,
           action
         };
       }
@@ -185,14 +180,14 @@ export class ReduxAIState<TState, TAction extends Action> {
 }
 
 // Singleton instance
-let _reduxAI: ReduxAIState<any, any> | null = null;
+let _instance: ReduxAIState<any, any> | null = null;
 
 export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
 ): Promise<ReduxAIState<TState, TAction>> => {
   try {
-    _reduxAI = new ReduxAIState<TState, TAction>(config);
-    return _reduxAI;
+    _instance = new ReduxAIState<TState, TAction>(config);
+    return _instance;
   } catch (error) {
     console.error('Error creating ReduxAIState:', error);
     throw error;
@@ -200,8 +195,8 @@ export const createReduxAIState = async <TState, TAction extends Action>(
 };
 
 export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TState, TAction> => {
-  if (!_reduxAI) {
+  if (!_instance) {
     throw new Error('ReduxAI not initialized');
   }
-  return _reduxAI as ReduxAIState<TState, TAction>;
+  return _instance as ReduxAIState<TState, TAction>;
 };

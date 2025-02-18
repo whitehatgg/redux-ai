@@ -1,45 +1,14 @@
 import { Provider } from 'react-redux';
-import { store, initializeReduxAI } from './store';
-import { ChatBubble, VectorDebugger } from '@redux-ai/react';
+import { store } from './store';
+import { ChatBubble, VectorDebugger, ReduxAIProvider } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
-import { useEffect, useState } from 'react';
 
 function AppContent() {
   const counter = useSelector((state: RootState) => state.demo.counter);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    initializeReduxAI()
-      .then(() => {
-        setIsInitialized(true);
-        console.log('ReduxAI initialized with counter:', counter);
-      })
-      .catch((err) => {
-        console.error('Failed to initialize ReduxAI:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize AI functionality');
-      });
-  }, []);
-
-  if (error) {
-    return (
-      <div className="text-red-500 p-4">
-        Error initializing AI: {error}
-      </div>
-    );
-  }
-
-  if (!isInitialized) {
-    return (
-      <div className="animate-pulse p-4">
-        Initializing AI functionality...
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,8 +37,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <AppContent />
-        <Toaster />
+        <ReduxAIProvider store={store}>
+          <AppContent />
+          <Toaster />
+        </ReduxAIProvider>
       </Provider>
     </QueryClientProvider>
   );
