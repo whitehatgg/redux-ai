@@ -23,8 +23,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   React.useEffect(() => {
     if (!vectorStorage) return;
 
+    console.log('ActivityLog: Setting up vector storage subscription');
+
     const unsubscribe = vectorStorage.subscribe((entry: VectorEntry) => {
-      console.log('ActivityLog: New vector entry:', entry);
+      console.log('ActivityLog: Received vector entry:', {
+        content: entry.content,
+        timestamp: entry.timestamp,
+        metadata: entry.metadata
+      });
 
       const newEntry: ActivityLogEntry = {
         type: entry.metadata?.type === 'interaction' ? 'vector/store' : 'vector/add',
@@ -33,7 +39,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
         response: entry.response
       };
 
-      setEntries(prev => [...prev, newEntry]);
+      setEntries(prev => {
+        console.log('ActivityLog: Updating entries, current count:', prev.length);
+        return [...prev, newEntry];
+      });
     });
 
     return () => {

@@ -56,45 +56,64 @@ export class VectorStorage {
   private dimensions: number;
   private listeners: Set<VectorEventListener> = new Set();
   private operationInProgress = false;
+  private operationId: string | null = null;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
     this.dimensions = config.dimensions;
+    console.log('VectorStorage: Initialized with dimensions:', this.dimensions);
   }
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
     try {
-      console.log('Initializing vector storage...');
+      console.log('VectorStorage: Creating new instance...');
       const storage = new IndexedDBStorage();
       await storage.initialize();
-      console.log('Vector storage initialized successfully');
+      console.log('VectorStorage: IndexedDB storage initialized');
       return new VectorStorage(storage, config);
     } catch (error) {
-      console.error('Failed to initialize vector storage:', error);
-      throw new Error(`Vector storage initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('VectorStorage: Creation failed:', error);
+      throw error;
     }
   }
 
   subscribe(listener: VectorEventListener) {
+    console.log('VectorStorage: Adding new listener');
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      console.log('VectorStorage: Removing listener');
+      this.listeners.delete(listener);
+    };
+  }
+
+  private generateOperationId(): string {
+    return Math.random().toString(36).substring(2, 15);
   }
 
   private notifyListeners(entry: VectorEntry) {
-    if (!this.operationInProgress) {
-      this.listeners.forEach(listener => listener(entry));
+    if (this.operationInProgress) {
+      console.log('VectorStorage: Skipping notification during operation:', this.operationId);
+      return;
     }
+    console.log('VectorStorage: Notifying listeners of new entry');
+    this.listeners.forEach(listener => listener(entry));
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
+    const newOperationId = this.generateOperationId();
+
     if (this.operationInProgress) {
-      console.log('Operation in progress, skipping duplicate notification');
+      console.log('VectorStorage: Operation in progress, skipping duplicate addEntry:', {
+        currentOp: this.operationId,
+        newOp: newOperationId
+      });
       return;
     }
 
     try {
       this.operationInProgress = true;
-      console.log('Adding entry:', entry);
+      this.operationId = newOperationId;
+      console.log('VectorStorage: Starting addEntry operation:', this.operationId);
 
       const enhancedEntry: VectorEntry = {
         ...entry,
@@ -104,24 +123,34 @@ export class VectorStorage {
       };
 
       await this.storage.addEntry(enhancedEntry);
+      console.log('VectorStorage: Entry added successfully:', this.operationId);
       this.notifyListeners(enhancedEntry);
     } catch (error) {
-      console.error('Error adding entry:', error);
+      console.error('VectorStorage: Error in addEntry:', error);
       throw error;
     } finally {
+      console.log('VectorStorage: Completing operation:', this.operationId);
       this.operationInProgress = false;
+      this.operationId = null;
     }
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
-    try {
-      if (this.operationInProgress) {
-        console.log('Operation in progress, skipping duplicate store');
-        return;
-      }
+    const newOperationId = this.generateOperationId();
 
+    if (this.operationInProgress) {
+      console.log('VectorStorage: Operation in progress, skipping duplicate storeInteraction:', {
+        currentOp: this.operationId,
+        newOp: newOperationId
+      });
+      return;
+    }
+
+    try {
       this.operationInProgress = true;
-      console.log('Storing interaction:', { query, response });
+      this.operationId = newOperationId;
+      console.log('VectorStorage: Starting storeInteraction:', this.operationId);
+
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
       const timestamp = new Date().toISOString();
 
@@ -136,13 +165,15 @@ export class VectorStorage {
       };
 
       await this.storage.addEntry(entry);
-      console.log('Entry stored successfully');
+      console.log('VectorStorage: Interaction stored successfully:', this.operationId);
       this.notifyListeners(entry);
     } catch (error) {
-      console.error('Error storing interaction:', error);
+      console.error('VectorStorage: Error in storeInteraction:', error);
       throw error;
     } finally {
+      console.log('VectorStorage: Completing operation:', this.operationId);
       this.operationInProgress = false;
+      this.operationId = null;
     }
   }
 
