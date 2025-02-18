@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useReduxAI } from '../hooks/useReduxAI';
 import { MessageSquare, X, Sidebar, Minimize2, Maximize2 } from 'lucide-react';
 
@@ -17,12 +17,21 @@ interface ChatBubbleProps {
 export const ChatBubble: React.FC<ChatBubbleProps> = ({ 
   className, 
   onToggleActivityLog,
-  isMinimized = false, // Added default value
+  isMinimized = false,
   onMinimize
 }) => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
   const { sendQuery, isProcessing, error, isInitialized } = useReduxAI();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,8 +74,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
   return (
     <div className={className}>
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-3 border-b">
+      <div className="flex flex-col h-[600px] max-h-[80vh]">
+        <div className="flex items-center justify-between p-3 border-b bg-background">
           <h3 className="font-semibold">AI Assistant</h3>
           <div className="flex items-center gap-2">
             <button
@@ -86,7 +95,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message, index) => (
             <div
               key={index}
@@ -107,9 +116,10 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 border-t">
+        <form onSubmit={handleSubmit} className="p-4 border-t bg-background">
           <div className="flex gap-2">
             <input
               value={input}
