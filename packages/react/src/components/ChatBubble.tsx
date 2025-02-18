@@ -80,16 +80,16 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ className, onToggleActiv
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 space-y-4">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`mb-4 ${
-                message.role === 'user' ? 'text-right' : 'text-left'
+              className={`flex ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
               <div
-                className={`inline-block p-3 rounded-lg ${
+                className={`inline-block p-3 rounded-lg max-w-[80%] ${
                   message.role === 'user'
                     ? 'bg-primary text-primary-foreground'
                     : message.role === 'error'
