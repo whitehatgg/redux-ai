@@ -89,7 +89,8 @@ export class ReduxAIState<TState> {
         .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
 
-      console.log('[ReduxAIState] Generating system prompt with:', {
+      console.log('[ReduxAIState] Processing query with:', {
+        query,
         stateSize: JSON.stringify(this.store.getState()).length,
         actionsCount: this.availableActions.length,
         historyLength: this.interactions.length
@@ -101,25 +102,38 @@ export class ReduxAIState<TState> {
         conversationHistory
       );
 
-      console.log('[ReduxAIState] Generated system prompt length:', systemPrompt.length);
+      console.log('[ReduxAIState] Generated system prompt:', {
+        promptLength: systemPrompt.length,
+        actionsIncluded: this.availableActions.length > 0,
+        hasState: Object.keys(this.store.getState()).length > 0
+      });
+
+      const requestBody = {
+        query,
+        systemPrompt,
+        availableActions: this.availableActions,
+      };
+
+      console.log('[ReduxAIState] Sending API request with body:', {
+        queryLength: requestBody.query?.length,
+        systemPromptLength: requestBody.systemPrompt?.length,
+        actionsCount: requestBody.availableActions?.length
+      });
 
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          query,
-          systemPrompt,
-          availableActions: this.availableActions,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
         console.error('[ReduxAIState] API request failed:', {
           status: apiResponse.status,
-          error: errorText
+          error: errorText,
+          requestBody: requestBody
         });
         throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
       }
@@ -140,6 +154,7 @@ export class ReduxAIState<TState> {
       return { message, action };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error('[ReduxAIState] Error in processQuery:', errorMessage);
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
