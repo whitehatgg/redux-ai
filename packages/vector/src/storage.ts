@@ -50,30 +50,20 @@ export class VectorStorage {
   private dimensions: number;
   private listeners: Set<(entry: VectorEntry) => void> = new Set();
 
-  private constructor(storage: IndexedDBStorage, config: VectorConfig) {
+  private constructor(storage: IndexedDBStorage, dimensions: number) {
     this.storage = storage;
-    this.dimensions = config.dimensions;
+    this.dimensions = dimensions;
   }
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
-    try {
-      const storage = new IndexedDBStorage();
-      await storage.initialize();
-      return new VectorStorage(storage, config);
-    } catch (error) {
-      console.error('[VectorStorage] Creation failed:', error);
-      throw error;
-    }
+    const storage = new IndexedDBStorage();
+    await storage.initialize();
+    return new VectorStorage(storage, config.dimensions);
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
-    try {
-      await this.storage.addEntry(entry);
-      this.notifyListeners(entry);
-    } catch (error) {
-      console.error('[VectorStorage] Error adding entry:', error);
-      throw error;
-    }
+    await this.storage.addEntry(entry);
+    this.notifyListeners(entry);
   }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
