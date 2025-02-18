@@ -7,6 +7,7 @@ import { Toaster } from './components/ui/toaster';
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
 import type { ReduxAIAction } from '@redux-ai/state';
+import { ApplicantTable } from './components/ApplicantTable';
 
 // Define available actions for the demo
 const demoActions: ReduxAIAction[] = [
@@ -29,6 +30,21 @@ const demoActions: ReduxAIAction[] = [
     type: 'demo/setMessage',
     description: 'Setting a new message',
     keywords: ['set message', 'change message', 'update message', 'write message']
+  },
+  {
+    type: 'applicant/setVisibleColumns',
+    description: 'Configure which columns are visible in the applicant table',
+    keywords: ['show columns', 'hide columns', 'toggle columns', 'configure table']
+  },
+  {
+    type: 'applicant/toggleSearch',
+    description: 'Toggle search functionality for applicants',
+    keywords: ['enable search', 'disable search', 'toggle search']
+  },
+  {
+    type: 'applicant/setSearchTerm',
+    description: 'Set the search term for filtering applicants',
+    keywords: ['search applicants', 'filter applicants', 'find applicant']
   }
 ];
 
@@ -48,8 +64,15 @@ function AppContent() {
             </div>
             <ChatBubble />
             <ActivityLog />
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground mb-8">
               Try asking: "increment the counter" or "what's the current value?"
+            </div>
+            <div className="border-t pt-8">
+              <h2 className="text-2xl font-semibold mb-4">Applicant Management</h2>
+              <div className="text-sm text-muted-foreground mb-4">
+                Try asking: "show only name and email columns" or "enable search"
+              </div>
+              <ApplicantTable />
             </div>
           </div>
         </div>
