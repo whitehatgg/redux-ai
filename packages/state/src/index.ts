@@ -33,8 +33,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
   private onActionMatch?: (query: string) => Promise<{ action: TAction; message: string } | null>;
-  private actionTrace: TAction[] = [];
-  private lastUserQuery: string = '';
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
@@ -44,19 +42,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     this.onError = config.onError;
     this.availableActions = config.availableActions;
     this.onActionMatch = config.onActionMatch;
-
-    // Add middleware to track actions
-    const originalDispatch = this.store.dispatch;
-    this.store.dispatch = ((action: TAction) => {
-      if (action && typeof action === 'object' && 'type' in action) {
-        this.actionTrace.push(action);
-        this.storeStateChange(action);
-        return originalDispatch(action);
-      } else {
-        console.warn('Invalid action:', action);
-        return originalDispatch({ type: 'INVALID_ACTION' } as any);
-      }
-    }) as typeof this.store.dispatch;
   }
 
   private async storeStateChange(action: TAction) {
@@ -89,7 +74,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   async processQuery(query: string) {
     try {
       console.log('Processing query:', query);
-      this.lastUserQuery = query;
 
       // Get previous interactions for context
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
@@ -99,6 +83,19 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       if (this.onActionMatch) {
         const actionInfo = await this.onActionMatch(query);
         if (actionInfo && actionInfo.action && typeof actionInfo.action === 'object' && 'type' in actionInfo.action) {
+          // Validate the action type against available actions
+          const isValidAction = this.availableActions.some(
+            availableAction => availableAction.type === actionInfo.action.type
+          );
+
+          if (!isValidAction) {
+            console.warn('Invalid action type:', actionInfo.action.type);
+            return {
+              message: 'Unable to perform that action.',
+              action: null
+            };
+          }
+
           // Store the interaction
           const stateData = {
             query,
