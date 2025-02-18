@@ -32,30 +32,6 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     this.vectorStorage = config.vectorStorage;
   }
 
-  private getAvailableActions(): Array<{ type: string; description: string }> {
-    // Define known actions based on the demo slice
-    const availableActions = [
-      {
-        type: 'demo/increment',
-        description: 'Increment the counter'
-      },
-      {
-        type: 'demo/decrement',
-        description: 'Decrement the counter'
-      },
-      {
-        type: 'demo/setMessage',
-        description: 'Set a message in the state'
-      },
-      {
-        type: 'demo/resetCounter',
-        description: 'Reset the counter to zero'
-      }
-    ];
-
-    return availableActions;
-  }
-
   async processQuery(query: string) {
     try {
       const state = this.store.getState();
@@ -65,41 +41,43 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
       console.log('Retrieved previous interactions:', previousInteractions);
 
-      const response = await this.generateAIResponse(query, state, previousInteractions);
-      console.log('AI Response:', response);
+      // Match action from query
+      const actionInfo = this.matchActionFromQuery(query);
+      console.log('Matched action:', actionInfo);
 
-      if (response.action) {
-        console.log('Dispatching action:', response.action);
-
+      if (actionInfo) {
         // Store the pre-action state
         const preActionState = this.store.getState();
 
         // Dispatch the action
-        this.store.dispatch(response.action);
+        this.store.dispatch(actionInfo.action);
+        console.log('Action dispatched:', actionInfo.action);
 
         // Get post-action state and store the interaction
         const postActionState = this.store.getState();
         await this.vectorStorage.storeInteraction(
           query,
-          response.message,
+          actionInfo.message,
           JSON.stringify({
-            action: response.action,
+            action: actionInfo.action,
             preState: preActionState,
             postState: postActionState
           })
         );
 
-        // Log state changes
-        console.log('State changes:', {
-          pre: preActionState,
-          post: postActionState
-        });
+        return {
+          message: actionInfo.message,
+          action: actionInfo.action
+        };
       }
 
-      return response;
-    } catch (error: unknown) {
+      return {
+        message: 'I could not determine an appropriate action for your request.',
+        action: null
+      };
+    } catch (error) {
+      console.error('Error in processQuery:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      console.error('Error in processQuery:', errorMessage);
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
@@ -107,77 +85,44 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     }
   }
 
-  private matchActionFromQuery(query: string, availableActions: Array<{ type: string; description: string }>): TAction | null {
+  private matchActionFromQuery(query: string): { action: TAction; message: string } | null {
     const lowerQuery = query.toLowerCase();
 
-    // Find action that best matches the query
-    for (const action of availableActions) {
-      const actionType = action.type.toLowerCase();
-      const actionParts = actionType.split('/')[1]; // Get the action name without slice prefix
+    if (lowerQuery.includes('increment') || lowerQuery.includes('increase')) {
+      return {
+        action: { type: 'demo/increment' } as TAction,
+        message: 'Incrementing the counter'
+      };
+    }
 
-      // Handle various action patterns
-      if (
-        (lowerQuery.includes('increment') || lowerQuery.includes('increase')) && actionParts.includes('increment') ||
-        (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) && actionParts.includes('decrement') ||
-        (lowerQuery.includes('reset') && actionParts.includes('reset')) ||
-        (lowerQuery.includes(actionParts))
-      ) {
-        // Special handling for setMessage action
-        if (actionParts === 'setmessage') {
-          const messageMatch = query.match(/message\s+(?:to\s+)?["']?([^"']+)["']?/i);
-          if (messageMatch) {
-            return {
-              type: action.type,
-              payload: messageMatch[1]
-            } as TAction;
-          }
-        } else {
-          // For simple actions without payload
-          return { type: action.type } as TAction;
-        }
-      }
+    if (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) {
+      return {
+        action: { type: 'demo/decrement' } as TAction,
+        message: 'Decrementing the counter'
+      };
+    }
+
+    if (lowerQuery.includes('reset')) {
+      return {
+        action: { type: 'demo/resetCounter' } as TAction,
+        message: 'Resetting the counter to zero'
+      };
+    }
+
+    const messageMatch = query.match(/(?:set|change)\s+(?:the\s+)?message\s+(?:to\s+)?["']?([^"']+)["']?/i);
+    if (messageMatch) {
+      return {
+        action: { type: 'demo/setMessage', payload: messageMatch[1] } as TAction,
+        message: `Setting message to: ${messageMatch[1]}`
+      };
     }
 
     return null;
   }
 
-  private async generateAIResponse(query: string, state: TState, previousInteractions: any[]): Promise<{
-    message: string;
-    action: TAction | null;
-  }> {
+  async getSimilarInteractions(query: string, limit: number = 5) {
     try {
-      const availableActions = this.getAvailableActions();
-      console.log('Available actions:', availableActions);
-      console.log('Previous interactions:', previousInteractions);
-      console.log('Current state:', state);
-      console.log('User query:', query);
-
-      // Match the query to an available action
-      const action = this.matchActionFromQuery(query, availableActions);
-      console.log('Matched action:', action);
-
-      if (action) {
-        return {
-          message: `Executing action: ${action.type}${action.payload ? ` with payload: ${action.payload}` : ''}`,
-          action
-        };
-      }
-
-      return {
-        message: 'Could not determine appropriate action for query',
-        action: null
-      };
-    } catch (error) {
-      console.error('Error in generateAIResponse:', error);
-      throw new Error(`Failed to generate AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  async getSimilarInteractions(query: string, limit: number = 5): Promise<any[]> {
-    try {
-      const results = await this.vectorStorage.retrieveSimilar(query, limit);
-      console.log('Retrieved similar interactions:', results);
-      return results;
+      return await this.vectorStorage.retrieveSimilar(query, limit);
     } catch (error) {
       console.error('Error getting similar interactions:', error);
       throw error;
