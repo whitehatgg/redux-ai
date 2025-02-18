@@ -65,16 +65,6 @@ const matchAction = (query: string) => {
     };
   }
 
-  // Match other actions based on keywords
-  for (const action of demoActions) {
-    if (action.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()))) {
-      return {
-        action: { type: action.type },
-        message: action.description
-      };
-    }
-  }
-
   return null;
 };
 
@@ -95,20 +85,21 @@ function AppContent() {
         </div>
       </main>
 
-      {/* Fixed Chat Bubble */}
-      <div className="fixed bottom-4 right-4 z-50">
+      {/* Fixed Chat Bubble and Activity Log */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-4">
+        <div className="max-w-[200px] sm:max-w-none text-sm text-muted-foreground bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
+          Try asking: "show only name and email columns" or "search for john@example.com"
+        </div>
         <ChatBubble 
           className="w-[350px] h-[450px] shadow-lg rounded-lg bg-background border" 
           onToggleActivityLog={() => setShowActivityLog(!showActivityLog)}
         />
       </div>
+
       <ActivityLog 
         open={showActivityLog} 
         onClose={() => setShowActivityLog(false)} 
       />
-      <div className="text-sm text-muted-foreground fixed bottom-20 right-4 z-50 bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
-        Try asking: "show only name and email columns" or "search for john@example.com"
-      </div>
     </div>
   );
 }
