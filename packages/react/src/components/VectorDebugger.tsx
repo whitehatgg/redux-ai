@@ -9,81 +9,91 @@ interface DebugEntry {
   timestamp: string;
 }
 
+interface RootState {
+  demo: {
+    counter: number;
+  };
+}
+
 export const VectorDebugger: React.FC = () => {
-  const [entries, setEntries] = React.useState<DebugEntry[]>([]);
-  const counter = useSelector((state: any) => state.demo.counter);
+  const [debugEntries, setDebugEntries] = React.useState<DebugEntry[]>([]);
+  const counter = useSelector((state: RootState) => state.demo.counter);
   const { ragResults, isInitialized } = useReduxAI();
 
   React.useEffect(() => {
-    if (!isInitialized || !ragResults) {
-      console.log('Skipping update - not initialized or no results:', { isInitialized, ragResults });
+    // Skip if not initialized
+    if (!isInitialized) {
       return;
     }
 
-    console.log('RAG Results updated:', JSON.stringify(ragResults, null, 2));
-
-    // Ensure similarDocs is an array and has items
-    if (!Array.isArray(ragResults.similarDocs) || ragResults.similarDocs.length === 0) {
-      console.log('No valid similarDocs found');
+    // Safely check for ragResults and similarDocs
+    if (!ragResults || !Array.isArray(ragResults.similarDocs)) {
       return;
     }
 
-    const similarDocs = ragResults.similarDocs;
-    console.log('Processed similarDocs:', similarDocs);
-
-    const firstDoc = similarDocs[0];
-    if (!firstDoc) {
-      console.log('No valid first document found');
+    // Get the first document if it exists
+    const doc = ragResults.similarDocs[0];
+    if (!doc) {
       return;
     }
 
+    // Create new entry with safe fallbacks
     const newEntry: DebugEntry = {
-      query: firstDoc.query || '',
-      response: firstDoc.response || '',
-      state: firstDoc.state || '',
-      timestamp: firstDoc.timestamp || new Date().toISOString()
+      query: doc.query ?? 'No query available',
+      response: doc.response ?? 'No response available',
+      state: doc.state ?? '{}',
+      timestamp: doc.timestamp ?? new Date().toISOString()
     };
 
-    console.log('Adding new debug entry:', newEntry);
-    setEntries(prevEntries => [newEntry, ...prevEntries]);
+    setDebugEntries(prev => [newEntry, ...prev].slice(0, 10));
   }, [ragResults, isInitialized]);
 
+  // Show loading state
   if (!isInitialized) {
     return (
-      <div className="w-full max-w-2xl mx-auto p-4 text-center">
-        Initializing vector storage...
+      <div className="flex items-center justify-center p-4 text-muted-foreground">
+        <div className="animate-pulse">Initializing vector storage...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="p-6">
-        <h2 className="text-2xl font-semibold mb-4">State Debug Info</h2>
-        <div className="mb-4 p-4 border rounded">
-          <div className="font-semibold">Current Counter: {counter}</div>
+    <div className="w-full max-w-2xl mx-auto rounded-lg border bg-card p-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">State Debugger</h2>
+          <div className="text-sm text-muted-foreground">
+            Counter: {counter}
+          </div>
         </div>
-        <div className="h-[400px] overflow-auto">
-          {entries.length > 0 ? (
-            entries.map((entry, index) => (
-              <div key={`${entry.timestamp}-${index}`} className="mb-6 p-4 border rounded">
-                <div className="font-semibold mb-2">
-                  Query: {entry.query || 'N/A'}
-                </div>
-                <div className="text-muted-foreground mb-2">
-                  Response: {entry.response || 'N/A'}
+
+        <div className="space-y-4 max-h-[500px] overflow-y-auto">
+          {debugEntries && debugEntries.length > 0 ? (
+            debugEntries.map((entry, index) => (
+              <div 
+                key={`${entry.timestamp}-${index}`} 
+                className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
+              >
+                <div className="font-medium">
+                  Query: {entry.query}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  State: <pre className="mt-2 p-2 bg-muted rounded overflow-x-auto">{entry.state || '{}'}</pre>
+                  Response: {entry.response}
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">
+                <div className="text-sm">
+                  <div className="font-medium mb-1">State:</div>
+                  <pre className="bg-muted p-2 rounded-md overflow-x-auto text-xs">
+                    {entry.state}
+                  </pre>
+                </div>
+                <time className="text-xs text-muted-foreground">
                   {new Date(entry.timestamp).toLocaleString()}
-                </div>
+                </time>
               </div>
             ))
           ) : (
-            <div className="text-center text-muted-foreground">
-              No state changes recorded yet. Try interacting with the counter.
+            <div className="text-center py-8 text-muted-foreground">
+              No state changes recorded. Interact with the counter to see debug information.
             </div>
           )}
         </div>
