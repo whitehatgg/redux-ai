@@ -40,8 +40,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
     const initialize = async () => {
       try {
+        if (isInitialized) return; // Prevent multiple initializations
         console.log('[ReduxAIProvider] Starting initialization...');
 
+        // Initialize vector storage
         vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
@@ -53,6 +55,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.log('[ReduxAIProvider] Vector storage initialized');
         setVectorStorage(vectorDb);
 
+        // Initialize Redux AI state
         await createReduxAIState({
           store,
           schema,
@@ -62,10 +65,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             console.error('[ReduxAIProvider] State error:', error);
             if (mounted) {
               setError(error.message);
-              store.dispatch({ 
-                type: '__VECTOR_ERROR__', 
-                payload: error.message 
-              });
             }
           }
         });
@@ -78,12 +77,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       } catch (error) {
         console.error('[ReduxAIProvider] Initialization error:', error);
         if (mounted) {
-          const errorMessage = error instanceof Error ? error.message : 'Vector storage initialization failed';
+          const errorMessage = error instanceof Error ? error.message : 'Initialization failed';
           setError(errorMessage);
-          store.dispatch({ 
-            type: '__VECTOR_ERROR__', 
-            payload: errorMessage 
-          });
         }
       }
     };
@@ -93,13 +88,12 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     return () => {
       mounted = false;
       if (vectorDb) {
-        // Cleanup vector storage if needed
         console.log('[ReduxAIProvider] Cleaning up vector storage');
       }
     };
-  }, [store, schema, availableActions]);
+  }, [store, schema, availableActions]); // Only re-run if these props change
 
-  // Prevent rendering until initialization is complete
+  // Show loading state until initialization is complete
   if (!isInitialized && !error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -138,8 +132,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
 export const useReduxAIContext = () => {
   const context = useContext(ReduxAIContext);
-  if (!context.isInitialized && !context.error) {
-    throw new Error('ReduxAI not initialized');
+  if (!context) {
+    throw new Error('useReduxAIContext must be used within a ReduxAIProvider');
   }
   return context;
 };

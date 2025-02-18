@@ -5,10 +5,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RiAiGenerate, RiChatVoiceLine } from "react-icons/ri";
 import { SiOpenai } from "react-icons/si";
 import { Code } from "@/components/ui/code";
+import { Loader2 } from "lucide-react";
 
 const availableActions: ReduxAIAction[] = [
   {
@@ -31,6 +32,25 @@ const availableActions: ReduxAIAction[] = [
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    // Set a timeout to prevent infinite loading state
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Initializing ReduxAI...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,7 +88,7 @@ function AppContent() {
             <SiOpenai className="w-12 h-12 text-primary mb-4" />
             <h3 className="text-xl font-semibold mb-2">Powered by OpenAI</h3>
             <p className="text-muted-foreground">
-              Leverages GPT-4 for intelligent state understanding and action dispatching.
+              Leverages GPT-3.5 for intelligent state understanding and action dispatching.
             </p>
           </div>
           <div className="p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow">
@@ -78,29 +98,6 @@ function AppContent() {
               Control your app's state using simple English commands and queries.
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* Code Example Section */}
-      <div className="container mx-auto py-16 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-center mb-8">Quick Start</h2>
-        <div className="max-w-3xl mx-auto">
-          <Code className="text-sm">
-{`// Initialize Redux AI
-const reduxAI = await createReduxAIState({
-  store,
-  availableActions: [
-    {
-      type: 'counter/increment',
-      description: 'Increase the counter',
-      keywords: ['increase', 'add', 'increment']
-    }
-  ]
-});
-
-// Process natural language queries
-await reduxAI.processQuery("increase the counter");`}
-          </Code>
         </div>
       </div>
 
@@ -138,14 +135,14 @@ await reduxAI.processQuery("increase the counter");`}
 function App() {
   return (
     <Provider store={store}>
-      <ReduxAIProvider 
-        store={store} 
-        availableActions={availableActions}
-      >
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <ReduxAIProvider 
+          store={store} 
+          availableActions={availableActions}
+        >
           <AppContent />
-        </QueryClientProvider>
-      </ReduxAIProvider>
+        </ReduxAIProvider>
+      </QueryClientProvider>
     </Provider>
   );
 }

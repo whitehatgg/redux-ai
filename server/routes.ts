@@ -1,9 +1,18 @@
-import type { Express } from "express";
 import { createServer } from "http";
 import OpenAI from "openai";
 import type { ReduxAIAction } from "@redux-ai/state";
+import type { Express } from "express";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI;
+
+try {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OpenAI API key is not configured');
+  }
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+} catch (error) {
+  console.error('Error initializing OpenAI:', error);
+}
 
 // Helper function to generate action examples based on available actions
 function generateActionExamples(actions: ReduxAIAction[]): string {
@@ -68,6 +77,10 @@ export async function registerRoutes(app: Express) {
 
   app.post('/api/query', async (req, res) => {
     try {
+      if (!openai) {
+        return res.status(500).json({ error: 'OpenAI client is not initialized' });
+      }
+
       const { query, state, availableActions, previousInteractions = [] } = req.body;
 
       if (!query) {
@@ -78,10 +91,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ error: 'OpenAI API key is not configured' });
-      }
-
       const conversationHistory = previousInteractions
         .map((interaction: any) => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
@@ -89,7 +98,7 @@ export async function registerRoutes(app: Express) {
       const systemPrompt = generateSystemPrompt(state, availableActions, conversationHistory);
 
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo", // Changed from gpt-4 to gpt-3.5-turbo
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "system",
