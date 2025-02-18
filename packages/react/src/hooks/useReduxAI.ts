@@ -7,7 +7,7 @@ interface RAGResponse {
     query: string;
     response: string;
     state: string;
-    timestamp: string;  // Added timestamp to match RAGResults component
+    timestamp: string;
   }>;
   timestamp: string;
 }
@@ -40,10 +40,7 @@ export function useReduxAI() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          query,
-          state: window.__REDUX_STATE__ // Get current Redux state from window
-        }),
+        body: JSON.stringify({ query }),
       });
 
       if (!response.ok) {

@@ -10,17 +10,6 @@ export const store = configureStore({
   }
 });
 
-// Expose current state to window for AI access
-declare global {
-  interface Window {
-    __REDUX_STATE__: ReturnType<typeof store.getState>;
-  }
-}
-
-store.subscribe(() => {
-  window.__REDUX_STATE__ = store.getState();
-});
-
 // Create ReduxAI state manager with schema validation
 export const reduxAI = createReduxAIState({
   store,
