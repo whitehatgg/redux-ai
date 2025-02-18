@@ -40,13 +40,6 @@ export class ReduxAIState<TState> {
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
-
-    // Enhance store to track last action
-    const originalDispatch = this.store.dispatch;
-    (this.store as any).dispatch = (action: any) => {
-      (this.store as any).lastAction = action;
-      return originalDispatch(action);
-    };
   }
 
   private async storeInteraction(query: string, response: string) {
@@ -58,7 +51,7 @@ export class ReduxAIState<TState> {
 
     this.interactions.push(interaction);
 
-    // Store in vector database for semantic search
+    // Store in vector database and dispatch a single action
     try {
       await this.vectorStorage.addEntry({
         content: JSON.stringify(interaction),
@@ -70,6 +63,9 @@ export class ReduxAIState<TState> {
       });
     } catch (error) {
       console.error('Error storing interaction in vector database:', error);
+      if (this.onError) {
+        this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
+      }
     }
   }
 
@@ -89,7 +85,6 @@ export class ReduxAIState<TState> {
 
   private async getContext(query: string) {
     try {
-      // Get relevant conversation history
       const relevantHistory = await this.getRelevantHistory(query);
 
       return JSON.stringify({
@@ -106,16 +101,12 @@ export class ReduxAIState<TState> {
   async processQuery(query: string) {
     try {
       console.log('Processing query:', query);
-
-      // Get context from vector DB
       const context = await this.getContext(query);
-      console.log('Retrieved context:', context);
 
       if (!context) {
         throw new Error('Failed to get context for query.');
       }
 
-      // Make API call to process the query
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
@@ -142,10 +133,10 @@ export class ReduxAIState<TState> {
         throw new Error('Invalid response format from API');
       }
 
-      // Store the interaction
+      // Store the interaction first
       await this.storeInteraction(query, message);
 
-      // If an action was returned, dispatch it with source information
+      // If an action was returned, dispatch it
       if (action) {
         console.log('Dispatching action:', action);
         this.store.dispatch({
@@ -168,7 +159,6 @@ export class ReduxAIState<TState> {
   }
 }
 
-// Singleton instance
 let instance: ReduxAIState<any> | null = null;
 
 export const createReduxAIState = async <TState>(
