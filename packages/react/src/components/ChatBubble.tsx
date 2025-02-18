@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useReduxAI } from '../hooks/useReduxAI';
 import { MessageSquare, X, Sidebar, Minimize2 } from 'lucide-react';
+import type { ReduxAIAction } from '@redux-ai/state';
 
 export interface ChatMessage {
+  id: string;
   role: 'user' | 'assistant' | 'error';
   content: string;
+  timestamp: number;
 }
 
 interface ChatBubbleProps {
@@ -20,11 +23,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   isMinimized = false,
   onMinimize
 }) => {
-  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [input, setInput] = React.useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
   const { sendQuery, isProcessing, error } = useReduxAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const lastQueryRef = useRef<string>('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,29 +38,51 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  const generateMessageId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isProcessing || isSubmitting) return;
+    const trimmedInput = input.trim();
 
-    const userMessage: ChatMessage = { role: 'user', content: input };
+    if (!trimmedInput || isProcessing || isSubmitting || trimmedInput === lastQueryRef.current) {
+      return;
+    }
+
+    const userMessage: ChatMessage = {
+      id: generateMessageId(),
+      role: 'user',
+      content: trimmedInput,
+      timestamp: Date.now()
+    };
+
     setIsSubmitting(true);
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = input;
     setInput('');
+    lastQueryRef.current = trimmedInput;
 
     try {
-      const response = await sendQuery(currentInput);
-      const assistantMessage: ChatMessage = { role: 'assistant', content: response };
+      const response = await sendQuery(trimmedInput);
+      const assistantMessage: ChatMessage = {
+        id: generateMessageId(),
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now()
+      };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error processing query:', error);
       const errorMessage: ChatMessage = {
+        id: generateMessageId(),
         role: 'error',
-        content: error instanceof Error ? error.message : 'Failed to get response'
+        content: error instanceof Error ? error.message : 'Failed to get response',
+        timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsSubmitting(false);
+      lastQueryRef.current = '';
     }
   };
 
@@ -74,7 +100,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   return (
     <div className={className}>
       <div className="flex flex-col h-[600px] max-h-[80vh] relative">
-        {/* Fixed Header */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 border-b bg-background">
           <h3 className="font-semibold">AI Assistant</h3>
           <div className="flex items-center gap-2">
@@ -95,12 +120,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           </div>
         </div>
 
-        {/* Scrollable Messages Area with padding for header and form */}
         <div className="flex-1 overflow-y-auto pt-14 pb-24">
           <div className="p-4 space-y-4">
-            {messages.map((message, index) => (
+            {messages.map((message) => (
               <div
-                key={index}
+                key={message.id}
                 className={`flex ${
                   message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}
@@ -122,7 +146,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           </div>
         </div>
 
-        {/* Fixed Input Form */}
         <div className="absolute bottom-0 left-0 right-0 z-10 border-t bg-background">
           <form onSubmit={handleSubmit} className="p-4">
             <div className="flex gap-2">
