@@ -39,16 +39,23 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       if (!mounted) return;
 
       const lastAction = store.lastAction;
+      if (!lastAction?.type) return;
+
       console.log('ActivityLog: Store updated, lastAction:', lastAction);
 
-      if (lastAction?.type) {
-        console.log('ActivityLog: New action detected:', lastAction);
+      const isVectorAction = lastAction.type.startsWith('vector/');
+      const isVectorError = lastAction.type === '__VECTOR_ERROR__';
+      const isVectorUpdate = lastAction.type === '__VECTOR_UPDATE__';
 
-        const isVectorAction = lastAction.type.startsWith('vector/');
-        const isVectorError = lastAction.type === '__VECTOR_ERROR__';
-        const isVectorUpdate = lastAction.type === '__VECTOR_UPDATE__';
+      if (isVectorAction || isVectorError || isVectorUpdate) {
+        // Check if this action is already logged
+        const isDuplicate = entries.some(entry => 
+          entry.type === lastAction.type && 
+          entry.timestamp === lastAction.timestamp &&
+          entry.query === lastAction.query
+        );
 
-        if (isVectorAction || isVectorError || isVectorUpdate) {
+        if (!isDuplicate) {
           console.log('ActivityLog: Adding new vector entry:', lastAction);
           setEntries(prev => [...prev, {
             type: lastAction.type,
@@ -57,6 +64,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
             query: lastAction.query,
             response: lastAction.response
           }]);
+        } else {
+          console.log('ActivityLog: Skipping duplicate entry');
         }
       }
     });
@@ -89,7 +98,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
             {entries.length > 0 ? (
               entries.map((entry, index) => (
                 <div 
-                  key={index} 
+                  key={`${entry.type}-${entry.timestamp}-${index}`}
                   className="rounded-lg p-4 bg-muted"
                 >
                   <div className="space-y-2">
