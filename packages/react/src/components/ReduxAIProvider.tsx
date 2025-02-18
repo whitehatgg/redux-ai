@@ -51,18 +51,41 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       try {
         console.log('Starting ReduxAI initialization...');
 
-        // Delete existing IndexedDB database
-        const deleteRequest = window.indexedDB.deleteDatabase('redux-ai-store');
+        // Delete both potential database names to ensure clean start
+        await Promise.all([
+          new Promise<void>((resolve) => {
+            const req1 = indexedDB.deleteDatabase('redux-ai-store');
+            req1.onsuccess = () => {
+              console.log('Successfully deleted redux-ai-store database');
+              resolve();
+            };
+            req1.onerror = () => {
+              console.warn('Error deleting redux-ai-store database, might not exist');
+              resolve();
+            };
+          }),
+          new Promise<void>((resolve) => {
+            const req2 = indexedDB.deleteDatabase('reduxai_vector');
+            req2.onsuccess = () => {
+              console.log('Successfully deleted reduxai_vector database');
+              resolve();
+            };
+            req2.onerror = () => {
+              console.warn('Error deleting reduxai_vector database, might not exist');
+              resolve();
+            };
+          })
+        ]);
 
-        await new Promise((resolve, reject) => {
-          deleteRequest.onerror = () => reject(new Error('Failed to delete existing database'));
-          deleteRequest.onsuccess = () => resolve(undefined);
-        });
+        // Add a small delay to ensure database cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        if (isCleanedUp) return;
 
         // Initialize vector storage with fresh configuration
         console.log('Initializing vector storage...');
         const vectorStorage = await createReduxAIVector({
-          collectionName: 'redux-ai-store',
+          collectionName: 'reduxai_vector', // Use consistent name
           maxEntries: 100,
           dimensions: 128
         });
@@ -83,22 +106,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
             try {
               const result = await onActionMatch(query);
-
               if (!result) return null;
-
-              // Ensure action is properly typed
-              const { action, message } = result;
-
-              // Validate action structure if present
-              if (action !== null && (!action || typeof action !== 'object' || !('type' in action))) {
-                console.warn('Invalid action structure:', action);
-                return {
-                  action: null,
-                  message: 'Invalid action structure received'
-                };
-              }
-
-              return { action, message };
+              return result;
             } catch (error) {
               console.error('Error in action match:', error);
               return null;
@@ -131,7 +140,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             setStateChanges(prev => [...prev, stateChange]);
 
             // Store the interaction in vector storage
-            vectorStorage.store(
+            vectorStorage.store( //Corrected to store, assuming storeInteraction is a typo
               lastAction.type,
               JSON.stringify(stateChange),
               stateChange
