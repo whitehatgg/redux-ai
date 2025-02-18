@@ -16,7 +16,7 @@ export interface AIStateConfig<TState, TAction extends Action> {
   vectorStorage: ReduxAIVector;
   availableActions: ReduxAIAction[];
   onError?: (error: Error) => void;
-  onActionMatch?: (query: string, context: string) => Promise<{ action: TAction; message: string } | null>;
+  onActionMatch?: (query: string, context: string) => Promise<{ action: TAction | null; message: string } | null>;
 }
 
 export class ReduxAIState<TState, TAction extends Action> {
@@ -26,7 +26,7 @@ export class ReduxAIState<TState, TAction extends Action> {
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
-  private onActionMatch?: (query: string, context: string) => Promise<{ action: TAction; message: string } | null>;
+  private onActionMatch?: (query: string, context: string) => Promise<{ action: TAction | null; message: string } | null>;
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
@@ -34,18 +34,18 @@ export class ReduxAIState<TState, TAction extends Action> {
     this.machine = createConversationMachine();
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
-    this.availableActions = config.availableActions;
+    this.availableActions = config.availableActions || [];
     this.onActionMatch = config.onActionMatch;
   }
 
   private async getContext(query: string) {
     try {
-      const chatHistory = await this.vectorStorage.retrieveSimilar(query, 3, 'chat_history');
-      const stateChanges = await this.vectorStorage.retrieveSimilar(query, 3, 'state_changes');
+      const chatHistory = await this.vectorStorage.getSimilar(query, 3);
+      const stateChanges = await this.vectorStorage.getSimilar(query, 3);
 
       return JSON.stringify({
-        chatHistory: chatHistory.map(entry => JSON.parse(entry.data)),
-        stateChanges: stateChanges.map(entry => JSON.parse(entry.data)),
+        chatHistory: chatHistory.map(entry => entry.metadata),
+        stateChanges: stateChanges.map(entry => entry.metadata),
         currentState: this.store.getState(),
         availableActions: this.availableActions
       });
@@ -55,18 +55,17 @@ export class ReduxAIState<TState, TAction extends Action> {
     }
   }
 
-  private async storeInteraction(query: string, response: string, metadata: any, collection: string) {
+  private async storeInteraction(query: string, response: string, metadata: any) {
     try {
-      await this.vectorStorage.storeInteraction(
+      await this.vectorStorage.store(
         query,
         response,
-        JSON.stringify({ ...metadata, timestamp: new Date().toISOString() }),
-        collection
+        metadata
       );
     } catch (error) {
-      console.error(`Error storing ${collection} interaction:`, error);
+      console.error('Error storing interaction:', error);
       if (this.onError) {
-        this.onError(error instanceof Error ? error : new Error(`Failed to store ${collection}`));
+        this.onError(error instanceof Error ? error : new Error('Failed to store interaction'));
       }
     }
   }
@@ -80,7 +79,7 @@ export class ReduxAIState<TState, TAction extends Action> {
       console.log('Retrieved context:', context);
 
       // Store the initial query
-      await this.storeInteraction(query, '', { query }, 'chat_history');
+      await this.storeInteraction(query, '', { query });
 
       // Process with LLM using context
       if (this.onActionMatch && context) {
@@ -88,7 +87,7 @@ export class ReduxAIState<TState, TAction extends Action> {
 
         if (!result) {
           const message = 'I could not determine an appropriate response based on the context.';
-          await this.storeInteraction(query, message, { query, response: message }, 'chat_history');
+          await this.storeInteraction(query, message, { query, response: message });
           return { message, action: null };
         }
 
@@ -101,31 +100,30 @@ export class ReduxAIState<TState, TAction extends Action> {
           );
 
           if (isValidAction) {
-            // Store state change and dispatch action
+            // Store interaction and dispatch action
             await this.storeInteraction(
               query,
               message,
-              { query, action, message, context },
-              'state_changes'
+              { query, action, message, context }
             );
 
             this.store.dispatch(action);
+            return { message, action };
           }
         }
 
-        // Store the response in chat history
+        // Store the response without action
         await this.storeInteraction(
           query,
           message,
-          { query, response: message, action },
-          'chat_history'
+          { query, response: message }
         );
 
-        return { message, action: action && isValidAction ? action : null };
+        return { message, action: null };
       }
 
       const message = 'No action matching handler configured.';
-      await this.storeInteraction(query, message, { query, error: message }, 'chat_history');
+      await this.storeInteraction(query, message, { query, error: message });
       return { message, action: null };
 
     } catch (error) {
@@ -134,15 +132,15 @@ export class ReduxAIState<TState, TAction extends Action> {
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
-      await this.storeInteraction(query, errorMessage, { query, error: errorMessage }, 'chat_history');
+      await this.storeInteraction(query, errorMessage, { query, error: errorMessage });
       throw error;
     }
   }
 
-  async getSimilarInteractions(query: string, limit: number = 5, collection: string = 'chat_history') {
+  async getSimilarInteractions(query: string, limit: number = 5) {
     try {
       console.log('Retrieving similar interactions for query:', query);
-      const interactions = await this.vectorStorage.retrieveSimilar(query, limit, collection);
+      const interactions = await this.vectorStorage.getSimilar(query, limit);
       console.log('Retrieved interactions:', interactions);
       return interactions;
     } catch (error) {
