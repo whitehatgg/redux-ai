@@ -32,9 +32,9 @@ export function useVectorDebug() {
 
         // Sort entries by timestamp
         const sortedEntries = data.sort((a, b) => {
-          const timestampA = JSON.parse(a.text).timestamp;
-          const timestampB = JSON.parse(b.text).timestamp;
-          return new Date(timestampB).getTime() - new Date(timestampA).getTime();
+          const timestampA = new Date(a.timestamp).getTime();
+          const timestampB = new Date(b.timestamp).getTime();
+          return timestampB - timestampA;
         });
 
         setEntries(sortedEntries);

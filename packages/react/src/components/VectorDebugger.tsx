@@ -41,7 +41,7 @@ export const VectorDebugger: React.FC = () => {
           {entries && entries.length > 0 ? (
             entries.map((entry: VectorEntry, index: number) => {
               try {
-                const data = JSON.parse(entry.text); // Parse the stored text data
+                const data = JSON.parse(entry.state);
                 console.log('Rendering entry:', data);
 
                 return (

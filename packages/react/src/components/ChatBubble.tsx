@@ -9,14 +9,7 @@ export interface ChatMessage {
 export const ChatBubble: React.FC = () => {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
-  const { sendQuery, isProcessing, error, isInitialized, ragResults } = useReduxAI();
-
-  React.useEffect(() => {
-    // Add proper null checks and optional chaining
-    if (ragResults?.similarDocs && ragResults.similarDocs.length > 0) {
-      console.log('Previous interactions loaded:', ragResults.similarDocs);
-    }
-  }, [ragResults]);
+  const { sendQuery, isProcessing, error, isInitialized } = useReduxAI();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
