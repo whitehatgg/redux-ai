@@ -31,7 +31,6 @@ export interface ReduxAIProviderProps {
   store: Store;
   schema?: ReduxAISchema<Action>;
   availableActions: ReduxAIAction[];
-  onActionMatch?: (query: string) => Promise<{ action: Action | null; message: string } | null>;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
@@ -39,7 +38,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   store,
   schema,
   availableActions,
-  onActionMatch,
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +55,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     }
 
     // Skip internal actions or non-state-changing actions
-    const isInternalAction = action.type.startsWith('@@') || 
+    const isInternalAction = action.type.startsWith('@@') ||
                            action.type === 'INVALID_ACTION';
     if (isInternalAction) {
       return;
@@ -68,8 +66,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       const newChange = { action, state, timestamp };
 
       // Check if this exact action was already recorded
-      const isDuplicate = prev.some(entry => 
-        entry.action?.type === action.type && 
+      const isDuplicate = prev.some(entry =>
+        entry.action?.type === action.type &&
         JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload)
       );
 
@@ -132,19 +130,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           schema: schema as ReduxAISchema<Action>,
           vectorStorage,
           availableActions,
-          onActionMatch: async (query: string, context: string) => {
-            if (!onActionMatch) return null;
-
-            try {
-              const result = await onActionMatch(query);
-              if (!result) return null;
-
-              return result;
-            } catch (error) {
-              console.error('Error in action match:', error);
-              return null;
-            }
-          },
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
             if (!isCleanedUp) {
@@ -187,7 +172,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         unsubscribe();
       }
     };
-  }, [store, schema, availableActions, onActionMatch]);
+  }, [store, schema, availableActions]);
 
   if (error) {
     return (
