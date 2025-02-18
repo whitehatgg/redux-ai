@@ -20,10 +20,15 @@ export const initializeReduxAI = async () => {
   if (_reduxAI) return _reduxAI;
 
   try {
+    console.log('Initializing ReduxAI...');
+
+    // First create the vector storage
     const vectorStorage = await createReduxAIVector({
       collectionName: 'interactions'
     });
+    console.log('Vector storage initialized');
 
+    // Then create the ReduxAI state manager
     _reduxAI = await createReduxAIState({
       store,
       vectorStorage,
@@ -37,7 +42,8 @@ export const initializeReduxAI = async () => {
 
     // Subscribe to store changes
     store.subscribe(() => {
-      console.log('Redux State Updated:', store.getState());
+      const state = store.getState();
+      console.log('Redux State Updated:', state);
     });
 
     return _reduxAI;

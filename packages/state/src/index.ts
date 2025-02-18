@@ -113,7 +113,7 @@ export class ReduxAIState<TState, TAction extends Action> {
     if (lowerQuery.includes('set') && lowerQuery.includes('message')) {
       const messageMatch = query.match(/message\s+(?:to\s+)?["']?([^"']+)["']?/i);
       if (messageMatch) {
-        return { 
+        return {
           type: 'demo/setMessage',
           payload: messageMatch[1]
         } as unknown as TAction;
@@ -171,23 +171,28 @@ export class ReduxAIState<TState, TAction extends Action> {
       throw new Error(`Failed to generate AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  async getSimilarInteractions(query: string, limit: number = 5): Promise<any[]> {
+    try {
+      const results = await this.vectorStorage.retrieveSimilar(query, limit);
+      console.log('Retrieved similar interactions:', results);
+      return results;
+    } catch (error) {
+      console.error('Error getting similar interactions:', error);
+      throw error;
+    }
+  }
 }
+
+// Singleton instance
+let _reduxAI: ReduxAIState<any, any> | null = null;
 
 export const createReduxAIState = async <TState, TAction extends Action>(
   config: AIStateConfig<TState, TAction>
 ): Promise<ReduxAIState<TState, TAction>> => {
   try {
-    const instance = new ReduxAIState<TState, TAction>(config);
-
-    // Store initial state in vector storage
-    const initialState = config.store.getState();
-    await config.vectorStorage.storeInteraction(
-      'Initial State',
-      'Redux store initialized with initial state',
-      JSON.stringify(initialState, null, 2)
-    );
-
-    return instance;
+    _reduxAI = new ReduxAIState<TState, TAction>(config);
+    return _reduxAI;
   } catch (error) {
     console.error('Error creating ReduxAIState:', error);
     throw error;
@@ -200,5 +205,3 @@ export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TStat
   }
   return _reduxAI as ReduxAIState<TState, TAction>;
 };
-
-let _reduxAI: ReduxAIState<any, any> | null = null;
