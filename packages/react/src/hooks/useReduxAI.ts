@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
-import { useVectorDebug } from './useVectorDebug';
+import { useState, useCallback, useEffect } from 'react';
+import { useDispatch, useStore } from 'react-redux';
 import type { VectorEntry } from '@redux-ai/vector';
+import { createReduxAIVector } from '@redux-ai/vector';
 
 interface RAGResponse {
   ragResponse: string;
@@ -13,11 +13,30 @@ export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ragResults, setRagResults] = useState<RAGResponse | null>(null);
-  const { entries, isLoading: isInitializing, error: vectorError } = useVectorDebug();
+  const [vectorInstance, setVectorInstance] = useState<Awaited<ReturnType<typeof createReduxAIVector>> | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const dispatch = useDispatch();
+  const store = useStore();
+
+  useEffect(() => {
+    const initVector = async () => {
+      try {
+        const instance = await createReduxAIVector();
+        setVectorInstance(instance);
+        setError(null);
+      } catch (err) {
+        console.error('Error initializing vector store:', err);
+        setError(err instanceof Error ? err.message : 'Failed to initialize vector store');
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initVector();
+  }, []);
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
-    if (isInitializing) {
+    if (!vectorInstance || isInitializing) {
       throw new Error('Vector store not initialized');
     }
 
@@ -25,10 +44,23 @@ export function useReduxAI() {
     setError(null);
 
     try {
-      // Update RAG results with current vector entries
+      // Get current state
+      const currentState = store.getState();
+
+      // Get similar interactions for context
+      const similarDocs = await vectorInstance.retrieveSimilar(query);
+
+      // Store the interaction
+      await vectorInstance.storeInteraction(
+        query,
+        'Query processed successfully',
+        JSON.stringify(currentState, null, 2)
+      );
+
+      // Update RAG results
       const ragResponse: RAGResponse = {
         ragResponse: 'Query processed successfully',
-        similarDocs: entries,
+        similarDocs,
         timestamp: new Date().toISOString()
       };
 
@@ -41,13 +73,13 @@ export function useReduxAI() {
     } finally {
       setIsProcessing(false);
     }
-  }, [entries, isInitializing]);
+  }, [vectorInstance, isInitializing, store]);
 
   return {
     sendQuery,
     isProcessing,
-    error: error || vectorError,
+    error,
     ragResults,
-    isInitialized: !isInitializing
+    isInitialized: !isInitializing && !!vectorInstance
   };
 }

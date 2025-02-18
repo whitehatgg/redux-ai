@@ -1,16 +1,9 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { useVectorDebug } from '../hooks/useVectorDebug';
-
-interface RootState {
-  demo: {
-    counter: number;
-  };
-}
+import type { VectorEntry } from '@redux-ai/vector';
 
 export const VectorDebugger: React.FC = () => {
-  const counter = useSelector((state: RootState) => state.demo.counter);
-  const { entries, isLoading, error } = useVectorDebug();
+  const { entries = [], isLoading, error } = useVectorDebug();
 
   // Show loading state
   if (isLoading) {
@@ -37,14 +30,11 @@ export const VectorDebugger: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">State Debugger</h2>
-          <div className="text-sm text-muted-foreground">
-            Counter: {counter}
-          </div>
         </div>
 
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
-          {entries.length > 0 ? (
-            entries.map((entry, index) => (
+          {Array.isArray(entries) && entries.length > 0 ? (
+            entries.map((entry: VectorEntry, index: number) => (
               <div 
                 key={`${entry.timestamp}-${index}`} 
                 className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
@@ -68,7 +58,7 @@ export const VectorDebugger: React.FC = () => {
             ))
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No state changes recorded. Interact with the counter to see debug information.
+              No state changes recorded. Interact with your Redux store to see debug information.
             </div>
           )}
         </div>

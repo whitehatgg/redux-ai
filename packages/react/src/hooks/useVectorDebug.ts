@@ -1,33 +1,22 @@
 import { useState, useEffect } from 'react';
-import type { IndexedDBStorage } from '@redux-ai/vector';
-
-interface DebugEntry {
-  query: string;
-  response: string;
-  state: string;
-  timestamp: string;
-}
+import type { VectorEntry } from '@redux-ai/vector';
+import { createReduxAIVector } from '@redux-ai/vector';
 
 export function useVectorDebug() {
-  const [entries, setEntries] = useState<DebugEntry[]>([]);
+  const [entries, setEntries] = useState<VectorEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDebugEntries = async () => {
       try {
-        const { IndexedDBStorage } = await import('@redux-ai/vector');
-        const storage = new IndexedDBStorage();
-        await storage.initialize();
+        const vectorInstance = await createReduxAIVector();
+        const data = await vectorInstance.getAllEntries();
 
-        const data = await storage.getAllEntries();
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid data format');
-        }
-
-        setEntries(data as DebugEntry[]);
+        setEntries(Array.isArray(data) ? data : []);
         setError(null);
       } catch (err) {
+        console.error('Error fetching debug entries:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch debug entries');
         setEntries([]);
       } finally {
