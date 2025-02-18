@@ -37,11 +37,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       if (!mounted) return;
 
       const lastAction = store.lastAction;
+      console.log('ActivityLog: Store updated, lastAction:', lastAction);
+
       if (lastAction?.type) {
         console.log('ActivityLog: New action detected:', lastAction);
 
         // Only add entries for vector operations or errors
         if (lastAction.type.startsWith('vector/') || lastAction.type === '__VECTOR_ERROR__') {
+          console.log('ActivityLog: Adding new vector entry:', lastAction);
           setEntries(prev => [...prev, {
             type: lastAction.type,
             timestamp: lastAction.timestamp || new Date().toISOString(),

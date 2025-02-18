@@ -4,6 +4,11 @@ import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 
+interface VectorAction {
+  type: string;
+  payload?: any;
+}
+
 interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
   isInitialized: boolean;
@@ -42,21 +47,26 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128,
-          onStateChange: (action) => {
+          // @ts-ignore - We know this callback exists but isn't in the type definition
+          onStateChange: (action: VectorAction) => {
+            console.log('Vector state change detected:', action);
             // Track vector database operations in Redux store
             if (store && action) {
-              (store as any).lastAction = {
+              const enhancedAction = {
                 ...action,
                 timestamp: new Date().toISOString(),
                 type: `vector/${action.type}`,
                 response: action.payload ? JSON.stringify(action.payload) : undefined
               };
+              console.log('Dispatching vector action:', enhancedAction);
+              (store as any).lastAction = enhancedAction;
               // Force a store update to trigger subscribers
               store.dispatch({ type: '__VECTOR_UPDATE__', payload: action });
             }
           }
         });
 
+        console.log('Vector storage initialized:', vectorDb);
         setVectorStorage(vectorDb);
 
         // Initialize ReduxAI state management
@@ -69,11 +79,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             console.error('ReduxAI Error:', error);
             // Log errors in activity log
             if (store) {
-              (store as any).lastAction = {
-                type: 'vector/error',
+              const errorAction = {
+                type: '__VECTOR_ERROR__',
                 timestamp: new Date().toISOString(),
                 response: error.message
               };
+              console.log('Dispatching vector error:', errorAction);
+              (store as any).lastAction = errorAction;
               store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
             }
           }
