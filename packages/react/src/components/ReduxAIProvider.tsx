@@ -62,8 +62,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
               };
               console.log('Dispatching vector action:', enhancedAction);
               (store as any).lastAction = enhancedAction;
-              // Force a store update to trigger subscribers
-              store.dispatch({ type: '__VECTOR_UPDATE__', payload: action });
+              // Don't dispatch additional updates for vector operations
+              // This prevents duplicate entries in the activity log
             }
           }
         });

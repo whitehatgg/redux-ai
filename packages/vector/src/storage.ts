@@ -113,7 +113,6 @@ export class VectorStorage {
     return this.retrieveSimilar(params.query, params.limit);
   }
 
-  // Original methods
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
       console.log('Storing interaction:', { query, response });
@@ -131,9 +130,10 @@ export class VectorStorage {
       await this.storage.addEntry(entry);
       console.log('Entry stored successfully');
 
+      // Only notify after successful storage
       this.notifyStateChange({
         type: 'store',
-        payload: { query, response },
+        payload: { query, response, state: stateString },
         query
       });
     } catch (error) {
@@ -157,12 +157,6 @@ export class VectorStorage {
         .slice(0, limit)
         .map(({ entry }) => entry);
 
-      this.notifyStateChange({
-        type: 'retrieve',
-        payload: { query, results: scoredEntries.length },
-        query
-      });
-
       console.log(`Found ${scoredEntries.length} similar entries`);
       return scoredEntries;
     } catch (error) {
@@ -174,10 +168,6 @@ export class VectorStorage {
   async getAllEntries(): Promise<VectorEntry[]> {
     try {
       const entries = await this.storage.getAllEntries();
-      this.notifyStateChange({
-        type: 'list',
-        payload: { count: entries.length }
-      });
       return entries;
     } catch (error) {
       console.error('Error getting all entries:', error);
