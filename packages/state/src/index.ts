@@ -23,6 +23,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private machine;
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
+  private actionTrace: TAction[] = [];
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
@@ -30,6 +31,13 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     this.machine = createConversationMachine();
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
+
+    // Add middleware to track actions
+    const originalDispatch = this.store.dispatch;
+    this.store.dispatch = ((action: TAction) => {
+      this.actionTrace.push(action);
+      return originalDispatch(action);
+    }) as typeof this.store.dispatch;
   }
 
   async processQuery(query: string) {
@@ -41,8 +49,8 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
       console.log('Previous interactions:', previousInteractions);
 
-      // Infer action from query and state
-      const actionInfo = this.inferActionFromState(query, state);
+      // Analyze action history and state to infer the next action
+      const actionInfo = this.inferActionFromHistory(query, state);
       console.log('Inferred action:', actionInfo);
 
       if (actionInfo) {
@@ -85,81 +93,58 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     }
   }
 
-  private inferActionFromState(query: string, currentState: TState): { action: TAction; message: string } | null {
+  private inferActionFromHistory(query: string, currentState: TState): { action: TAction; message: string } | null {
     try {
       const lowerQuery = query.toLowerCase();
 
-      // Extract slice names and their state values
-      const stateSlices = Object.entries(currentState);
+      // Get unique action types from history
+      const uniqueActions = Array.from(new Set(this.actionTrace.map(action => action.type)));
+      console.log('Available actions from history:', uniqueActions);
 
-      for (const [sliceName, sliceState] of stateSlices) {
-        // Handle each type of state value
-        if (typeof sliceState === 'object') {
-          for (const [key, value] of Object.entries(sliceState)) {
-            const actionInfo = this.createActionForState(sliceName, key, value, lowerQuery);
-            if (actionInfo) {
-              return actionInfo;
-            }
+      // Find similar actions based on the query
+      for (const actionType of uniqueActions) {
+        const [slice, actionName] = actionType.split('/');
+
+        if (!slice || !actionName) continue;
+
+        // Match action patterns
+        if (this.matchesActionPattern(lowerQuery, actionName)) {
+          const lastSimilarAction = this.actionTrace.findLast(a => a.type === actionType);
+
+          if (lastSimilarAction) {
+            return {
+              action: {
+                type: actionType,
+                payload: lastSimilarAction.payload
+              } as TAction,
+              message: `Executing ${actionName} on ${slice}`
+            };
           }
         }
       }
 
       return null;
     } catch (error) {
-      console.error('Error in inferActionFromState:', error);
+      console.error('Error in inferActionFromHistory:', error);
       return null;
     }
   }
 
-  private createActionForState(
-    sliceName: string,
-    key: string,
-    value: any,
-    query: string
-  ): { action: TAction; message: string } | null {
-    // Handle numeric values
-    if (typeof value === 'number') {
-      if (query.includes('increase') || query.includes('increment')) {
-        return {
-          action: {
-            type: `${sliceName}/increment`
-          } as TAction,
-          message: `Increasing ${key}`
-        };
-      }
-      if (query.includes('decrease') || query.includes('decrement')) {
-        return {
-          action: {
-            type: `${sliceName}/decrement`
-          } as TAction,
-          message: `Decreasing ${key}`
-        };
-      }
-      if (query.includes('reset')) {
-        return {
-          action: {
-            type: `${sliceName}/resetCounter`
-          } as TAction,
-          message: `Resetting ${key}`
-        };
-      }
-    }
+  private matchesActionPattern(query: string, actionName: string): boolean {
+    // Common action word mappings
+    const actionMappings: Record<string, string[]> = {
+      'increment': ['increase', 'increment', 'add', 'plus'],
+      'decrement': ['decrease', 'decrement', 'subtract', 'minus'],
+      'set': ['set', 'change', 'update', 'modify'],
+      'reset': ['reset', 'clear', 'zero'],
+      'toggle': ['toggle', 'switch', 'flip']
+    };
 
-    // Handle string values
-    if (typeof value === 'string') {
-      const setMatch = query.match(new RegExp(`(?:set|change)\\s+(?:the\\s+)?${key}\\s+(?:to\\s+)?["']?([^"']+)["']?`, 'i'));
-      if (setMatch) {
-        return {
-          action: {
-            type: `${sliceName}/setMessage`,
-            payload: setMatch[1]
-          } as TAction,
-          message: `Setting ${key} to: ${setMatch[1]}`
-        };
-      }
-    }
+    // Find all possible word variations for this action
+    const actionWords = Object.entries(actionMappings)
+      .find(([key]) => actionName.toLowerCase().includes(key))?.[1] || [];
 
-    return null;
+    return actionWords.some(word => query.includes(word));
   }
 
   async getSimilarInteractions(query: string, limit: number = 5) {
