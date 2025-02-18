@@ -58,6 +58,7 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private onStateChange?: VectorConfig['onStateChange'];
+  private lastAddTimestamp: string = '';
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -84,10 +85,23 @@ export class VectorStorage {
     }
   }
 
-  // Implement ReduxAIVector interface methods
+  private shouldPreventDuplicateAdd(timestamp: string): boolean {
+    if (!this.lastAddTimestamp) return false;
+    const timeDiff = Date.parse(timestamp) - Date.parse(this.lastAddTimestamp);
+    return timeDiff < 100; // 100ms threshold
+  }
+
   async addEntry(entry: VectorEntry): Promise<void> {
     try {
       console.log('Adding entry:', entry);
+
+      // Check for duplicate add operations
+      if (this.shouldPreventDuplicateAdd(entry.timestamp)) {
+        console.log('Preventing duplicate add operation');
+        return;
+      }
+
+      this.lastAddTimestamp = entry.timestamp;
 
       // Ensure required fields are present
       const enhancedEntry: VectorEntry = {
@@ -117,20 +131,28 @@ export class VectorStorage {
     try {
       console.log('Storing interaction:', { query, response });
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+      const timestamp = new Date().toISOString();
+
+      // Check for duplicate add operations
+      if (this.shouldPreventDuplicateAdd(timestamp)) {
+        console.log('Preventing duplicate interaction storage');
+        return;
+      }
+
       const entry: VectorEntry = {
         query,
         response,
         state: stateString,
         content: `${query} ${response}`,
         embedding: textToVector(`${query} ${response}`, this.dimensions),
-        timestamp: new Date().toISOString(),
+        timestamp,
         metadata: { type: 'interaction' }
       };
 
       await this.storage.addEntry(entry);
       console.log('Entry stored successfully');
 
-      // Only notify after successful storage
+      this.lastAddTimestamp = timestamp;
       this.notifyStateChange({
         type: 'store',
         payload: { query, response, state: stateString },
