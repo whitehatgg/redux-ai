@@ -1,17 +1,16 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, Middleware } from '@reduxjs/toolkit';
 import applicantReducer, { type ApplicantState } from './slices/applicantSlice';
 
 export interface RootState {
   applicant: ApplicantState;
 }
 
-// Custom middleware to validate actions
-const actionValidationMiddleware = () => (next: any) => (action: any) => {
-  if (!action || typeof action !== 'object' || !('type' in action)) {
-    console.warn('Invalid action:', action);
-    return next({ type: 'INVALID_ACTION' });
-  }
-  return next(action);
+// Custom middleware to track current action
+const actionTrackingMiddleware: Middleware = store => next => action => {
+  (store as any)._currentAction = action;
+  const result = next(action);
+  (store as any)._currentAction = null;
+  return result;
 };
 
 export const store = configureStore({
@@ -26,7 +25,7 @@ export const store = configureStore({
         // Ignore these field paths in the state
         ignoredPaths: ['lastAction']
       },
-    }).concat([actionValidationMiddleware])
+    }).concat([actionTrackingMiddleware])
 });
 
 export type AppDispatch = typeof store.dispatch;

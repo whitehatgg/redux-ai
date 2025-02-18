@@ -7,19 +7,13 @@ import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 interface ReduxAIContextType {
   isInitialized: boolean;
   error: string | null;
-  stateChanges: Array<{
-    action?: any;
-    state: any;
-    timestamp: string;
-    isAIAction: boolean;
-    trigger: 'ai' | 'ui';
-  }>;
+  availableActions: ReduxAIAction[];
 }
 
 const ReduxAIContext = createContext<ReduxAIContextType>({
   isInitialized: false,
   error: null,
-  stateChanges: [],
+  availableActions: []
 });
 
 export interface ReduxAIProviderProps {
@@ -37,83 +31,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stateChanges, setStateChanges] = useState<Array<{
-    action?: any;
-    state: any;
-    timestamp: string;
-    isAIAction: boolean;
-    trigger: 'ai' | 'ui';
-  }>>([]);
-
-  // Function to record state change
-  const recordStateChange = (action: any, state: any) => {
-    console.log('ReduxAIProvider - Recording state change:', { action, state });
-
-    // Only record AI actions or initialization
-    if (!action || typeof action !== 'object') {
-      return;
-    }
-
-    // Skip if not an AI action and not initialization
-    if (!action.__source && action.type !== '@@redux/INIT') {
-      return;
-    }
-
-    const isAIAction = action.__source === 'ai';
-    const triggerType = action.__source === 'ai' ? 'ai' as const : 'ui' as const;
-
-    const timestamp = new Date().toISOString();
-    const newChange = {
-      action,
-      state,
-      timestamp,
-      isAIAction,
-      trigger: triggerType
-    };
-
-    setStateChanges(prev => [...prev, newChange]);
-  };
 
   useEffect(() => {
     let isCleanedUp = false;
-    let unsubscribe: (() => void) | undefined;
 
     const initialize = async () => {
       try {
-        console.log('ReduxAIProvider - Starting initialization...');
-
-        // Record initialization action
-        const initialState = store.getState();
-        recordStateChange({ type: '@@redux/INIT', __source: 'ui' }, initialState);
-
-        // Delete both potential database names to ensure clean start
-        await Promise.all([
-          new Promise<void>((resolve) => {
-            const req1 = indexedDB.deleteDatabase('redux-ai-store');
-            req1.onsuccess = () => {
-              console.log('Successfully deleted redux-ai-store database');
-              resolve();
-            };
-            req1.onerror = () => {
-              console.warn('Error deleting redux-ai-store database, might not exist');
-              resolve();
-            };
-          }),
-          new Promise<void>((resolve) => {
-            const req2 = indexedDB.deleteDatabase('reduxai_vector');
-            req2.onsuccess = () => {
-              console.log('Successfully deleted reduxai_vector database');
-              resolve();
-            };
-            req2.onerror = () => {
-              console.warn('Error deleting reduxai_vector database, might not exist');
-              resolve();
-            };
-          })
-        ]);
-
-        if (isCleanedUp) return;
-
+        // Initialize vector storage
         const vectorStorage = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
@@ -135,16 +59,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           }
         });
 
-        if (isCleanedUp) return;
-
-        // Subscribe to store changes to track actions
-        unsubscribe = store.subscribe(() => {
-          const action = (store as any)._currentAction;
-          if (action && action.__source === 'ai') {
-            recordStateChange(action, store.getState());
-          }
-        });
-
         if (!isCleanedUp) {
           setIsInitialized(true);
           console.log('ReduxAIProvider - Initialization complete');
@@ -162,17 +76,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
     return () => {
       isCleanedUp = true;
-      if (unsubscribe) {
-        unsubscribe();
-      }
     };
   }, [store, schema, availableActions]);
-
-  const contextValue = {
-    isInitialized,
-    error,
-    stateChanges
-  };
 
   if (error) {
     return (
@@ -191,7 +96,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }
 
   return (
-    <ReduxAIContext.Provider value={contextValue}>
+    <ReduxAIContext.Provider value={{ isInitialized, error, availableActions }}>
       {children}
     </ReduxAIContext.Provider>
   );
