@@ -8,10 +8,6 @@ export function useReduxAI() {
   const store = useStore();
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
-    if (isProcessing) {
-      throw new Error('A query is already being processed');
-    }
-
     setIsProcessing(true);
     setError(null);
 
@@ -20,17 +16,21 @@ export function useReduxAI() {
       if (!reduxAI) {
         throw new Error('ReduxAI not initialized');
       }
+
+      console.log('[useReduxAI] Sending query:', query);
       const response = await reduxAI.processQuery(query);
+      console.log('[useReduxAI] Received response:', response.message);
+
       return response.message;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      console.error('Error in sendQuery:', errorMessage);
+      console.error('[useReduxAI] Error in sendQuery:', errorMessage);
       setError(errorMessage);
       throw error;
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing]);
+  }, []);
 
   return {
     sendQuery,

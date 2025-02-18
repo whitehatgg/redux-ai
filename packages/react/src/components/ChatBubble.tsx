@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useReduxAI } from '../hooks/useReduxAI';
-import { MessageSquare, X, Sidebar, Minimize2 } from 'lucide-react';
-import type { ReduxAIAction } from '@redux-ai/state';
+import { MessageSquare, Sidebar, Minimize2 } from 'lucide-react';
 
 export interface ChatMessage {
   id: string;
@@ -28,7 +27,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const { sendQuery, isProcessing, error } = useReduxAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const lastQueryRef = useRef<string>('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,10 +44,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     e.preventDefault();
     const trimmedInput = input.trim();
 
-    if (!trimmedInput || isProcessing || isSubmitting || trimmedInput === lastQueryRef.current) {
+    if (!trimmedInput || isProcessing || isSubmitting) {
       return;
     }
 
+    // Create user message
     const userMessage: ChatMessage = {
       id: generateMessageId(),
       role: 'user',
@@ -57,13 +56,18 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       timestamp: Date.now()
     };
 
+    // Clear input immediately to prevent re-submission
+    setInput('');
     setIsSubmitting(true);
     setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    lastQueryRef.current = trimmedInput;
 
     try {
+      // Process the query
+      console.log('[ChatBubble] Processing query:', trimmedInput);
       const response = await sendQuery(trimmedInput);
+      console.log('[ChatBubble] Received response:', response);
+
+      // Add assistant message
       const assistantMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'assistant',
@@ -72,7 +76,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error processing query:', error);
+      console.error('[ChatBubble] Error processing query:', error);
+      // Add error message
       const errorMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'error',
@@ -82,7 +87,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsSubmitting(false);
-      lastQueryRef.current = '';
     }
   };
 

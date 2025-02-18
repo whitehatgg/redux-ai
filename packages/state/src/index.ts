@@ -100,11 +100,8 @@ export class ReduxAIState<TState> {
         await this.initialize();
       }
 
-      // Get recent interactions for context
-      const conversationHistory = this.interactions
-        .slice(-5) // Only use last 5 interactions for context
-        .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
-        .join('\n');
+      // Reset conversation history for each new query
+      const conversationHistory = '';
 
       const systemPrompt = generateSystemPrompt(
         this.store.getState(),
@@ -115,8 +112,7 @@ export class ReduxAIState<TState> {
       console.log('[ReduxAIState] Processing query:', {
         query,
         promptLength: systemPrompt.length,
-        actionsCount: this.availableActions.length,
-        interactionsCount: this.interactions.length
+        actionsCount: this.availableActions.length
       });
 
       const apiResponse = await fetch('/api/query', {
@@ -127,7 +123,7 @@ export class ReduxAIState<TState> {
         body: JSON.stringify({
           prompt: systemPrompt,
           availableActions: this.availableActions,
-          currentState: this.store.getState() // Send current state for context
+          currentState: this.store.getState()
         }),
       });
 
