@@ -40,9 +40,10 @@ Rules for working with the counter:
 1. The counter is stored at state.demo.counter
 2. The counter should start at 0 if not initialized
 3. Use these exact actions for counter operations:
-   - { type: 'INCREMENT' } to increase by 1
-   - { type: 'DECREMENT' } to decrease by 1
-   - { type: 'RESET_COUNTER' } to reset to 0
+   - { type: 'demo/increment' } to increase by 1
+   - { type: 'demo/decrement' } to decrease by 1
+   - { type: 'demo/resetCounter' } to reset to 0
+   - { type: 'demo/setMessage', payload: string } to set a message
 
 When checking the counter value:
 1. Look for state.demo.counter in the current state
@@ -53,7 +54,8 @@ Respond with a JSON object containing:
 {
   "message": "Natural language response explaining what was done and the current counter value",
   "action": {
-    "type": "ACTION_TYPE"
+    "type": "ACTION_TYPE",
+    "payload": "PAYLOAD_IF_NEEDED"
   }
 }`
           },
