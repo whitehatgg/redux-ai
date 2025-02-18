@@ -10,25 +10,25 @@ export interface ReduxAIAction {
   keywords: string[];
 }
 
-export interface AIStateConfig<TState, TAction extends Action> {
+export interface AIStateConfig<TState> {
   store: Store;
-  schema?: ReduxAISchema<TAction>;
+  schema?: ReduxAISchema<Action>;
   vectorStorage: ReduxAIVector;
   availableActions: ReduxAIAction[];
   onError?: (error: Error) => void;
-  onActionMatch?: (query: string, context: string) => Promise<{ action: TAction | null; message: string } | null>;
+  onActionMatch?: (query: string, context: string) => Promise<{ action: Action | null; message: string } | null>;
 }
 
-export class ReduxAIState<TState, TAction extends Action> {
+export class ReduxAIState<TState> {
   private store: Store;
-  private schema?: ReduxAISchema<TAction>;
+  private schema?: ReduxAISchema<Action>;
   private machine;
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
-  private onActionMatch?: (query: string, context: string) => Promise<{ action: TAction | null; message: string } | null>;
+  private onActionMatch?: (query: string, context: string) => Promise<{ action: Action | null; message: string } | null>;
 
-  constructor(config: AIStateConfig<TState, TAction>) {
+  constructor(config: AIStateConfig<TState>) {
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
@@ -45,7 +45,7 @@ export class ReduxAIState<TState, TAction extends Action> {
     });
   }
 
-  private isValidAction(action: any): action is TAction {
+  private isValidAction(action: any): action is Action {
     return action && 
            typeof action === 'object' && 
            'type' in action && 
@@ -164,23 +164,23 @@ export class ReduxAIState<TState, TAction extends Action> {
 }
 
 // Singleton instance
-let instance: ReduxAIState<any, Action> | null = null;
+let instance: ReduxAIState<any> | null = null;
 
-export const createReduxAIState = async <TState, TAction extends Action>(
-  config: AIStateConfig<TState, TAction>
-): Promise<ReduxAIState<TState, TAction>> => {
+export const createReduxAIState = async <TState>(
+  config: AIStateConfig<TState>
+): Promise<ReduxAIState<TState>> => {
   try {
     instance = new ReduxAIState(config);
-    return instance as ReduxAIState<TState, TAction>;
+    return instance as ReduxAIState<TState>;
   } catch (error) {
     console.error('Error creating ReduxAIState:', error);
     throw error;
   }
 };
 
-export const getReduxAI = <TState, TAction extends Action>(): ReduxAIState<TState, TAction> => {
+export const getReduxAI = <TState>(): ReduxAIState<TState> => {
   if (!instance) {
     throw new Error('ReduxAI not initialized');
   }
-  return instance as ReduxAIState<TState, TAction>;
+  return instance as ReduxAIState<TState>;
 };

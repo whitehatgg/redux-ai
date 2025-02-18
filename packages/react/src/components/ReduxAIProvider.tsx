@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Store } from '@reduxjs/toolkit';
+import { Store, Action } from '@reduxjs/toolkit';
 import { ReduxAISchema } from '@redux-ai/schema';
 import { createReduxAIVector } from '@redux-ai/vector';
 import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
@@ -23,9 +23,9 @@ const ReduxAIContext = createContext<ReduxAIContextType>({
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema?: ReduxAISchema<any>;
+  schema?: ReduxAISchema<Action>;  // Update to use Action type
   availableActions: ReduxAIAction[];
-  onActionMatch?: (query: string) => Promise<{ action: any | null; message: string } | null>;
+  onActionMatch?: (query: string) => Promise<{ action: Action | null; message: string } | null>;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
@@ -98,7 +98,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.log('Initializing ReduxAI state manager...');
         await createReduxAIState({
           store,
-          schema,
+          schema: schema as ReduxAISchema<Action>, // Cast schema to expected type
           vectorStorage,
           availableActions,
           onActionMatch: async (query: string, context: string) => {
