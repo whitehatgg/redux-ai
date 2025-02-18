@@ -77,13 +77,6 @@ export class ReduxAIState<TState, TAction extends Action> {
           response.message,
           postActionState
         );
-      } else {
-        // Store the interaction even if no action was taken
-        await this.vectorStorage.storeInteraction(
-          query,
-          response.message,
-          JSON.stringify(this.store.getState(), null, 2)
-        );
       }
 
       return response;
@@ -155,19 +148,36 @@ export class ReduxAIState<TState, TAction extends Action> {
 
       // Match the query to an available action
       const action = this.matchActionFromQuery(query, availableActions);
+      console.log('Matched action:', action);
 
+      // Add logic to handle numeric values in queries
       if (action) {
+        // Store the interaction before dispatching
+        await this.vectorStorage.storeInteraction(
+          query,
+          `Executing action: ${action.type}`,
+          JSON.stringify(state, null, 2)
+        );
+
         return {
-          message: `Successfully matched query to action: ${action.type}`,
+          message: `Executing action: ${action.type}`,
           action
         };
       }
+
+      // Store interaction even if no action was matched
+      await this.vectorStorage.storeInteraction(
+        query,
+        'Could not determine appropriate action for query',
+        JSON.stringify(state, null, 2)
+      );
 
       return {
         message: 'Could not determine appropriate action for query',
         action: null
       };
     } catch (error) {
+      console.error('Error in generateAIResponse:', error);
       throw new Error(`Failed to generate AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
