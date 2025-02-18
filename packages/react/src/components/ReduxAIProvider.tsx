@@ -64,7 +64,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const isAIAction = availableActions.some(available => available.type === action.type);
 
     // Determine trigger source based on action source
-    const isAITriggered = action.__source === 'ai';
+    const trigger = action.__source === 'ai' ? 'ai' : 'ui';
 
     setStateChanges(prev => {
       const timestamp = new Date().toISOString();
@@ -73,7 +73,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         state, 
         timestamp, 
         isAIAction,
-        trigger: isAITriggered ? 'ai' : 'ui'
+        trigger
       };
 
       // Check if this exact action was already recorded
@@ -152,16 +152,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (isCleanedUp) return;
 
-        // Subscribe to store changes
-        unsubscribe = store.subscribe(() => {
-          if (isCleanedUp) return;
-          const state = store.getState();
-          const action = store.getState().__lastAction;
-
-          if (action) {
-            recordStateChange(action, state);
-          }
-        });
+        // Track all actions dispatched to the store
+        const originalDispatch = store.dispatch;
+        store.dispatch = function(action: any) {
+          const result = originalDispatch(action);
+          recordStateChange(action, store.getState());
+          return result;
+        };
 
         if (!isCleanedUp) {
           setIsInitialized(true);
