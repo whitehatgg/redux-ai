@@ -21,24 +21,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
     return `${action.type}${action.payload ? `: ${JSON.stringify(action.payload)}` : ''}`;
   };
 
-  // Filter out initialization action and duplicate consecutive actions
-  const filteredChanges = stateChanges.filter((change, index) => {
-    // Keep initialization action if it's the only one
-    if (change.action?.type === '@@redux/INIT' && stateChanges.length > 1) {
-      return false;
-    }
-
-    // Skip if this is a duplicate of the previous action
-    if (index > 0) {
-      const prev = stateChanges[index - 1];
-      if (prev.action?.type === change.action?.type &&
-          JSON.stringify(prev.action?.payload) === JSON.stringify(change.action?.payload) &&
-          Date.now() - new Date(prev.timestamp).getTime() < 2000) { // Within 2 seconds
-        return false;
-      }
-    }
-    return true;
-  });
+  // Only show AI actions and initialization
+  const filteredChanges = stateChanges.filter(change => 
+    change.trigger === 'ai' || change.action?.type === '@@redux/INIT'
+  );
 
   console.log('ActivityLog - Filtered changes:', filteredChanges);
 
@@ -74,7 +60,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
                         }`}>
-                          {change.trigger === 'ai' ? 'AI Triggered' : 'UI Triggered'}
+                          {change.trigger === 'ai' ? 'AI Triggered' : 'System Initialized'}
                         </span>
                         <p className="text-sm font-medium">
                           {formatAction(change.action)}
@@ -87,7 +73,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                   </div>
                   {change.state && (
                     <div className="mt-2">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground overflow-hidden text-ellipsis">
                         State: {JSON.stringify(change.state, null, 2)}
                       </p>
                     </div>
@@ -96,7 +82,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No activity recorded yet. Try interacting with the AI assistant.
+                No AI activity recorded yet. Try interacting with the AI assistant.
               </div>
             )}
           </div>

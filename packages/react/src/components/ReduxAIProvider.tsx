@@ -49,25 +49,18 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   const recordStateChange = (action: any, state: any) => {
     console.log('ReduxAIProvider - Recording state change:', { action, state });
 
-    // Only record valid Redux actions
-    if (!action || typeof action !== 'object' || !('type' in action)) {
-      console.warn('ReduxAIProvider - Invalid action:', action);
+    // Only record AI actions or initialization
+    if (!action || typeof action !== 'object') {
       return;
     }
 
-    // Skip internal actions except initialization
-    if (action.type.startsWith('@@') && action.type !== '@@redux/INIT') {
-      console.log('ReduxAIProvider - Skipping internal action:', action.type);
+    // Skip if not an AI action and not initialization
+    if (!action.__source && action.type !== '@@redux/INIT') {
       return;
     }
 
-    // Check if this is one of the AI-available actions
-    const isAIAction = availableActions.some(available => available.type === action.type);
-    console.log('ReduxAIProvider - Is AI action:', isAIAction);
-
-    // Determine trigger source directly from the action
+    const isAIAction = action.__source === 'ai';
     const triggerType = action.__source === 'ai' ? 'ai' as const : 'ui' as const;
-    console.log('ReduxAIProvider - Trigger type:', triggerType);
 
     const timestamp = new Date().toISOString();
     const newChange = {
@@ -78,26 +71,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       trigger: triggerType
     };
 
-    setStateChanges(prev => {
-      // Only check for duplicates if it's not the initialization action
-      if (action.type !== '@@redux/INIT') {
-        const isDuplicate = prev.some(entry =>
-          entry.action?.type === action.type &&
-          JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload) &&
-          Date.now() - new Date(entry.timestamp).getTime() < 2000 // Within 2 seconds
-        );
-
-        if (isDuplicate) {
-          console.log('ReduxAIProvider - Duplicate action detected, skipping');
-          return prev;
-        }
-      }
-
-      console.log('ReduxAIProvider - Adding new state change:', newChange);
-      const newChanges = [...prev, newChange];
-      console.log('ReduxAIProvider - Updated state changes:', newChanges);
-      return newChanges;
-    });
+    setStateChanges(prev => [...prev, newChange]);
   };
 
   useEffect(() => {
@@ -108,7 +82,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       try {
         console.log('ReduxAIProvider - Starting initialization...');
 
-        // Create initial state change for initialization
+        // Record initialization action
         const initialState = store.getState();
         recordStateChange({ type: '@@redux/INIT', __source: 'ui' }, initialState);
 
@@ -163,13 +137,11 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (isCleanedUp) return;
 
-        // Subscribe to store changes to track actions and state
-        console.log('ReduxAIProvider - Setting up store subscription');
+        // Subscribe to store changes to track actions
         unsubscribe = store.subscribe(() => {
-          const action = (store as any)._currentAction; // Get the current action from the store
-          const state = store.getState();
-          if (action) {
-            recordStateChange(action, state);
+          const action = (store as any)._currentAction;
+          if (action && action.__source === 'ai') {
+            recordStateChange(action, store.getState());
           }
         });
 
