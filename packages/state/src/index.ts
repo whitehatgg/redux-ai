@@ -77,20 +77,28 @@ export class ReduxAIState<TState> {
   }
 
   async processQuery(query: string) {
-    if (!this.initialized) {
-      await this.initialize();
-    }
-
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       const conversationHistory = this.interactions
         .map(interaction => `User: ${interaction.query}\nAssistant: ${interaction.response}`)
         .join('\n');
+
+      console.log('[ReduxAIState] Generating system prompt with:', {
+        stateSize: JSON.stringify(this.store.getState()).length,
+        actionsCount: this.availableActions.length,
+        historyLength: this.interactions.length
+      });
 
       const systemPrompt = generateSystemPrompt(
         this.store.getState(),
         this.availableActions,
         conversationHistory
       );
+
+      console.log('[ReduxAIState] Generated system prompt length:', systemPrompt.length);
 
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
@@ -105,7 +113,12 @@ export class ReduxAIState<TState> {
       });
 
       if (!apiResponse.ok) {
-        throw new Error(`API request failed: ${apiResponse.statusText}`);
+        const errorText = await apiResponse.text();
+        console.error('[ReduxAIState] API request failed:', {
+          status: apiResponse.status,
+          error: errorText
+        });
+        throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
       }
 
       const result = await apiResponse.json();
@@ -122,7 +135,6 @@ export class ReduxAIState<TState> {
       }
 
       return { message, action };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       if (this.onError) {

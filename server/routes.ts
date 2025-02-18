@@ -45,17 +45,26 @@ export async function registerRoutes(app: Express) {
 
       const { query, systemPrompt, availableActions } = req.body;
 
+      console.log('[API] Received query request:', {
+        queryLength: query?.length,
+        systemPromptLength: systemPrompt?.length,
+        actionsCount: availableActions?.length
+      });
+
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
 
       if (!systemPrompt) {
+        console.error('[API] Missing system prompt in request');
         return res.status(400).json({ error: 'System prompt is required' });
       }
 
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
         return res.status(400).json({ error: 'Available actions are required and must be non-empty array' });
       }
+
+      console.log('[API] Creating chat completion with prompt length:', systemPrompt.length);
 
       const response = await createChatCompletion([
         {
@@ -77,6 +86,8 @@ export async function registerRoutes(app: Express) {
       if (!content.message) {
         throw new Error('Invalid response format: missing message');
       }
+
+      console.log('[API] Successfully processed query');
 
       res.json({ 
         message: content.message,
