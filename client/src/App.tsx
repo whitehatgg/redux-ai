@@ -12,20 +12,62 @@ import { useState } from 'react';
 const demoActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
-    description: 'Updated the visible columns in the applicant table',
+    description: 'Show or hide columns in the applicant table',
     keywords: ['show columns', 'hide columns', 'display columns', 'visible columns', 'show only']
   },
   {
     type: 'applicant/toggleSearch',
-    description: 'Toggled the search functionality',
+    description: 'Toggle the search functionality',
     keywords: ['enable search', 'disable search', 'toggle search', 'turn on search', 'turn off search']
   },
   {
     type: 'applicant/setSearchTerm',
-    description: 'Set the search term to filter applicants',
+    description: 'Search for applicants',
     keywords: ['search for', 'find', 'look for', 'filter by', 'search applicant']
   }
 ];
+
+// Custom action matching logic
+const matchAction = (query: string) => {
+  const lowerQuery = query.toLowerCase();
+
+  // Match show columns command
+  const columnMatch = lowerQuery.match(/show\s+(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/);
+  if (columnMatch) {
+    const columns = [columnMatch[1], columnMatch[2]].filter(Boolean);
+    return {
+      action: {
+        type: 'applicant/setVisibleColumns',
+        payload: columns
+      },
+      message: `Updated visible columns to show: ${columns.join(', ')}`
+    };
+  }
+
+  // Match search command
+  const searchMatch = lowerQuery.match(/(?:search|find|look\s+for)\s+(.+)/i);
+  if (searchMatch) {
+    return {
+      action: {
+        type: 'applicant/setSearchTerm',
+        payload: searchMatch[1].trim()
+      },
+      message: `Searching for: ${searchMatch[1].trim()}`
+    };
+  }
+
+  // Match other actions based on keywords
+  for (const action of demoActions) {
+    if (action.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()))) {
+      return {
+        action: { type: action.type },
+        message: action.description
+      };
+    }
+  }
+
+  return null;
+};
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -66,7 +108,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <ReduxAIProvider store={store} availableActions={demoActions}>
+        <ReduxAIProvider 
+          store={store} 
+          availableActions={demoActions}
+          onActionMatch={matchAction}
+        >
           <AppContent />
           <Toaster />
         </ReduxAIProvider>
