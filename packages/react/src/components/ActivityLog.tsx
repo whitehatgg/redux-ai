@@ -17,7 +17,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
     if (action?.type === 'applicant/setSearchTerm') {
       return `Search for: ${action.payload}`;
     }
-    return action?.type || 'State Change';
+    return action?.type;
   };
 
   return (
@@ -40,9 +40,11 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               <div key={index} className="bg-muted rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">
-                      {formatActionType(change.action)}
-                    </p>
+                    {formatActionType(change.action) && (
+                      <p className="text-sm font-medium">
+                        {formatActionType(change.action)}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {new Date(change.timestamp).toLocaleString()}
                     </p>
@@ -51,7 +53,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                 {change.action?.payload && (
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">
-                      Query: {change.action.payload}
+                      {change.action.payload}
                     </p>
                   </div>
                 )}
