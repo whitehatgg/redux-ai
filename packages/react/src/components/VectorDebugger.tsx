@@ -11,7 +11,7 @@ export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => 
 
   if (isLoading) {
     return (
-      <div className={`w-full rounded-lg border bg-card p-4 ${className || ''}`}>
+      <div className={`w-full rounded-lg border bg-card p-4 ${className || ''}`} data-testid="loading-skeleton">
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-muted rounded w-1/4"></div>
           <div className="space-y-3">
@@ -47,7 +47,7 @@ export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => 
         <div className="space-y-4 max-h-[500px] overflow-y-auto p-4">
           {availableActions.length > 0 ? (
             availableActions.map((action: ReduxAIAction, index: number) => (
-              <div 
+              <div
                 key={`${action.type}-${index}`}
                 className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
               >
@@ -59,7 +59,7 @@ export const VectorDebugger: React.FC<VectorDebuggerProps> = ({ className }) => 
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {action.keywords.map((keyword, idx) => (
-                    <span 
+                    <span
                       key={idx}
                       className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
                     >
