@@ -70,9 +70,6 @@ export async function registerRoutes(app: Express) {
     try {
       const { query, state, availableActions, previousInteractions = [] } = req.body;
 
-      console.log('Received query:', query);
-      console.log('Available actions:', JSON.stringify(availableActions, null, 2));
-
       if (!query) {
         return res.status(400).json({ error: 'Query is required' });
       }
@@ -91,10 +88,8 @@ export async function registerRoutes(app: Express) {
 
       const systemPrompt = generateSystemPrompt(state, availableActions, conversationHistory);
 
-      console.log('Sending prompt to OpenAI with available actions:', availableActions.map(a => a.type));
-
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4",
         messages: [
           {
             role: "system",
@@ -112,7 +107,6 @@ export async function registerRoutes(app: Express) {
         throw new Error('Invalid response format from AI');
       }
 
-      console.log('OpenAI Response:', response.choices[0].message.content);
       const content = JSON.parse(response.choices[0].message.content);
 
       if (!content.message) {

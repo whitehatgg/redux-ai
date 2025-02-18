@@ -32,7 +32,6 @@ describe('ReduxAIState', () => {
     retrieveSimilar: jest.fn(),
     getAllEntries: jest.fn(),
     storeInteraction: jest.fn(),
-    getAllInteractions: jest.fn(),
     subscribe: jest.fn()
   };
 

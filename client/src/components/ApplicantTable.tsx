@@ -1,11 +1,11 @@
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store';
+import type { RootState } from '@/store';
 import {
   setVisibleColumns,
   toggleSearch,
   setSearchTerm,
-  type Applicant
 } from '@/store/slices/applicantSlice';
+import type { Applicant } from '@/store/slices/applicantSlice';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -55,7 +55,7 @@ export function ApplicantTable() {
             <Checkbox
               id="enableSearch"
               checked={tableConfig.enableSearch}
-              onCheckedChange={() => dispatch(toggleSearch(undefined))}
+              onCheckedChange={() => dispatch(toggleSearch())}
             />
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
