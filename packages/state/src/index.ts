@@ -16,7 +16,6 @@ export interface AIStateConfig<TState> {
   vectorStorage: ReduxAIVector;
   availableActions: ReduxAIAction[];
   onError?: (error: Error) => void;
-  onActionMatch?: (query: string, context: string) => Promise<{ action: Action | null; message: string } | null>;
 }
 
 export class ReduxAIState<TState> {
@@ -26,7 +25,6 @@ export class ReduxAIState<TState> {
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
-  private onActionMatch?: (query: string, context: string) => Promise<{ action: Action | null; message: string } | null>;
 
   constructor(config: AIStateConfig<TState>) {
     this.store = config.store;
@@ -35,7 +33,6 @@ export class ReduxAIState<TState> {
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
     this.availableActions = config.availableActions || [];
-    this.onActionMatch = config.onActionMatch;
 
     // Validate available actions
     this.availableActions.forEach(action => {
@@ -96,48 +93,19 @@ export class ReduxAIState<TState> {
       // Store the initial query
       await this.storeInteraction(query, '', { query });
 
-      if (!this.onActionMatch) {
-        const message = 'No action matching handler configured.';
-        await this.storeInteraction(query, message, { query, error: message });
-        return { message, action: null };
-      }
-
       if (!context) {
         const message = 'Failed to get context for query.';
         await this.storeInteraction(query, message, { query, error: message });
         return { message, action: null };
       }
 
-      // Process with LLM using context
-      const result = await this.onActionMatch(query, context);
+      // The LLM will use the context to determine the appropriate action
+      // This includes the currentState, chatHistory, and availableActions
 
-      if (!result) {
-        const message = 'Could not determine an appropriate response.';
-        await this.storeInteraction(query, message, { query, response: message });
-        return { message, action: null };
-      }
-
-      const { action, message } = result;
-
-      // If there's an action, validate it
-      if (action !== null && !this.isValidAction(action)) {
-        const errorMessage = 'Invalid action returned from action matcher.';
-        await this.storeInteraction(query, errorMessage, { query, error: errorMessage });
-        return { message: errorMessage, action: null };
-      }
-
-      // Store the interaction and dispatch valid action
-      await this.storeInteraction(
-        query,
-        message,
-        { query, action, message, context }
-      );
-
-      if (action) {
-        this.store.dispatch(action);
-      }
-
-      return { message, action };
+      // For now, return null action since we don't have LLM integration yet
+      const message = 'Action matching will be handled by LLM integration';
+      await this.storeInteraction(query, message, { query, message });
+      return { message, action: null };
 
     } catch (error) {
       console.error('Error in processQuery:', error);
