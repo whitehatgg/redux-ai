@@ -11,18 +11,18 @@ import { useState } from 'react';
 const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
-    description: 'Set which columns are visible in the table',
-    keywords: ['show', 'hide', 'column', 'field', 'display']
+    description: 'Control column visibility in tables',
+    keywords: ['show', 'hide', 'column', 'field', 'display', 'visible', 'table']
   },
   {
     type: 'applicant/toggleSearch',
-    description: 'Enable or disable the search functionality',
-    keywords: ['enable', 'disable', 'search', 'toggle']
+    description: 'Toggle search functionality',
+    keywords: ['enable', 'disable', 'search', 'toggle', 'switch']
   },
   {
     type: 'applicant/setSearchTerm',
-    description: 'Filter applicants by searching through their information',
-    keywords: ['search', 'find', 'filter', 'look', 'query', 'search for']
+    description: 'Set search filter value',
+    keywords: ['search', 'find', 'filter', 'query']
   }
 ];
 

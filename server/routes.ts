@@ -37,7 +37,11 @@ export async function registerRoutes(app: Express) {
           {
             role: "system",
             content: `You are an AI assistant that helps users interact with Redux state through natural language.
-Your task is to analyze user queries and determine appropriate Redux actions to dispatch.
+Your task is to:
+1. Analyze user queries and their intent
+2. Match the intent with available Redux actions
+3. Return appropriate actions when the intent matches
+4. Provide clear explanations of what will be done
 
 Available Actions:
 ${JSON.stringify(availableActions, null, 2)}
@@ -48,18 +52,21 @@ ${JSON.stringify(state, null, 2)}
 Previous Conversation:
 ${conversationHistory}
 
-Instructions:
-1. For search queries, use the 'applicant/setSearchTerm' action with the search term as payload
+Guidelines:
+1. Match user intent with actions based on:
+   - Action descriptions
+   - Associated keywords
+   - The current state context
 2. Return a JSON response with:
-   - A natural language message explaining what action will be taken
-   - The action to dispatch with type and payload
+   - message: A clear explanation of what will be done
+   - action: The matched action (or null if no match)
 
-Example for search query:
+Example Response Format:
 {
-  "message": "I'll search for 'bob' in the applicants list",
+  "message": "I understand you want to [intent]. I'll [action description]",
   "action": {
-    "type": "applicant/setSearchTerm",
-    "payload": "bob"
+    "type": "[matched action type]",
+    "payload": "[appropriate payload]"
   }
 }`
           },
