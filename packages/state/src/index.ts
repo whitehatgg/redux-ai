@@ -96,11 +96,35 @@ export class ReduxAIState<TState> {
         return { message, action: null };
       }
 
-      // Here we would make an API call to the LLM service
-      // For now, return a placeholder response
-      const message = "The API will process this query and return appropriate actions";
-      await this.storeInteraction(query, message, { query, message });
-      return { message, action: null };
+      // Make API call to process the query
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          state: this.store.getState(),
+          availableActions: this.availableActions,
+          previousInteractions: await this.vectorStorage.getAllEntries()
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.statusText}`);
+      }
+
+      const { message, action } = await response.json();
+
+      // If a valid action was returned, dispatch it
+      if (action && this.isValidAction(action)) {
+        this.store.dispatch(action);
+      }
+
+      // Store the interaction
+      await this.storeInteraction(query, message, { query, action, message });
+
+      return { message, action };
 
     } catch (error) {
       console.error('Error in processQuery:', error);
