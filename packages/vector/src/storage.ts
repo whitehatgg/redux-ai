@@ -55,6 +55,7 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private listeners: Set<VectorEventListener> = new Set();
+  private isInternalOperation = false;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -80,6 +81,7 @@ export class VectorStorage {
   }
 
   private notifyListeners(entry: VectorEntry) {
+    if (this.isInternalOperation) return; // Skip notification for internal operations
     this.listeners.forEach(listener => listener(entry));
   }
 
@@ -104,6 +106,7 @@ export class VectorStorage {
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
+      this.isInternalOperation = true; // Mark this as an internal operation
       console.log('Storing interaction:', { query, response });
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
       const timestamp = new Date().toISOString();
@@ -120,8 +123,10 @@ export class VectorStorage {
 
       await this.storage.addEntry(entry);
       console.log('Entry stored successfully');
-      this.notifyListeners(entry);
+      this.isInternalOperation = false; // Reset the flag
+      this.notifyListeners(entry); // Only notify once after the operation is complete
     } catch (error) {
+      this.isInternalOperation = false; // Reset the flag even if there's an error
       console.error('Error storing interaction:', error);
       throw error;
     }

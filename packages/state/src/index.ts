@@ -51,7 +51,7 @@ export class ReduxAIState<TState> {
 
     this.interactions.push(interaction);
 
-    // Store in vector database and dispatch a single action
+    // Only store in vector database, no need to dispatch additional actions
     try {
       await this.vectorStorage.addEntry({
         content: JSON.stringify(interaction),
@@ -136,14 +136,10 @@ export class ReduxAIState<TState> {
       // Store the interaction first
       await this.storeInteraction(query, message);
 
-      // If an action was returned, dispatch it
+      // Then dispatch the Redux action
       if (action) {
         console.log('Dispatching action:', action);
-        this.store.dispatch({
-          ...action,
-          __source: 'ai',
-          query
-        });
+        this.store.dispatch(action);
       }
 
       return { message, action };
