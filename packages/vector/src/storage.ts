@@ -1,6 +1,6 @@
 import { Document } from "@langchain/core/documents";
-import { ChromaClient } from 'chromadb';
 import { Pipeline } from '@xenova/transformers';
+import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
   query: string;
@@ -10,51 +10,40 @@ export interface VectorEntry {
 }
 
 export class VectorStorage {
-  private client: ChromaClient;
-  private collection: any;
+  private indexedDB: IndexedDBStorage;
   private embeddingPipeline: Pipeline | null = null;
 
-  private constructor(client: ChromaClient, collection: any) {
-    this.client = client;
-    this.collection = collection;
+  private constructor(indexedDB: IndexedDBStorage) {
+    this.indexedDB = indexedDB;
   }
 
   static async create(collectionName: string): Promise<VectorStorage> {
-    // Initialize ChromaDB with client-side configuration
-    const client = new ChromaClient({
-      path: "clientside"
-    });
-
-    // Get or create collection with client-side settings
-    const collection = await client.getOrCreateCollection({
-      name: collectionName,
-      metadata: { 
-        "hnsw:space": "cosine",
-        "client_type": "js"
-      }
-    });
-
-    return new VectorStorage(client, collection);
+    const indexedDB = new IndexedDBStorage();
+    await indexedDB.initialize();
+    return new VectorStorage(indexedDB);
   }
 
   private async getEmbedding(text: string): Promise<number[]> {
     try {
-      const response = await fetch('/api/embeddings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!this.embeddingPipeline) {
+        this.embeddingPipeline = await Pipeline.fromPretrained(
+          'Xenova/all-MiniLM-L6-v2',
+          'feature-extraction',
+          {
+            quantized: false,
+            progress_callback: null
+          }
+        );
       }
 
-      const data = await response.json();
-      return data.embedding;
+      const output = await this.embeddingPipeline(text, {
+        pooling: 'mean',
+        normalize: true
+      });
+
+      return Array.from(output.data);
     } catch (error) {
-      console.error('Failed to get embedding:', error);
+      console.error('Failed to generate embedding:', error);
       throw error;
     }
   }
@@ -62,25 +51,7 @@ export class VectorStorage {
   async addEntry(entry: VectorEntry) {
     try {
       console.log('Adding new entry to vector storage');
-
-      const processedEntry = {
-        ...entry,
-        state: typeof entry.state === 'string' ? entry.state : JSON.stringify(entry.state, null, 2)
-      };
-
-      const embedding = await this.getEmbedding(processedEntry.query);
-
-      await this.collection.add({
-        ids: [processedEntry.timestamp],
-        embeddings: [embedding],
-        documents: [processedEntry.query],
-        metadatas: [{
-          response: processedEntry.response,
-          state: processedEntry.state,
-          timestamp: processedEntry.timestamp
-        }]
-      });
-
+      await this.indexedDB.addEntry(entry);
       console.log('Successfully added entry');
     } catch (error) {
       console.error('Failed to add entry:', error);
@@ -90,26 +61,33 @@ export class VectorStorage {
 
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
     try {
-      const embedding = await this.getEmbedding(query);
+      const entries = await this.indexedDB.getAllEntries();
+      const queryEmbedding = await this.getEmbedding(query);
 
-      const results = await this.collection.query({
-        queryEmbeddings: [embedding],
-        nResults: limit
-      });
+      // Calculate cosine similarity with each entry
+      const entriesWithSimilarity = await Promise.all(
+        entries.map(async (entry) => {
+          const entryEmbedding = await this.getEmbedding(entry.query);
+          const similarity = this.cosineSimilarity(queryEmbedding, entryEmbedding);
+          return { ...entry, similarity };
+        })
+      );
 
-      if (!results.metadatas?.[0]) {
-        return [];
-      }
-
-      return results.metadatas[0].map((metadata: any, index: number) => ({
-        query: results.documents[0][index],
-        response: metadata.response,
-        state: metadata.state,
-        timestamp: metadata.timestamp
-      }));
+      // Sort by similarity and return top N results
+      return entriesWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit)
+        .map(({ similarity, ...entry }) => entry);
     } catch (error) {
       console.error('Failed to find similar entries:', error);
       return [];
     }
+  }
+
+  private cosineSimilarity(a: number[], b: number[]): number {
+    const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
+    const normA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+    const normB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+    return dotProduct / (normA * normB);
   }
 }

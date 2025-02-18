@@ -1,13 +1,9 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import OpenAI from "openai";
-import { OpenAIEmbeddings } from "@langchain/openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: process.env.OPENAI_API_KEY
-});
 
 export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
@@ -76,30 +72,6 @@ Respond with a JSON object containing:
     } catch (error: unknown) {
       console.error('Error processing query:', error);
       res.status(500).json({ 
-        error: error instanceof Error ? error.message : 'An unknown error occurred'
-      });
-    }
-  });
-
-  app.post('/api/embeddings', async (req, res) => {
-    try {
-      const { text } = req.body;
-      if (!text) {
-        return res.status(400).json({ error: 'Text is required' });
-      }
-
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ error: 'OpenAI API key is not configured' });
-      }
-
-      console.log('Generating embedding for text:', text.substring(0, 50) + '...');
-      const embedding = await embeddings.embedQuery(text);
-
-      console.log('Successfully generated embedding');
-      res.json({ embedding });
-    } catch (error: unknown) {
-      console.error('Error generating embedding:', error);
-      res.status(500).json({
         error: error instanceof Error ? error.message : 'An unknown error occurred'
       });
     }
