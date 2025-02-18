@@ -22,7 +22,7 @@ export interface AIStateConfig<TState, TAction extends BaseAction> {
   vectorStorage: ReduxAIVector;
   availableActions: ReduxAIAction[];
   onError?: (error: Error) => void;
-  onActionMatch?: (query: string) => { action: TAction; message: string } | null;
+  onActionMatch?: (query: string) => Promise<{ action: TAction; message: string } | null>;
 }
 
 export class ReduxAIState<TState, TAction extends BaseAction> {
@@ -32,7 +32,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private availableActions: ReduxAIAction[];
-  private onActionMatch?: (query: string) => { action: TAction; message: string } | null;
+  private onActionMatch?: (query: string) => Promise<{ action: TAction; message: string } | null>;
   private actionTrace: TAction[] = [];
   private lastUserQuery: string = '';
 
@@ -48,9 +48,14 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     // Add middleware to track actions
     const originalDispatch = this.store.dispatch;
     this.store.dispatch = ((action: TAction) => {
-      this.actionTrace.push(action);
-      this.storeStateChange(action);
-      return originalDispatch(action);
+      if (action && typeof action === 'object' && 'type' in action) {
+        this.actionTrace.push(action);
+        this.storeStateChange(action);
+        return originalDispatch(action);
+      } else {
+        console.warn('Invalid action:', action);
+        return originalDispatch({ type: 'INVALID_ACTION' } as any);
+      }
     }) as typeof this.store.dispatch;
   }
 
@@ -92,9 +97,9 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
       // Use client-provided action matching function
       if (this.onActionMatch) {
-        const actionInfo = this.onActionMatch(query);
-        if (actionInfo) {
-          // Store the interaction and dispatch the action
+        const actionInfo = await this.onActionMatch(query);
+        if (actionInfo && actionInfo.action && typeof actionInfo.action === 'object' && 'type' in actionInfo.action) {
+          // Store the interaction
           const stateData = {
             query,
             action: actionInfo.action,
@@ -102,15 +107,15 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
             timestamp: new Date().toISOString()
           };
 
-          // Dispatch the action
-          this.store.dispatch(actionInfo.action);
-
-          // Store the interaction
+          // Store the interaction before dispatching
           await this.vectorStorage.storeInteraction(
             query,
             actionInfo.message,
             JSON.stringify(stateData)
           );
+
+          // Dispatch the action
+          this.store.dispatch(actionInfo.action);
 
           return actionInfo;
         }
