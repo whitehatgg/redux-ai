@@ -28,6 +28,28 @@ export class ReduxAIState<TState, TAction extends Action> {
     this.vectorStorage = config.vectorStorage;
   }
 
+  private getAvailableActions(): Array<{ type: string; description: string }> {
+    // Extract available actions from the store
+    const state = this.store.getState();
+    const availableActions: Array<{ type: string; description: string }> = [];
+
+    // Iterate through the store's reducers to find available actions
+    Object.entries(this.store.getState()).forEach(([slice, sliceState]) => {
+      // Get action creators from the slice
+      const sliceActions = Object.keys(
+        (this.store as any)._reducers[slice].actions || {}
+      ).map(actionName => ({
+        type: `${slice}/${actionName}`,
+        description: `${actionName} action for ${slice}`
+      }));
+
+      availableActions.push(...sliceActions);
+    });
+
+    console.log('Available actions:', availableActions);
+    return availableActions;
+  }
+
   async processQuery(query: string) {
     try {
       const state = this.store.getState();
@@ -86,65 +108,64 @@ export class ReduxAIState<TState, TAction extends Action> {
     }
   }
 
+  private matchActionFromQuery(query: string, availableActions: Array<{ type: string; description: string }>) {
+    const lowerQuery = query.toLowerCase();
+
+    // Try to find an exact match first
+    const exactMatch = availableActions.find(action => 
+      lowerQuery.includes(action.type.toLowerCase()) || 
+      lowerQuery.includes(action.description.toLowerCase())
+    );
+
+    if (exactMatch) {
+      return { type: exactMatch.type } as TAction;
+    }
+
+    // Try to match based on keywords
+    for (const action of availableActions) {
+      const actionWords = action.description.toLowerCase().split(' ');
+      const queryWords = lowerQuery.split(' ');
+
+      const hasMatch = actionWords.some(word => 
+        queryWords.some(queryWord => 
+          queryWord === word || 
+          queryWord.includes(word) || 
+          word.includes(queryWord)
+        )
+      );
+
+      if (hasMatch) {
+        return { type: action.type } as TAction;
+      }
+    }
+
+    return null;
+  }
+
   private async generateAIResponse(query: string, state: TState, previousInteractions: any[]): Promise<{
     message: string;
     action: TAction | null;
   }> {
     try {
-      // Get all available action creators from the demo slice
-      const availableActions = [
-        {
-          type: 'demo/increment',
-          description: 'Increment the counter by 1'
-        },
-        {
-          type: 'demo/decrement',
-          description: 'Decrement the counter by 1'
-        },
-        {
-          type: 'demo/setMessage',
-          description: 'Set a message in the state'
-        },
-        {
-          type: 'demo/resetCounter',
-          description: 'Reset the counter to 0'
-        }
-      ];
-
+      const availableActions = this.getAvailableActions();
       console.log('Available actions:', availableActions);
       console.log('Previous interactions:', previousInteractions);
       console.log('Current state:', state);
       console.log('User query:', query);
 
-      // Simple action mapping based on query
-      let action: TAction | null = null;
-      const lowerQuery = query.toLowerCase();
+      // Match the query to an available action
+      const action = this.matchActionFromQuery(query, availableActions);
 
-      if (lowerQuery.includes('increment') || lowerQuery.includes('increase')) {
-        action = { type: 'demo/increment' } as TAction;
-      } else if (lowerQuery.includes('decrement') || lowerQuery.includes('decrease')) {
-        action = { type: 'demo/decrement' } as TAction;
-      } else if (lowerQuery.includes('reset')) {
-        action = { type: 'demo/resetCounter' } as TAction;
-      } else if (lowerQuery.includes('set') && lowerQuery.includes('counter')) {
-        const number = parseInt(query.match(/\d+/)?.[0] || '0', 10);
-        // We'll use multiple increments/decrements to reach the target number
-        const currentValue = (state as any).demo.counter || 0;
-        if (number > currentValue) {
-          for (let i = 0; i < number - currentValue; i++) {
-            this.store.dispatch({ type: 'demo/increment' } as TAction);
-          }
-        } else {
-          for (let i = 0; i < currentValue - number; i++) {
-            this.store.dispatch({ type: 'demo/decrement' } as TAction);
-          }
-        }
-        action = null; // Already dispatched actions
+      if (action) {
+        return {
+          message: `Successfully matched query to action: ${action.type}`,
+          action
+        };
       }
 
       return {
-        message: action ? `Successfully executed ${action.type}` : 'Query processed successfully',
-        action
+        message: 'Could not determine appropriate action for query',
+        action: null
       };
     } catch (error) {
       throw new Error(`Failed to generate AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
