@@ -33,45 +33,63 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
 
   useEffect(() => {
-    console.log('[ReduxAIProvider] Starting initialization...');
+    let mounted = true;
 
     const initialize = async () => {
       try {
-        console.log('[ReduxAIProvider] Creating vector storage...');
         const vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128
         });
 
-        console.log('[ReduxAIProvider] Vector storage created:', vectorDb);
+        if (!mounted) return;
+
         setVectorStorage(vectorDb);
 
-        console.log('[ReduxAIProvider] Initializing ReduxAI state...');
         await createReduxAIState({
           store,
           schema,
           vectorStorage: vectorDb,
           availableActions,
           onError: (error: Error) => {
-            console.error('[ReduxAIProvider] Error:', error);
-            store.dispatch({ type: '__VECTOR_ERROR__', payload: error.message });
+            console.error('[ReduxAIProvider] State error:', error);
+            store.dispatch({ 
+              type: '__VECTOR_ERROR__', 
+              payload: error.message 
+            });
           }
         });
+
+        if (!mounted) return;
 
         setIsInitialized(true);
         console.log('[ReduxAIProvider] Initialization complete');
       } catch (error) {
         console.error('[ReduxAIProvider] Initialization error:', error);
-        store.dispatch({ type: '__VECTOR_ERROR__', payload: error instanceof Error ? error.message : 'Vector storage initialization failed' });
+        if (mounted) {
+          store.dispatch({ 
+            type: '__VECTOR_ERROR__', 
+            payload: error instanceof Error ? error.message : 'Vector storage initialization failed' 
+          });
+        }
       }
     };
 
     initialize();
+
+    return () => {
+      mounted = false;
+    };
   }, [store, schema, availableActions]);
 
   return (
-    <ReduxAIContext.Provider value={{ availableActions, isInitialized, store, vectorStorage }}>
+    <ReduxAIContext.Provider value={{ 
+      availableActions, 
+      isInitialized, 
+      store, 
+      vectorStorage 
+    }}>
       {children}
     </ReduxAIContext.Provider>
   );

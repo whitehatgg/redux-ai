@@ -1,12 +1,11 @@
 import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
-  query?: string;
-  response?: string;
-  state?: string;
-  metadata?: Record<string, any>;
-  embedding?: number[];
+  query: string;
+  response: string;
+  state: string;
   timestamp: string;
+  embedding?: number[];
   id?: string;
 }
 
@@ -58,7 +57,6 @@ export class VectorStorage {
 
   static async create(config: VectorConfig): Promise<VectorStorage> {
     try {
-      console.log('[VectorStorage] Creating new instance...');
       const storage = new IndexedDBStorage();
       await storage.initialize();
       return new VectorStorage(storage, config);
@@ -68,47 +66,17 @@ export class VectorStorage {
     }
   }
 
-  async addEntry(entry: VectorEntry): Promise<void> {
-    try {
-      console.log('[VectorStorage] Adding entry:', {
-        query: entry.query?.substring(0, 50),
-        response: entry.response?.substring(0,50),
-        metadata: entry.metadata
-      });
-
-      const enhancedEntry: VectorEntry = {
-        ...entry,
-        embedding: entry.embedding || textToVector(entry.query || entry.response || "", this.dimensions),
-        timestamp: entry.timestamp || new Date().toISOString()
-      };
-
-      await this.storage.addEntry(enhancedEntry);
-      this.notifyListeners(enhancedEntry);
-    } catch (error) {
-      console.error('[VectorStorage] Error adding entry:', error);
-      throw error;
-    }
-  }
 
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
-      console.log('[VectorStorage] Storing interaction:', {
-        query: query?.substring(0, 50),
-        response: response?.substring(0, 50)
-      });
-
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
-      const timestamp = new Date().toISOString();
-      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
       const entry: VectorEntry = {
-        id,
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         query,
         response,
         state: stateString,
         embedding: textToVector(`${query} ${response}`, this.dimensions),
-        timestamp,
-        metadata: { type: 'interaction' }
+        timestamp: new Date().toISOString()
       };
 
       await this.storage.addEntry(entry);
@@ -121,7 +89,6 @@ export class VectorStorage {
 
   async retrieveSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
     try {
-      console.log('[VectorStorage] Retrieving similar entries for query:', query);
       const queryEmbedding = textToVector(query, this.dimensions);
       const entries = await this.storage.getAllEntries();
 
@@ -149,10 +116,8 @@ export class VectorStorage {
   }
 
   subscribe(listener: (entry: VectorEntry) => void) {
-    console.log('[VectorStorage] Adding new listener');
     this.listeners.add(listener);
     return () => {
-      console.log('[VectorStorage] Removing listener');
       this.listeners.delete(listener);
     };
   }
@@ -168,6 +133,12 @@ export class VectorStorage {
   }
 }
 
-export const createReduxAIVector = async (config: VectorConfig): Promise<VectorStorage> => {
-  return VectorStorage.create(config);
+export const createReduxAIVector = async (config: Partial<VectorConfig> = {}): Promise<VectorStorage> => {
+  const defaultConfig: VectorConfig = {
+    collectionName: 'reduxai_vector',
+    maxEntries: 100,
+    dimensions: 128,
+    ...config
+  };
+  return VectorStorage.create(defaultConfig);
 };
