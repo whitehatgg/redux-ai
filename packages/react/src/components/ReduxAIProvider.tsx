@@ -51,17 +51,24 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
   // Function to record state change
   const recordStateChange = (action: any, state: any) => {
+    // Only record valid Redux actions
     if (!action || typeof action !== 'object' || !('type' in action)) {
-      return; // Skip invalid actions
+      return;
+    }
+
+    // Skip internal actions or non-state-changing actions
+    const isInternalAction = action.type.startsWith('@@') || 
+                           action.type === 'INVALID_ACTION';
+    if (isInternalAction) {
+      return;
     }
 
     setStateChanges(prev => {
       const timestamp = new Date().toISOString();
       const newChange = { action, state, timestamp };
 
-      // Check last 5 entries for duplicates
-      const recentEntries = prev.slice(-5);
-      const isDuplicate = recentEntries.some(entry => 
+      // Check if this exact action was already recorded
+      const isDuplicate = prev.some(entry => 
         entry.action?.type === action.type && 
         JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload)
       );
@@ -108,25 +115,18 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           })
         ]);
 
-        // Add a small delay to ensure database cleanup is complete
         await new Promise(resolve => setTimeout(resolve, 100));
 
         if (isCleanedUp) return;
 
-        // Initialize vector storage with fresh configuration
-        console.log('Initializing vector storage...');
         const vectorStorage = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
           dimensions: 128
         });
 
-        console.log('Vector storage initialized successfully');
-
         if (isCleanedUp) return;
 
-        // Initialize ReduxAI state manager
-        console.log('Initializing ReduxAI state manager...');
         await createReduxAIState({
           store,
           schema: schema as ReduxAISchema<Action>,
@@ -136,13 +136,9 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             if (!onActionMatch) return null;
 
             try {
-              console.log('Matching action for query:', query);
               const result = await onActionMatch(query);
-              console.log('Action match result:', result);
-
               if (!result) return null;
 
-              // We don't need to record state change here as it will be caught by the store subscription
               return result;
             } catch (error) {
               console.error('Error in action match:', error);
@@ -162,11 +158,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         // Subscribe to store changes
         unsubscribe = store.subscribe(() => {
           if (isCleanedUp) return;
-
           const state = store.getState();
           const lastAction = typeof window !== 'undefined' ? window.__LAST_ACTION__ : null;
 
-          if (lastAction && typeof lastAction === 'object' && 'type' in lastAction) {
+          if (lastAction) {
             recordStateChange(lastAction, state);
           }
         });

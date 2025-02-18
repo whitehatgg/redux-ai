@@ -69,29 +69,25 @@ function App() {
           store={store} 
           availableActions={availableActions}
           onActionMatch={async (query: string) => {
-            try {
-              // Check if the query is a search request
-              const searchMatch = query.match(/search(?:\s+for)?\s+(.+)/i);
+            // Check if it's a search request
+            const searchMatch = query.match(/search(?:\s+for)?\s+(.+)/i);
 
-              if (searchMatch) {
-                const searchTerm = searchMatch[1].trim();
-                return {
-                  action: {
-                    type: 'applicant/setSearchTerm',
-                    payload: searchTerm
-                  },
-                  message: `Searching for "${searchTerm}" in applicants...`
-                };
-              }
-
+            if (searchMatch) {
+              const searchTerm = searchMatch[1].trim();
               return {
-                action: null,
-                message: 'I understand your request but I\'m not sure what action to take. Try asking me to search for something specific.'
+                action: {
+                  type: 'applicant/setSearchTerm',
+                  payload: searchTerm
+                },
+                message: `Searching for "${searchTerm}" in applicants...`
               };
-            } catch (error) {
-              console.error('Error in onActionMatch:', error);
-              return null;
             }
+
+            // Non-action queries should return null action but still provide a response
+            return {
+              action: null,
+              message: 'I understand your request but I\'m not sure what action to take. Try asking me to search for something specific.'
+            };
           }}
         >
           <AppContent />
