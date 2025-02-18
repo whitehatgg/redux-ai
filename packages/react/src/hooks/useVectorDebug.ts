@@ -17,31 +17,40 @@ export function useVectorDebug() {
 
     const fetchEntries = async () => {
       try {
+        setIsLoading(true);
         const reduxAI = getReduxAI();
         console.log('Got ReduxAI instance');
 
-        // Fetch all state changes and interactions
+        // Fetch recent state changes and interactions
         const data = await reduxAI.getSimilarInteractions('', 100);
         console.log('Retrieved vector entries:', data);
 
-        // Process and format the entries
-        const formattedEntries = data.map(entry => {
-          try {
-            const state = JSON.parse(entry.state);
-            return {
-              ...entry,
-              state: state.state || state,
-              action: state.action?.type || null,
-              timestamp: state.timestamp || new Date().toISOString()
-            };
-          } catch (e) {
-            return entry;
-          }
-        });
+        const formattedEntries = data
+          .map(entry => {
+            try {
+              if (!entry.state) {
+                console.log('Entry has no state:', entry);
+                return null;
+              }
 
-        setEntries(formattedEntries.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        ));
+              const parsed = JSON.parse(entry.state);
+              console.log('Parsed entry:', parsed);
+
+              return {
+                ...entry,
+                parsedState: parsed,
+                timestamp: parsed.timestamp || new Date().toISOString()
+              };
+            } catch (e) {
+              console.error('Error parsing entry:', e, entry);
+              return null;
+            }
+          })
+          .filter(Boolean)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        console.log('Formatted entries:', formattedEntries);
+        setEntries(formattedEntries);
         setError(null);
       } catch (err) {
         console.error('Error fetching debug entries:', err);

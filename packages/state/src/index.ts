@@ -54,21 +54,25 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
     try {
       const state = this.store.getState();
       const stateData = {
-        action,
-        state,
+        type: 'STATE_CHANGE',
+        action: {
+          type: action.type,
+          payload: action.payload
+        },
+        state: {
+          counter: state.demo.counter,
+          message: state.demo.message
+        },
         timestamp: new Date().toISOString()
       };
 
       await this.vectorStorage.storeInteraction(
         `Action: ${action.type}`,
-        JSON.stringify(stateData),
+        `${action.type} - Counter: ${state.demo.counter}`,
         JSON.stringify(stateData)
       );
 
-      console.log('Stored state change:', {
-        action: action.type,
-        state: stateData
-      });
+      console.log('Stored state change:', stateData);
     } catch (error) {
       console.error('Error storing state change:', error);
     }
@@ -143,34 +147,31 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
 
   private async getStateInfo(query: string): Promise<string> {
     const currentState = this.store.getState();
-    const interactions = await this.vectorStorage.retrieveSimilar(query, 5);
+    const interactions = await this.vectorStorage.retrieveSimilar(query, 10);
 
     // Format current state info
-    const stateInfo = Object.entries(currentState.demo || {})
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(', ');
+    const stateInfo = `counter: ${currentState.demo.counter}, message: ${currentState.demo.message}`;
 
     // Include history if available
     const history = interactions
       .map(entry => {
         try {
           const data = JSON.parse(entry.state);
-          const stateData = data.state?.demo || data.postState?.demo;
-          const actionType = data.action?.type;
-
-          if (stateData) {
-            return `At ${new Date(data.timestamp).toLocaleTimeString()}: ${actionType || 'State query'} - Counter: ${stateData.counter}`;
+          if (data.type === 'STATE_CHANGE') {
+            const time = new Date(data.timestamp).toLocaleTimeString();
+            return `${time} - ${data.action.type} -> Counter: ${data.state.counter}`;
           }
           return null;
         } catch (e) {
+          console.error('Error parsing entry:', e);
           return null;
         }
       })
       .filter(Boolean)
-      .reverse() // Show most recent first
+      .reverse()
       .join('\n');
 
-    return `Current state: ${stateInfo}\n\nHistory:\n${history}`;
+    return `Current state: ${stateInfo}\n\nState History:\n${history}`;
   }
 
   private inferActionFromKeywords(query: string): { action: TAction; message: string } | null {
