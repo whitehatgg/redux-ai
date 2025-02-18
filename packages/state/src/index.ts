@@ -66,26 +66,20 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
           type: action.type,
           payload: action.payload
         },
-        state: {
-          counter: state.demo.counter,
-          message: state.demo.message
-        },
+        state: state.demo,
         timestamp: new Date().toISOString()
       };
 
       console.log('State data to store:', stateData);
 
+      // Store the interaction with the action type as the key
       await this.vectorStorage.storeInteraction(
         action.type,
-        JSON.stringify(stateData.state),
-        JSON.stringify(stateData)
+        JSON.stringify(stateData),  // Store the full state data as the text
+        JSON.stringify(stateData)   // Store the same data as metadata
       );
 
-      console.log('Successfully stored state change:', {
-        action: action.type,
-        state: stateData.state,
-        timestamp: stateData.timestamp
-      });
+      console.log('Successfully stored state change:', stateData);
     } catch (error) {
       console.error('Error storing state change:', error);
       if (this.onError) {

@@ -39,43 +39,38 @@ export const VectorDebugger: React.FC = () => {
 
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
           {entries && entries.length > 0 ? (
-            entries.map((entry: any, index: number) => {
-              if (!entry.state) {
-                console.warn('Entry missing state:', entry);
-                return null;
-              }
-
+            entries.map((entry: VectorEntry, index: number) => {
               try {
-                const parsedState = JSON.parse(entry.state);
-                console.log('Rendering entry:', { entry, parsedState });
+                const data = JSON.parse(entry.text); // Parse the stored text data
+                console.log('Rendering entry:', data);
 
                 return (
                   <div 
-                    key={`${entry.timestamp}-${index}`} 
+                    key={`${data.timestamp}-${index}`} 
                     className="p-4 border rounded-md space-y-2 hover:bg-accent/5 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="font-medium">
-                        {parsedState.type === 'STATE_CHANGE' ? (
-                          <>Action: {parsedState.action.type}</>
+                        {data.type === 'STATE_CHANGE' ? (
+                          <>Action: {data.action.type}</>
                         ) : (
-                          <>Query: {parsedState.query || 'Unknown query'}</>
+                          <>Query: {data.query || 'Unknown query'}</>
                         )}
                       </div>
                       <time className="text-xs text-muted-foreground">
-                        {new Date(parsedState.timestamp).toLocaleTimeString()}
+                        {new Date(data.timestamp).toLocaleTimeString()}
                       </time>
                     </div>
 
                     <div className="text-sm text-muted-foreground">
-                      Counter: {parsedState.state.counter}
-                      {parsedState.state.message && (
-                        <span className="ml-2">| Message: {parsedState.state.message}</span>
+                      Counter: {data.state.counter}
+                      {data.state.message && (
+                        <span className="ml-2">| Message: {data.state.message}</span>
                       )}
                     </div>
 
-                    {parsedState.response && (
-                      <div className="text-sm mt-2">{parsedState.response}</div>
+                    {data.response && (
+                      <div className="text-sm mt-2">{data.response}</div>
                     )}
                   </div>
                 );
