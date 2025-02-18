@@ -49,6 +49,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   const recordStateChange = (action: any, state: any) => {
     // Only record valid Redux actions
     if (!action || typeof action !== 'object' || !('type' in action)) {
+      console.warn('Invalid action:', action);
       return;
     }
 
@@ -62,11 +63,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     // Check if this is one of the AI-available actions
     const isAIAction = availableActions.some(available => available.type === action.type);
 
-    // Determine trigger source based on window.__LAST_ACTION__
-    // If the action was dispatched through the AI interface, it will be marked as AI-triggered
-    const isAITriggered = typeof window !== 'undefined' && 
-                         window.__LAST_ACTION__ && 
-                         window.__LAST_ACTION__.__source === 'ai';
+    // Determine trigger source based on action source
+    const isAITriggered = action.__source === 'ai';
 
     setStateChanges(prev => {
       const timestamp = new Date().toISOString();
@@ -158,10 +156,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         unsubscribe = store.subscribe(() => {
           if (isCleanedUp) return;
           const state = store.getState();
-          const lastAction = typeof window !== 'undefined' ? window.__LAST_ACTION__ : null;
+          const action = store.getState().__lastAction;
 
-          if (lastAction) {
-            recordStateChange(lastAction, state);
+          if (action) {
+            recordStateChange(action, state);
           }
         });
 
