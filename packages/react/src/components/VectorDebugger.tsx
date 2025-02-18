@@ -40,7 +40,12 @@ export const VectorDebugger: React.FC = () => {
         <div className="space-y-4 max-h-[500px] overflow-y-auto">
           {entries && entries.length > 0 ? (
             entries.map((entry: any, index: number) => {
-              const { parsedState } = entry;
+              const { parsedState, type } = entry;
+
+              if (!parsedState) {
+                console.warn('Entry has no parsed state:', entry);
+                return null;
+              }
 
               return (
                 <div 
@@ -49,7 +54,11 @@ export const VectorDebugger: React.FC = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="font-medium">
-                      {parsedState.action?.type || 'State Update'}
+                      {type === 'STATE_CHANGE' ? (
+                        <>Action: {parsedState.action?.type}</>
+                      ) : (
+                        <>Query: {parsedState.query}</>
+                      )}
                     </div>
                     <time className="text-xs text-muted-foreground">
                       {new Date(entry.timestamp).toLocaleTimeString()}
@@ -57,23 +66,20 @@ export const VectorDebugger: React.FC = () => {
                   </div>
 
                   {parsedState.state && (
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        Counter: {parsedState.state.counter}
-                        {parsedState.state.message && (
-                          <span>| Message: {parsedState.state.message}</span>
-                        )}
-                      </div>
+                    <div className="text-sm text-muted-foreground">
+                      Counter: {parsedState.state.counter}
+                      {parsedState.state.message && (
+                        <span className="ml-2">| Message: {parsedState.state.message}</span>
+                      )}
                     </div>
                   )}
 
-                  <div className="text-xs text-muted-foreground">
-                    {entry.query && <div>Query: {entry.query}</div>}
-                    {entry.response && <div>Response: {entry.response}</div>}
-                  </div>
+                  {parsedState.response && (
+                    <div className="text-sm mt-2">{parsedState.response}</div>
+                  )}
                 </div>
               );
-            })
+            }).filter(Boolean)
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No activity recorded yet. Try interacting with the counter.

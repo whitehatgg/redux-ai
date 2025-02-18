@@ -67,12 +67,16 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       };
 
       await this.vectorStorage.storeInteraction(
-        `Action: ${action.type}`,
-        `${action.type} - Counter: ${state.demo.counter}`,
+        action.type,
+        `${action.type} resulted in counter: ${state.demo.counter}`,
         JSON.stringify(stateData)
       );
 
-      console.log('Stored state change:', stateData);
+      console.log('Stored state change:', {
+        action: stateData.action,
+        state: stateData.state,
+        timestamp: stateData.timestamp
+      });
     } catch (error) {
       console.error('Error storing state change:', error);
     }
@@ -84,8 +88,29 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
       console.log('Processing query:', query);
 
       // Check if this is a state query
-      if (query.toLowerCase().includes('value') || query.toLowerCase().includes('state')) {
+      if (query.toLowerCase().includes('value') || 
+          query.toLowerCase().includes('counter') || 
+          query.toLowerCase().includes('state')) {
         const stateInfo = await this.getStateInfo(query);
+
+        // Store the query interaction
+        const queryData = {
+          type: 'QUERY',
+          query,
+          response: stateInfo,
+          state: {
+            counter: state.demo.counter,
+            message: state.demo.message
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        await this.vectorStorage.storeInteraction(
+          query,
+          stateInfo,
+          JSON.stringify(queryData)
+        );
+
         return {
           message: stateInfo,
           action: null

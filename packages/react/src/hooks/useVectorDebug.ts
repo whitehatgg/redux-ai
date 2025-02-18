@@ -19,7 +19,6 @@ export function useVectorDebug() {
       try {
         setIsLoading(true);
         const reduxAI = getReduxAI();
-        console.log('Got ReduxAI instance');
 
         // Fetch recent state changes and interactions
         const data = await reduxAI.getSimilarInteractions('', 100);
@@ -29,17 +28,21 @@ export function useVectorDebug() {
           .map(entry => {
             try {
               if (!entry.state) {
-                console.log('Entry has no state:', entry);
+                console.warn('Entry has no state:', entry);
                 return null;
               }
 
               const parsed = JSON.parse(entry.state);
-              console.log('Parsed entry:', parsed);
+              console.log('Processing entry:', parsed);
 
               return {
                 ...entry,
                 parsedState: parsed,
-                timestamp: parsed.timestamp || new Date().toISOString()
+                timestamp: parsed.timestamp,
+                type: parsed.type || 'UNKNOWN',
+                action: parsed.action || null,
+                query: parsed.query || null,
+                response: parsed.response || null
               };
             } catch (e) {
               console.error('Error parsing entry:', e, entry);
@@ -61,14 +64,10 @@ export function useVectorDebug() {
       }
     };
 
-    console.log('Setting up vector debug polling...');
     fetchEntries();
     const interval = setInterval(fetchEntries, 2000);
 
-    return () => {
-      console.log('Cleaning up vector debug polling');
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [isInitialized]);
 
   return { entries, isLoading, error };
