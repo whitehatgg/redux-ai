@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { getReduxAI, initializeReduxAI } from '../../../client/src/store';
 
 interface RAGResponse {
   ragResponse: string;
@@ -27,44 +28,41 @@ export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ragResults, setRagResults] = useState<RAGResponse | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const dispatch = useDispatch();
 
+  useEffect(() => {
+    initializeReduxAI()
+      .then(() => setIsInitialized(true))
+      .catch((err) => {
+        console.error('Failed to initialize ReduxAI:', err);
+        setError('Failed to initialize AI functionality');
+      });
+  }, []);
+
   const sendQuery = useCallback(async (query: string): Promise<string> => {
+    if (!isInitialized) {
+      throw new Error('ReduxAI not initialized');
+    }
+
     setIsProcessing(true);
     setError(null);
     setRagResults(null);
 
     try {
-      const response = await fetch('/api/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-      });
+      const reduxAI = getReduxAI();
+      const response = await reduxAI.processQuery(query);
+      const similarDocs = await reduxAI.getSimilarInteractions(query);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
+      // Create RAG results
+      const ragResponse: RAGResponse = {
+        ragResponse: response.message,
+        similarDocs,
+        timestamp: new Date().toISOString()
+      };
 
-      const data: QueryResponse = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // If action is provided, dispatch it to update Redux store
-      if (data.action) {
-        dispatch(data.action);
-      }
-
-      // Store RAG results if available
-      if (data.ragResults) {
-        setRagResults(data.ragResults);
-      }
-
-      return data.message;
+      setRagResults(ragResponse);
+      return response.message;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       setError(errorMessage);
@@ -72,12 +70,13 @@ export function useReduxAI() {
     } finally {
       setIsProcessing(false);
     }
-  }, [dispatch]);
+  }, [isInitialized]);
 
   return {
     sendQuery,
     isProcessing,
     error,
-    ragResults
+    ragResults,
+    isInitialized
   };
 }

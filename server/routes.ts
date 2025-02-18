@@ -1,10 +1,13 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import OpenAI from "openai";
-import { storage } from "./storage";
+import { OpenAIEmbeddings } from "@langchain/openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const embeddings = new OpenAIEmbeddings({
+  openAIApiKey: process.env.OPENAI_API_KEY
+});
 
 export async function registerRoutes(app: Express) {
   app.post('/api/query', async (req, res) => {
@@ -66,23 +69,9 @@ Respond with a JSON object containing:
       }
 
       const content = JSON.parse(response.choices[0].message.content);
-
-      // Store the interaction in vector storage
-      try {
-        await storage.storeInteraction(query, content.message, currentState || {});
-        console.log('Stored interaction in vector storage');
-      } catch (error) {
-        console.error('Failed to store interaction:', error);
-      }
-
       res.json({ 
         message: content.message,
-        action: content.action || null,
-        ragResults: {
-          ragResponse: content.message,
-          similarDocs: await storage.getInteractions(),
-          timestamp: new Date().toISOString()
-        }
+        action: content.action || null
       });
     } catch (error: unknown) {
       console.error('Error processing query:', error);
@@ -92,16 +81,19 @@ Respond with a JSON object containing:
     }
   });
 
-  // Add a route to fetch vector debug entries
-  app.get('/api/vector/debug', async (req, res) => {
+  app.post('/api/embeddings', async (req, res) => {
     try {
-      const entries = await storage.getInteractions();
-      console.log('Retrieved vector debug entries:', entries.length);
-      res.json(entries);
-    } catch (error) {
-      console.error('Error fetching vector debug entries:', error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : 'Failed to fetch debug entries'
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: 'Text is required' });
+      }
+
+      const embedding = await embeddings.embedQuery(text);
+      res.json({ embedding });
+    } catch (error: unknown) {
+      console.error('Error generating embedding:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
       });
     }
   });

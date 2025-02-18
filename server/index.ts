@@ -1,14 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { reduxAI } from "../client/src/store";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Make the ReduxAI state manager aware of the Express app
-reduxAI.setApp(app);
 
 app.use((req, res, next) => {
   const start = Date.now();

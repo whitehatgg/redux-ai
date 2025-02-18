@@ -2,10 +2,12 @@ import { createMachine } from "xstate";
 import { createConversationMachine } from "./machine";
 import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
 import { ReduxAISchema } from "@redux-ai/schema";
+import { ReduxAIVector } from "@redux-ai/vector";
 
 export interface AIStateConfig<TState, TAction extends Action> {
   store: Store<TState>;
   schema: ReduxAISchema<TAction>;
+  vectorStorage: ReduxAIVector;
   onError?: (error: Error) => void;
 }
 
@@ -14,21 +16,14 @@ export class ReduxAIState<TState, TAction extends Action> {
   private schema: ReduxAISchema<TAction>;
   private machine;
   private onError?: (error: Error) => void;
-  private app?: any;
+  private vectorStorage: ReduxAIVector;
 
   constructor(config: AIStateConfig<TState, TAction>) {
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
     this.onError = config.onError;
-  }
-
-  setApp(app: any) {
-    this.app = app;
-    // Make the store available to the Express app
-    if (this.app) {
-      this.app.locals.store = this.store;
-    }
+    this.vectorStorage = config.vectorStorage;
   }
 
   async processQuery(query: string) {
@@ -44,7 +39,14 @@ export class ReduxAIState<TState, TAction extends Action> {
         this.store.dispatch(response.action);
       }
 
-      return response.message;
+      // Store interaction in vector storage
+      await this.vectorStorage.storeInteraction(
+        query,
+        response.message,
+        JSON.stringify(state, null, 2)
+      );
+
+      return response;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       if (this.onError) {
@@ -52,6 +54,10 @@ export class ReduxAIState<TState, TAction extends Action> {
       }
       throw error;
     }
+  }
+
+  async getSimilarInteractions(query: string, limit: number = 5) {
+    return this.vectorStorage.retrieveSimilar(query, limit);
   }
 
   private async generateAIResponse(query: string, state: TState): Promise<{
@@ -66,6 +72,7 @@ export class ReduxAIState<TState, TAction extends Action> {
         },
         body: JSON.stringify({
           query,
+          state
         }),
       });
 

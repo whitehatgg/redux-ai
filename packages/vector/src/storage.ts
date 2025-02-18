@@ -1,5 +1,5 @@
 import { Document } from "@langchain/core/documents";
-import { OpenAIEmbeddings } from "@langchain/openai";
+import { IndexedDBStorage } from './indexeddb';
 
 export interface VectorEntry {
   query: string;
@@ -9,58 +9,128 @@ export interface VectorEntry {
 }
 
 export class VectorStorage {
-  private entries: VectorEntry[] = [];
-  private embeddings: OpenAIEmbeddings;
-  private vectors: number[][] = [];
+  private storage: IndexedDBStorage;
+  private vectors: Map<string, number[]> = new Map();
+  private retryCount = 3;
+  private retryDelay = 1000;
 
-  private constructor(embeddings: OpenAIEmbeddings) {
-    this.embeddings = embeddings;
+  private constructor(storage: IndexedDBStorage) {
+    this.storage = storage;
   }
 
   static async create(collectionName: string): Promise<VectorStorage> {
-    const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY
-    });
+    const storage = new IndexedDBStorage();
+    await storage.initialize();
 
-    return new VectorStorage(embeddings);
+    const instance = new VectorStorage(storage);
+    await instance.loadVectors();
+    return instance;
+  }
+
+  private async loadVectors() {
+    try {
+      const entries = await this.storage.getAllEntries();
+      console.log(`Loading vectors for ${entries.length} entries`);
+
+      for (const entry of entries) {
+        try {
+          const embedding = await this.getEmbedding(entry.query);
+          this.vectors.set(entry.timestamp, embedding);
+        } catch (error) {
+          console.error(`Failed to load vector for entry ${entry.timestamp}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load vectors:', error);
+      throw new Error('Failed to initialize vector storage');
+    }
+  }
+
+  private async getEmbedding(text: string, attempt = 1): Promise<number[]> {
+    try {
+      console.log(`Requesting embedding for text: ${text.substring(0, 50)}...`);
+
+      const response = await fetch('/api/embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.embedding || !Array.isArray(data.embedding)) {
+        throw new Error('Invalid embedding format received from server');
+      }
+
+      return data.embedding;
+    } catch (error) {
+      console.error(`Embedding request failed (attempt ${attempt}):`, error);
+
+      if (attempt < this.retryCount) {
+        await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+        return this.getEmbedding(text, attempt + 1);
+      }
+
+      throw new Error(`Failed to get embedding after ${this.retryCount} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async addEntry(entry: VectorEntry) {
-    // Ensure state is stringified
-    const processedEntry = {
-      ...entry,
-      state: typeof entry.state === 'string' ? entry.state : JSON.stringify(entry.state, null, 2)
-    };
+    try {
+      // Ensure state is stringified
+      const processedEntry = {
+        ...entry,
+        state: typeof entry.state === 'string' ? entry.state : JSON.stringify(entry.state, null, 2)
+      };
 
-    // Generate embedding for the query
-    const embedding = await this.embeddings.embedQuery(entry.query);
+      console.log('Adding new entry to vector storage');
 
-    // Store entry and its embedding
-    this.entries.push(processedEntry);
-    this.vectors.push(embedding);
+      // Generate embedding for the query
+      const embedding = await this.getEmbedding(entry.query);
+
+      // Store entry and its embedding
+      await this.storage.addEntry(processedEntry);
+      this.vectors.set(processedEntry.timestamp, embedding);
+
+      console.log('Successfully added entry and embedding');
+    } catch (error) {
+      console.error('Failed to add entry:', error);
+      throw error;
+    }
   }
 
   async findSimilar(query: string, limit: number = 5): Promise<VectorEntry[]> {
-    if (this.entries.length === 0) {
-      return [];
+    try {
+      const entries = await this.storage.getAllEntries();
+      if (entries.length === 0) {
+        return [];
+      }
+
+      console.log(`Finding similar entries for query: ${query.substring(0, 50)}...`);
+
+      // Generate embedding for the search query
+      const queryEmbedding = await this.getEmbedding(query);
+
+      // Calculate cosine similarity with all stored vectors
+      const similarities = Array.from(entries).map(entry => ({
+        entry,
+        similarity: this.cosineSimilarity(queryEmbedding, this.vectors.get(entry.timestamp)!)
+      }));
+
+      // Sort by similarity and get top results
+      return similarities
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit)
+        .map(result => result.entry);
+    } catch (error) {
+      console.error('Failed to find similar entries:', error);
+      throw error;
     }
-
-    // Generate embedding for the search query
-    const queryEmbedding = await this.embeddings.embedQuery(query);
-
-    // Calculate cosine similarity with all stored vectors
-    const similarities = this.vectors.map((vector, index) => ({
-      index,
-      similarity: this.cosineSimilarity(queryEmbedding, vector)
-    }));
-
-    // Sort by similarity and get top results
-    const topResults = similarities
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit)
-      .map(result => this.entries[result.index]);
-
-    return topResults;
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
