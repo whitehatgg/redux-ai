@@ -53,7 +53,7 @@ export class ReduxAIState<TState, TAction extends BaseAction> {
   private async storeStateChange(action: TAction) {
     try {
       const state = this.store.getState();
-      console.log('Attempting to store state change for action:', action.type);
+      console.log('Storing state change for action:', action.type);
 
       if (!this.vectorStorage) {
         console.error('Vector storage not initialized');

@@ -1,37 +1,48 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDispatch, useStore } from 'react-redux';
-import type { VectorEntry } from '@redux-ai/vector';
 import { getReduxAI } from '@redux-ai/state';
 import { useReduxAIContext } from '../components/ReduxAIProvider';
 
-interface RAGResponse {
-  ragResponse: string;
-  similarDocs: VectorEntry[];
+interface StateChange {
+  type: string;
   timestamp: string;
+  state: any;
+  action?: {
+    type: string;
+    payload?: any;
+  };
 }
 
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ragResults, setRagResults] = useState<RAGResponse | null>(null);
+  const [stateChanges, setStateChanges] = useState<StateChange[]>([]);
   const dispatch = useDispatch();
   const store = useStore();
   const { isInitialized } = useReduxAIContext();
 
   // Track state changes
   useEffect(() => {
+    if (!isInitialized) return;
+
     const unsubscribe = store.subscribe(() => {
       const currentState = store.getState();
       console.log('State updated:', currentState);
-      // Store the state change in vector storage
-      if (isInitialized) {
-        const reduxAI = getReduxAI();
-        reduxAI.storeInteraction(
-          'state_change',
-          'State updated',
-          currentState
-        ).catch(console.error);
-      }
+
+      // Add the new state change to our list
+      setStateChanges(prev => [
+        {
+          type: 'STATE_CHANGE',
+          timestamp: new Date().toISOString(),
+          state: currentState.demo,
+          action: store.getState()._lastAction
+        },
+        ...prev
+      ]);
+
+      // Store in vector storage for history
+      const reduxAI = getReduxAI();
+      reduxAI.storeStateChange(currentState).catch(console.error);
     });
 
     return () => unsubscribe();
@@ -44,23 +55,8 @@ export function useReduxAI() {
     try {
       const reduxAI = getReduxAI();
       const currentState = store.getState();
-
-      // Store the query and current state
-      await reduxAI.storeInteraction(query, '', currentState);
-
       const response = await reduxAI.processQuery(query);
-      console.log('ReduxAI Response:', response);
 
-      const similarDocs = await reduxAI.getSimilarInteractions(query, 5);
-      console.log('Similar interactions:', similarDocs);
-
-      const ragResponse: RAGResponse = {
-        ragResponse: response.message,
-        similarDocs,
-        timestamp: new Date().toISOString()
-      };
-
-      setRagResults(ragResponse);
       return response.message;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -77,6 +73,6 @@ export function useReduxAI() {
     isProcessing,
     error,
     isInitialized,
-    ragResults
+    stateChanges
   };
 }

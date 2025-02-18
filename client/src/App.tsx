@@ -1,12 +1,12 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { ChatBubble, VectorDebugger, ReduxAIProvider } from '@redux-ai/react';
+import { ChatBubble, ActivityLog, ReduxAIProvider } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { Toaster } from './components/ui/toaster';
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
-import type { ReduxAIAction } from '@redux-ai/react/dist/components/ReduxAIProvider';
+import type { ReduxAIAction } from '@redux-ai/state';
 
 // Define available actions for the demo
 const demoActions: ReduxAIAction[] = [
@@ -47,7 +47,7 @@ function AppContent() {
               Current Counter: {counter}
             </div>
             <ChatBubble />
-            <VectorDebugger />
+            <ActivityLog />
             <div className="text-sm text-muted-foreground">
               Try asking: "increment the counter" or "what's the current value?"
             </div>
