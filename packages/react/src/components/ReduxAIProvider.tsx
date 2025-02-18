@@ -44,6 +44,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }>>([]);
 
   useEffect(() => {
+    let isCleanedUp = false;
+
     const initialize = async () => {
       try {
         console.log('Starting ReduxAI initialization...');
@@ -53,13 +55,16 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         const vectorStorage = await createReduxAIVector({
           collectionName: 'redux-ai-store',
           maxEntries: 100,
-          dimensions: 128
+          dimensions: 128,
+          clearExisting: true // Add flag to clear existing data
         });
         console.log('Vector storage initialized successfully');
 
+        if (isCleanedUp) return;
+
         // Initialize ReduxAI state manager
         console.log('Initializing ReduxAI state manager...');
-        await createReduxAIState({
+        const aiState = await createReduxAIState({
           store,
           schema,
           vectorStorage,
@@ -67,17 +72,20 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
           onActionMatch,
           onError: (error: Error) => {
             console.error('ReduxAI Error:', error);
-            setError(error.message);
+            if (!isCleanedUp) {
+              setError(error.message);
+            }
           }
         });
+
+        if (isCleanedUp) return;
 
         // Add middleware to track state changes
         const unsubscribe = store.subscribe(() => {
           const state = store.getState();
           const lastAction = (store as any)._lastAction;
 
-          // Only track meaningful state changes
-          if (lastAction && lastAction.type) {
+          if (lastAction && lastAction.type && !isCleanedUp) {
             const stateChange = {
               action: lastAction,
               state,
@@ -87,29 +95,39 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             setStateChanges(prev => [...prev, stateChange]);
 
             // Store the interaction in vector storage
-            vectorStorage.storeInteraction(
+            vectorStorage.store(
               lastAction.type,
               JSON.stringify(stateChange),
-              JSON.stringify(stateChange)
+              stateChange
             ).catch(error => {
               console.error('Error storing state change:', error);
             });
           }
         });
 
-        setIsInitialized(true);
+        if (!isCleanedUp) {
+          setIsInitialized(true);
+        }
         console.log('ReduxAI initialization complete');
 
-        // Cleanup subscription on unmount
-        return () => unsubscribe();
+        return () => {
+          isCleanedUp = true;
+          unsubscribe();
+        };
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to initialize ReduxAI';
         console.error('ReduxAI initialization error:', message);
-        setError(message);
+        if (!isCleanedUp) {
+          setError(message);
+        }
       }
     };
 
     initialize();
+
+    return () => {
+      isCleanedUp = true;
+    };
   }, [store, schema, availableActions, onActionMatch]);
 
   if (error) {
