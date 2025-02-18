@@ -36,15 +36,21 @@ export class ReduxAIState<TState, TAction extends Action> {
         if (this.schema && !this.schema.validateAction(response.action)) {
           throw new Error('Invalid action format returned from AI');
         }
-        this.store.dispatch(response.action);
-      }
 
-      // Store interaction in vector storage
-      await this.vectorStorage.storeInteraction(
-        query,
-        response.message,
-        JSON.stringify(state, null, 2)
-      );
+        // Store the pre-action state
+        const preActionState = JSON.stringify(this.store.getState(), null, 2);
+
+        // Dispatch the action
+        this.store.dispatch(response.action);
+
+        // Get post-action state and store the interaction
+        const postActionState = JSON.stringify(this.store.getState(), null, 2);
+        await this.vectorStorage.storeInteraction(
+          query,
+          response.message,
+          postActionState
+        );
+      }
 
       return response;
     } catch (error: unknown) {
