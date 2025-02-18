@@ -58,7 +58,7 @@ export class VectorStorage {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private onStateChange?: VectorConfig['onStateChange'];
-  private lastAddTimestamp: string = '';
+  private lastOperations: Map<string, string> = new Map(); // type -> timestamp
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig) {
     this.storage = storage;
@@ -85,23 +85,31 @@ export class VectorStorage {
     }
   }
 
-  private shouldPreventDuplicateAdd(timestamp: string): boolean {
-    if (!this.lastAddTimestamp) return false;
-    const timeDiff = Date.parse(timestamp) - Date.parse(this.lastAddTimestamp);
-    return timeDiff < 100; // 100ms threshold
+  private shouldPreventDuplicate(operationType: string, timestamp: string): boolean {
+    const lastTimestamp = this.lastOperations.get(operationType);
+    if (!lastTimestamp) return false;
+
+    const timeDiff = Date.parse(timestamp) - Date.parse(lastTimestamp);
+    const isDuplicate = timeDiff < 100; // 100ms threshold
+
+    if (isDuplicate) {
+      console.log(`Preventing duplicate ${operationType} operation`);
+    }
+
+    return isDuplicate;
+  }
+
+  private updateLastOperation(operationType: string, timestamp: string) {
+    this.lastOperations.set(operationType, timestamp);
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
     try {
       console.log('Adding entry:', entry);
 
-      // Check for duplicate add operations
-      if (this.shouldPreventDuplicateAdd(entry.timestamp)) {
-        console.log('Preventing duplicate add operation');
+      if (this.shouldPreventDuplicate('add', entry.timestamp)) {
         return;
       }
-
-      this.lastAddTimestamp = entry.timestamp;
 
       // Ensure required fields are present
       const enhancedEntry: VectorEntry = {
@@ -112,6 +120,8 @@ export class VectorStorage {
       };
 
       await this.storage.addEntry(enhancedEntry);
+      this.updateLastOperation('add', enhancedEntry.timestamp);
+
       this.notifyStateChange({
         type: 'add',
         payload: { entry: enhancedEntry },
@@ -123,19 +133,13 @@ export class VectorStorage {
     }
   }
 
-  async search(params: VectorSearchParams): Promise<VectorEntry[]> {
-    return this.retrieveSimilar(params.query, params.limit);
-  }
-
   async storeInteraction(query: string, response: string, state: any): Promise<void> {
     try {
       console.log('Storing interaction:', { query, response });
       const stateString = typeof state === 'string' ? state : JSON.stringify(state);
       const timestamp = new Date().toISOString();
 
-      // Check for duplicate add operations
-      if (this.shouldPreventDuplicateAdd(timestamp)) {
-        console.log('Preventing duplicate interaction storage');
+      if (this.shouldPreventDuplicate('store', timestamp)) {
         return;
       }
 
@@ -152,7 +156,7 @@ export class VectorStorage {
       await this.storage.addEntry(entry);
       console.log('Entry stored successfully');
 
-      this.lastAddTimestamp = timestamp;
+      this.updateLastOperation('store', timestamp);
       this.notifyStateChange({
         type: 'store',
         payload: { query, response, state: stateString },

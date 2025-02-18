@@ -37,7 +37,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
-  const [lastActionTimestamp, setLastActionTimestamp] = useState<string>('');
+  const [lastAction, setLastAction] = useState<{type: string; timestamp: string} | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -54,6 +54,15 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
             if (store && action) {
               const currentTimestamp = new Date().toISOString();
+
+              // Prevent duplicate actions within a short time window (100ms)
+              if (lastAction && 
+                  lastAction.type === action.type &&
+                  Date.parse(currentTimestamp) - Date.parse(lastAction.timestamp) < 100) {
+                console.log('Preventing duplicate action:', action.type);
+                return;
+              }
+
               const enhancedAction = {
                 ...action,
                 timestamp: currentTimestamp,
@@ -62,18 +71,12 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
                 response: action.payload ? JSON.stringify(action.payload) : undefined
               };
 
-              // Prevent duplicate actions within a short time window (100ms)
-              if (
-                action.type === 'add' && 
-                Date.parse(currentTimestamp) - Date.parse(lastActionTimestamp) < 100
-              ) {
-                console.log('Preventing duplicate vector/add action');
-                return;
-              }
-
               console.log('Dispatching vector action:', enhancedAction);
               (store as any).lastAction = enhancedAction;
-              setLastActionTimestamp(currentTimestamp);
+              setLastAction({ 
+                type: action.type, 
+                timestamp: currentTimestamp 
+              });
             }
           }
         });
