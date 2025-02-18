@@ -6,7 +6,6 @@ import { queryClient } from './lib/queryClient';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
 import { useState } from 'react';
-import { Applicant } from '@/store/slices/applicantSlice';
 
 // Define available actions for the demo
 const demoActions: ReduxAIAction[] = [
@@ -35,11 +34,11 @@ const matchAction = (query: string) => {
   const showColumnsMatch = /show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/.exec(lowerQuery);
   if (showColumnsMatch) {
     const requestedColumns = [showColumnsMatch[1], showColumnsMatch[2]].filter(Boolean);
-    const validColumns: Array<keyof Applicant> = ['name', 'email', 'status', 'position', 'appliedDate'];
+    const validColumns = ['name', 'email', 'status', 'position', 'appliedDate'];
 
     const columns = requestedColumns.filter(col => 
-      validColumns.includes(col as keyof Applicant)
-    ) as Array<keyof Applicant>;
+      validColumns.includes(col as any)
+    );
 
     if (columns.length > 0) {
       return {
@@ -52,7 +51,7 @@ const matchAction = (query: string) => {
     }
   }
 
-  // Match search command - Remove "for" from being included in the search term
+  // Match search command
   const searchMatch = /(?:search|find|look\s+for)\s+(?:for\s+)?(.+)/i.exec(lowerQuery);
   if (searchMatch) {
     const searchTerm = searchMatch[1].trim();
@@ -91,10 +90,7 @@ function AppContent() {
       </main>
 
       {/* Fixed Chat Bubble and Activity Log */}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-4">
-        <div className="max-w-[200px] sm:max-w-none text-sm text-muted-foreground bg-background/80 backdrop-blur-sm p-2 rounded-lg shadow">
-          Try asking: "show only name and email columns" or "search for john@example.com"
-        </div>
+      <div className="fixed bottom-4 right-4 z-40">
         <ChatBubble 
           className="w-[350px] sm:w-[400px] shadow-lg rounded-lg bg-background border" 
           onToggleActivityLog={() => setShowActivityLog(!showActivityLog)}
