@@ -45,26 +45,35 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
   useEffect(() => {
     let isCleanedUp = false;
+    let unsubscribe: (() => void) | undefined;
 
     const initialize = async () => {
       try {
         console.log('Starting ReduxAI initialization...');
 
-        // Initialize vector storage with proper configuration
+        // Delete existing IndexedDB database
+        const deleteRequest = window.indexedDB.deleteDatabase('redux-ai-store');
+
+        await new Promise((resolve, reject) => {
+          deleteRequest.onerror = () => reject(new Error('Failed to delete existing database'));
+          deleteRequest.onsuccess = () => resolve(undefined);
+        });
+
+        // Initialize vector storage with fresh configuration
         console.log('Initializing vector storage...');
         const vectorStorage = await createReduxAIVector({
           collectionName: 'redux-ai-store',
           maxEntries: 100,
-          dimensions: 128,
-          clearExisting: true // Add flag to clear existing data
+          dimensions: 128
         });
+
         console.log('Vector storage initialized successfully');
 
         if (isCleanedUp) return;
 
         // Initialize ReduxAI state manager
         console.log('Initializing ReduxAI state manager...');
-        const aiState = await createReduxAIState({
+        await createReduxAIState({
           store,
           schema,
           vectorStorage,
@@ -81,11 +90,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         if (isCleanedUp) return;
 
         // Add middleware to track state changes
-        const unsubscribe = store.subscribe(() => {
+        unsubscribe = store.subscribe(() => {
+          if (isCleanedUp) return;
+
           const state = store.getState();
           const lastAction = (store as any)._lastAction;
 
-          if (lastAction && lastAction.type && !isCleanedUp) {
+          if (lastAction && lastAction.type) {
             const stateChange = {
               action: lastAction,
               state,
@@ -107,18 +118,13 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (!isCleanedUp) {
           setIsInitialized(true);
+          console.log('ReduxAI initialization complete');
         }
-        console.log('ReduxAI initialization complete');
 
-        return () => {
-          isCleanedUp = true;
-          unsubscribe();
-        };
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to initialize ReduxAI';
-        console.error('ReduxAI initialization error:', message);
+        console.error('ReduxAI initialization error:', error);
         if (!isCleanedUp) {
-          setError(message);
+          setError(error instanceof Error ? error.message : 'Failed to initialize ReduxAI');
         }
       }
     };
@@ -127,6 +133,9 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
     return () => {
       isCleanedUp = true;
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, [store, schema, availableActions, onActionMatch]);
 
