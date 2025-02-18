@@ -7,6 +7,7 @@ import { Toaster } from './components/ui/toaster';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { ApplicantTable } from './components/ApplicantTable';
 import { useState } from 'react';
+import { Applicant } from '@/store/slices/applicantSlice';
 
 // Define available actions for the demo
 const demoActions: ReduxAIAction[] = [
@@ -34,14 +35,22 @@ const matchAction = (query: string) => {
   // Match show columns command
   const columnMatch = lowerQuery.match(/show\s+(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?/);
   if (columnMatch) {
-    const columns = [columnMatch[1], columnMatch[2]].filter(Boolean);
-    return {
-      action: {
-        type: 'applicant/setVisibleColumns',
-        payload: columns
-      },
-      message: `Updated visible columns to show: ${columns.join(', ')}`
-    };
+    const columns = [columnMatch[1], columnMatch[2]]
+      .filter(Boolean)
+      .filter((col): col is keyof Applicant => {
+        const validColumns: Array<keyof Applicant> = ['name', 'email', 'status', 'position', 'appliedDate'];
+        return validColumns.includes(col as keyof Applicant);
+      });
+
+    if (columns.length > 0) {
+      return {
+        action: {
+          type: 'applicant/setVisibleColumns',
+          payload: columns
+        },
+        message: `Updated visible columns to show: ${columns.join(', ')}`
+      };
+    }
   }
 
   // Match search command
