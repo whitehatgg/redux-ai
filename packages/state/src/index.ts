@@ -38,63 +38,94 @@ export class ReduxAIState<TState, TAction extends Action> {
     this.onActionMatch = config.onActionMatch;
   }
 
-  private async storeStateChange(action: TAction, message: string) {
+  private async storeInteraction(query: string, response: string, metadata: any, collection: string) {
     try {
-      if (!action || typeof action !== 'object' || !('type' in action)) {
-        console.warn('Invalid action in storeStateChange:', action);
-        return;
-      }
-
-      const state = this.store.getState();
-      const stateData = {
-        type: 'STATE_CHANGE',
-        action,
-        state,
-        timestamp: new Date().toISOString()
-      };
-
       await this.vectorStorage.storeInteraction(
-        message,
-        JSON.stringify(stateData),
-        JSON.stringify(stateData)
+        query,
+        response,
+        JSON.stringify({ ...metadata, timestamp: new Date().toISOString() }),
+        collection
       );
     } catch (error) {
-      console.error('Error storing state change:', error);
+      console.error(`Error storing ${collection} interaction:`, error);
       if (this.onError) {
-        this.onError(error instanceof Error ? error : new Error('Failed to store state change'));
+        this.onError(error instanceof Error ? error : new Error(`Failed to store ${collection}`));
       }
     }
+  }
+
+  private isInformationalQuery(query: string): boolean {
+    const informationalPatterns = [
+      /^(?:what|show|tell\s+me)\s+(?:was|is|are|were)\s+(?:my|the|our)\s+(?:last|previous|recent)/i,
+      /^(?:list|display|show)\s+(?:all|recent|previous)/i,
+      /^(?:can\s+you\s+)?(?:remind|tell)\s+me\s+(?:about|what)/i,
+      /^(?:history|log|record)s?\s+of/i,
+    ];
+
+    return informationalPatterns.some(pattern => pattern.test(query));
+  }
+
+  private async handleInformationalQuery(query: string) {
+    // Try to find relevant interactions from chat history
+    const chatHistory = await this.vectorStorage.retrieveSimilar(query, 3, 'chat_history');
+
+    if (chatHistory.length > 0) {
+      const latestInteraction = JSON.parse(chatHistory[0].data);
+      return {
+        message: `Based on your history: "${latestInteraction.query}" - ${latestInteraction.response}`,
+        action: null
+      };
+    }
+
+    // If no chat history, check state changes
+    const stateChanges = await this.vectorStorage.retrieveSimilar(query, 3, 'state_changes');
+
+    if (stateChanges.length > 0) {
+      const latestChange = JSON.parse(stateChanges[0].data);
+      return {
+        message: `Last state change was: ${latestChange.message}`,
+        action: null
+      };
+    }
+
+    return {
+      message: "I couldn't find any relevant history for your query.",
+      action: null
+    };
   }
 
   async processQuery(query: string) {
     try {
       console.log('Processing query:', query);
 
-      // Get previous interactions for context
-      const previousInteractions = await this.vectorStorage.retrieveSimilar(query, 5);
-      console.log('Previous similar interactions:', previousInteractions);
+      // Store the query in chat history first
+      await this.storeInteraction(query, '', { query }, 'chat_history');
 
-      // Use client-provided action matching function
+      // Determine if this is an informational query
+      if (this.isInformationalQuery(query)) {
+        const result = await this.handleInformationalQuery(query);
+        // Update the stored chat interaction with the response
+        await this.storeInteraction(query, result.message, { query, response: result.message }, 'chat_history');
+        return result;
+      }
+
+      // If not informational, try to match an action
       if (this.onActionMatch) {
         const actionInfo = await this.onActionMatch(query);
 
-        // Validate action info and structure
         if (!actionInfo) {
-          return {
-            message: 'I could not determine an appropriate action for your request.',
-            action: null
-          };
+          const message = 'I could not determine an appropriate action for your request.';
+          await this.storeInteraction(query, message, { query, response: message }, 'chat_history');
+          return { message, action: null };
         }
 
         const { action, message } = actionInfo;
 
         // Validate action structure
         if (!action || typeof action !== 'object' || !('type' in action)) {
-          console.warn('Invalid action structure:', action);
-          return {
-            message: 'Unable to process that action.',
-            action: null
-          };
+          const errorMessage = 'Unable to process that action.';
+          await this.storeInteraction(query, errorMessage, { query, error: errorMessage }, 'chat_history');
+          return { message: errorMessage, action: null };
         }
 
         // Validate action type against available actions
@@ -103,38 +134,36 @@ export class ReduxAIState<TState, TAction extends Action> {
         );
 
         if (!isValidAction) {
-          console.warn('Invalid action type:', action.type);
-          return {
-            message: 'Unable to perform that action.',
-            action: null
-          };
+          const errorMessage = 'Unable to perform that action.';
+          await this.storeInteraction(query, errorMessage, { query, error: errorMessage }, 'chat_history');
+          return { message: errorMessage, action: null };
         }
 
-        // Store the interaction and dispatch valid action
-        const stateData = {
-          query,
-          action,
-          message,
-          timestamp: new Date().toISOString()
-        };
-
-        await this.vectorStorage.storeInteraction(
+        // Store the state change
+        await this.storeInteraction(
           query,
           message,
-          JSON.stringify(stateData)
+          { query, action, message },
+          'state_changes'
         );
 
         // Dispatch the action
         this.store.dispatch(action);
-        await this.storeStateChange(action, message);
+
+        // Update chat history with the success message
+        await this.storeInteraction(
+          query,
+          message,
+          { query, response: message, actionType: action.type },
+          'chat_history'
+        );
 
         return { action, message };
       }
 
-      return {
-        message: 'I could not determine an appropriate action for your request.',
-        action: null
-      };
+      const message = 'No action matching handler configured.';
+      await this.storeInteraction(query, message, { query, error: message }, 'chat_history');
+      return { message, action: null };
 
     } catch (error) {
       console.error('Error in processQuery:', error);
@@ -142,14 +171,35 @@ export class ReduxAIState<TState, TAction extends Action> {
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
+      await this.storeInteraction(query, errorMessage, { query, error: errorMessage }, 'chat_history');
       throw error;
     }
   }
 
-  async getSimilarInteractions(query: string, limit: number = 5) {
+  async getLastQuery() {
+    try {
+      const interactions = await this.vectorStorage.retrieveSimilar('', 1, 'chat_history');
+      if (interactions.length > 0) {
+        const lastInteraction = JSON.parse(interactions[0].data);
+        return {
+          message: `Your last query was: "${lastInteraction.query}"`,
+          action: null
+        };
+      }
+      return {
+        message: "You haven't made any queries yet.",
+        action: null
+      };
+    } catch (error) {
+      console.error('Error retrieving last query:', error);
+      throw error;
+    }
+  }
+
+  async getSimilarInteractions(query: string, limit: number = 5, collection: string = 'state_changes') {
     try {
       console.log('Retrieving similar interactions for query:', query);
-      const interactions = await this.vectorStorage.retrieveSimilar(query, limit);
+      const interactions = await this.vectorStorage.retrieveSimilar(query, limit, collection);
       console.log('Retrieved interactions:', interactions);
       return interactions;
     } catch (error) {
