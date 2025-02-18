@@ -64,7 +64,7 @@ function AppContent() {
             Vibe coding your Redux store—let your users chat with your app using AI
           </p>
           <div className="flex justify-center gap-4">
-            <a href="https://github.com/yourusername/redux-ai" className="inline-flex items-center px-6 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            <a href="https://github.com/whitehatgg/redux-ai" className="inline-flex items-center px-6 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
               Get Started
             </a>
             <a href="#demo" className="inline-flex items-center px-6 py-3 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors">
@@ -116,17 +116,17 @@ function AppContent() {
 
       {/* Chat Bubble */}
       <div className="fixed bottom-4 right-4 z-40">
-        <ChatBubble 
-          className="w-[350px] sm:w-[400px] shadow-lg rounded-lg bg-background border" 
+        <ChatBubble
+          className="w-[350px] sm:w-[400px] shadow-lg rounded-lg bg-background border"
           onToggleActivityLog={() => setShowActivityLog(!showActivityLog)}
           isMinimized={isMinimized}
           onMinimize={() => setIsMinimized(!isMinimized)}
         />
       </div>
 
-      <ActivityLog 
-        open={showActivityLog} 
-        onClose={() => setShowActivityLog(false)} 
+      <ActivityLog
+        open={showActivityLog}
+        onClose={() => setShowActivityLog(false)}
       />
     </div>
   );
@@ -136,8 +136,8 @@ function App() {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ReduxAIProvider 
-          store={store} 
+        <ReduxAIProvider
+          store={store}
           availableActions={availableActions}
         >
           <AppContent />
