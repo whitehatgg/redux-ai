@@ -7,6 +7,7 @@ import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
 interface VectorAction {
   type: string;
   payload?: any;
+  query?: string;
 }
 
 interface ReduxAIContextType {
@@ -56,6 +57,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
                 ...action,
                 timestamp: new Date().toISOString(),
                 type: `vector/${action.type}`,
+                query: action.query || action.payload?.query,
                 response: action.payload ? JSON.stringify(action.payload) : undefined
               };
               console.log('Dispatching vector action:', enhancedAction);

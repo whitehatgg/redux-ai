@@ -8,6 +8,7 @@ interface ActivityEntry {
   type: string;
   timestamp: string;
   state: any;
+  query?: string;
   response?: string;
 }
 
@@ -21,6 +22,7 @@ interface ExtendedStore {
   subscribe: (listener: () => void) => () => void;
   lastAction?: AnyAction & {
     timestamp?: string;
+    query?: string;
     response?: string;
   };
 }
@@ -42,13 +44,17 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
       if (lastAction?.type) {
         console.log('ActivityLog: New action detected:', lastAction);
 
-        // Only add entries for vector operations or errors
-        if (lastAction.type.startsWith('vector/') || lastAction.type === '__VECTOR_ERROR__') {
+        const isVectorAction = lastAction.type.startsWith('vector/');
+        const isVectorError = lastAction.type === '__VECTOR_ERROR__';
+        const isVectorUpdate = lastAction.type === '__VECTOR_UPDATE__';
+
+        if (isVectorAction || isVectorError || isVectorUpdate) {
           console.log('ActivityLog: Adding new vector entry:', lastAction);
           setEntries(prev => [...prev, {
             type: lastAction.type,
             timestamp: lastAction.timestamp || new Date().toISOString(),
             state: store.getState(),
+            query: lastAction.query,
             response: lastAction.response
           }]);
         }
@@ -94,9 +100,15 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                       </span>
                     </div>
                     <div className="space-y-2">
+                      {entry.query && (
+                        <div className="text-sm">
+                          <span className="font-medium">Query: </span>
+                          <span className="text-muted-foreground">{entry.query}</span>
+                        </div>
+                      )}
                       {entry.response && (
                         <div className="text-sm">
-                          <span className="font-medium">Details: </span>
+                          <span className="font-medium">Response: </span>
                           <span className="text-muted-foreground">{entry.response}</span>
                         </div>
                       )}
