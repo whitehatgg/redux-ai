@@ -7,7 +7,7 @@ interface ActivityEntry {
   type: string;
   timestamp: string;
   state: any;
-  query?: string;
+  response?: string;
 }
 
 interface ActivityLogProps {
@@ -21,17 +21,20 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
 
   // Subscribe to store changes
   React.useEffect(() => {
-    return store.subscribe(() => {
+    const unsubscribe = store.subscribe(() => {
       const lastAction = (store as any).lastAction;
       if (lastAction) {
+        console.log('New action detected:', lastAction);
         setEntries(prev => [...prev, {
           type: lastAction.type,
-          timestamp: new Date().toISOString(),
+          timestamp: lastAction.timestamp || new Date().toISOString(),
           state: store.getState(),
-          query: lastAction.__source === 'ai' ? lastAction.query : undefined
+          response: lastAction.response
         }]);
       }
     });
+
+    return () => unsubscribe();
   }, [store]);
 
   if (!open) return null;
@@ -60,24 +63,24 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">Activity: {entry.type}</h4>
+                      <h4 className="font-medium text-sm">Action: {entry.type}</h4>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(entry.timestamp).toLocaleString()}
+                        {new Date(entry.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
                     <div className="space-y-2">
+                      {entry.response && (
+                        <div className="text-sm">
+                          <span className="font-medium">Response: </span>
+                          <span className="text-muted-foreground">{entry.response}</span>
+                        </div>
+                      )}
                       <div className="text-sm">
                         <span className="font-medium">State: </span>
                         <span className="text-muted-foreground">
-                          {JSON.stringify(entry.state).substring(0, 100)}...
+                          {JSON.stringify(entry.state, null, 2).substring(0, 100)}...
                         </span>
                       </div>
-                      {entry.query && (
-                        <div className="text-sm">
-                          <span className="font-medium">Query: </span>
-                          <span className="text-muted-foreground">{entry.query}</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

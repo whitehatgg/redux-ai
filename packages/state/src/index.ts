@@ -57,7 +57,8 @@ export class ReduxAIState<TState> {
         content: JSON.stringify(interaction),
         metadata: {
           type: 'interaction',
-          timestamp: interaction.timestamp
+          timestamp: interaction.timestamp,
+          state: JSON.stringify(this.store.getState())
         }
       });
     } catch (error) {

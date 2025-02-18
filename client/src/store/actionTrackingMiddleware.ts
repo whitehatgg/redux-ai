@@ -6,16 +6,15 @@ export const actionTrackingMiddleware: Middleware = store => next => action => {
     return next(action);
   }
 
-  // Add trigger source information to the action
-  const actionWithSource = {
+  const actionWithTimestamp = {
     ...action,
-    __source: action.__source || 'ui' // Default to 'ui' if not specified
+    timestamp: new Date().toISOString()
   };
 
   // Store the action for tracking
-  (store as any).lastAction = actionWithSource;
+  (store as any).lastAction = actionWithTimestamp;
 
-  console.log('Action tracked in middleware:', actionWithSource);
+  console.log('Action tracked in middleware:', actionWithTimestamp);
 
-  return next(actionWithSource);
+  return next(actionWithTimestamp);
 };
