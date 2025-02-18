@@ -17,22 +17,28 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   // Format action in a generic way
   const formatAction = (action: any) => {
     if (!action) return 'No action';
+    if (action.type === '@@redux/INIT') return 'Redux Initialized';
     return `${action.type}${action.payload ? `: ${JSON.stringify(action.payload)}` : ''}`;
   };
 
-  // Filter out duplicate consecutive actions (generic implementation)
-  const filteredChanges = stateChanges.reduce((acc: any[], current, index) => {
+  // Filter out initialization action and duplicate consecutive actions
+  const filteredChanges = stateChanges.filter((change, index) => {
+    // Keep initialization action if it's the only one
+    if (change.action?.type === '@@redux/INIT' && stateChanges.length > 1) {
+      return false;
+    }
+
     // Skip if this is a duplicate of the previous action
     if (index > 0) {
       const prev = stateChanges[index - 1];
-      if (prev.action?.type === current.action?.type &&
-          JSON.stringify(prev.action?.payload) === JSON.stringify(current.action?.payload) &&
+      if (prev.action?.type === change.action?.type &&
+          JSON.stringify(prev.action?.payload) === JSON.stringify(change.action?.payload) &&
           Date.now() - new Date(prev.timestamp).getTime() < 2000) { // Within 2 seconds
-        return acc;
+        return false;
       }
     }
-    return [...acc, current];
-  }, []);
+    return true;
+  });
 
   console.log('ActivityLog - Filtered changes:', filteredChanges);
 

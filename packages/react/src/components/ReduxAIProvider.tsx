@@ -55,8 +55,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
       return;
     }
 
-    // Skip internal actions
-    if (action.type.startsWith('@@') || action.type === 'INVALID_ACTION') {
+    // Skip internal actions except initialization
+    if (action.type.startsWith('@@') && action.type !== '@@redux/INIT') {
       console.log('ReduxAIProvider - Skipping internal action:', action.type);
       return;
     }
@@ -65,34 +65,38 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const isAIAction = availableActions.some(available => available.type === action.type);
     console.log('ReduxAIProvider - Is AI action:', isAIAction);
 
-    // Determine trigger source
+    // Determine trigger source directly from the action
     const triggerType = action.__source === 'ai' ? 'ai' as const : 'ui' as const;
     console.log('ReduxAIProvider - Trigger type:', triggerType);
 
+    const timestamp = new Date().toISOString();
+    const newChange = {
+      action,
+      state,
+      timestamp,
+      isAIAction,
+      trigger: triggerType
+    };
+
     setStateChanges(prev => {
-      const timestamp = new Date().toISOString();
-      const newChange = {
-        action,
-        state,
-        timestamp,
-        isAIAction,
-        trigger: triggerType
-      };
+      // Only check for duplicates if it's not the initialization action
+      if (action.type !== '@@redux/INIT') {
+        const isDuplicate = prev.some(entry =>
+          entry.action?.type === action.type &&
+          JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload) &&
+          Date.now() - new Date(entry.timestamp).getTime() < 2000 // Within 2 seconds
+        );
 
-      // Check if this exact action was already recorded
-      const isDuplicate = prev.some(entry =>
-        entry.action?.type === action.type &&
-        JSON.stringify(entry.action?.payload) === JSON.stringify(action.payload) &&
-        Date.now() - new Date(entry.timestamp).getTime() < 2000 // Within 2 seconds
-      );
-
-      if (isDuplicate) {
-        console.log('ReduxAIProvider - Duplicate action detected, skipping');
-        return prev;
+        if (isDuplicate) {
+          console.log('ReduxAIProvider - Duplicate action detected, skipping');
+          return prev;
+        }
       }
 
       console.log('ReduxAIProvider - Adding new state change:', newChange);
-      return [...prev, newChange];
+      const newChanges = [...prev, newChange];
+      console.log('ReduxAIProvider - Updated state changes:', newChanges);
+      return newChanges;
     });
   };
 
@@ -103,6 +107,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const initialize = async () => {
       try {
         console.log('ReduxAIProvider - Starting initialization...');
+
+        // Create initial state change for initialization
+        const initialState = store.getState();
+        recordStateChange({ type: '@@redux/INIT', __source: 'ui' }, initialState);
 
         // Delete both potential database names to ensure clean start
         await Promise.all([
@@ -158,9 +166,8 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         // Subscribe to store changes to track actions and state
         console.log('ReduxAIProvider - Setting up store subscription');
         unsubscribe = store.subscribe(() => {
+          const action = (store as any)._currentAction; // Get the current action from the store
           const state = store.getState();
-          const action = (store as any).lastAction;
-          console.log('ReduxAIProvider - Store subscription triggered:', { action, state });
           if (action) {
             recordStateChange(action, state);
           }
@@ -189,6 +196,12 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     };
   }, [store, schema, availableActions]);
 
+  const contextValue = {
+    isInitialized,
+    error,
+    stateChanges
+  };
+
   if (error) {
     return (
       <div className="text-red-500 p-4 border border-red-300 rounded bg-red-50">
@@ -206,7 +219,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   }
 
   return (
-    <ReduxAIContext.Provider value={{ isInitialized, error, stateChanges }}>
+    <ReduxAIContext.Provider value={contextValue}>
       {children}
     </ReduxAIContext.Provider>
   );

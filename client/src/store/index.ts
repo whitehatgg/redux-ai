@@ -1,6 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
 import applicantReducer, { type ApplicantState } from './slices/applicantSlice';
-import { actionTrackingMiddleware } from './actionTrackingMiddleware';
 
 export interface RootState {
   applicant: ApplicantState;
@@ -27,7 +26,7 @@ export const store = configureStore({
         // Ignore these field paths in the state
         ignoredPaths: ['lastAction']
       },
-    }).concat([actionValidationMiddleware, actionTrackingMiddleware])
+    }).concat([actionValidationMiddleware])
 });
 
 export type AppDispatch = typeof store.dispatch;
