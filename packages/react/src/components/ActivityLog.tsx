@@ -16,7 +16,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   return (
     <div className="fixed inset-y-0 left-0 w-80 bg-background border-r shadow-lg z-50">
       <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold">Available Actions</h3>
+        <h3 className="font-semibold">Activity Log</h3>
         <button
           onClick={onClose}
           className="p-1 hover:bg-muted rounded-md"
@@ -36,17 +36,35 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                   className="rounded-lg p-4 bg-muted"
                 >
                   <div className="space-y-2">
-                    <h4 className="font-medium">{action.type}</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">{action.type}</h4>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date().toLocaleString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: true,
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {action.description}
                     </p>
                     <div className="flex flex-wrap gap-2">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        Activity: {action.type}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        State: Active
+                      </span>
                       {action.keywords.map((keyword, idx) => (
                         <span 
                           key={idx}
                           className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
                         >
-                          {keyword}
+                          Query: {keyword}
                         </span>
                       ))}
                     </div>
@@ -55,7 +73,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No available actions defined.
+                No activities logged yet.
               </div>
             )}
           </div>
