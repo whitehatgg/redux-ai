@@ -12,18 +12,21 @@ export function useVectorDebug() {
   const [entries, setEntries] = useState<DebugEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [storage] = useState(() => new IndexedDBStorage());
 
   useEffect(() => {
-    let storage: IndexedDBStorage | null = null;
-
     const fetchDebugEntries = async () => {
       try {
-        console.log('Creating new IndexedDB storage instance...');
-        storage = new IndexedDBStorage();
+        if (!storage) {
+          throw new Error('Storage not initialized');
+        }
 
-        console.log('Initializing IndexedDB storage...');
-        await storage.initialize();
-        console.log('IndexedDB storage initialized successfully');
+        // Initialize if not already done
+        if (!storage.db) {
+          console.log('Initializing IndexedDB storage...');
+          await storage.initialize();
+          console.log('IndexedDB storage initialized successfully');
+        }
 
         console.log('Fetching entries from IndexedDB...');
         const data = await storage.getAllEntries();
@@ -67,16 +70,17 @@ export function useVectorDebug() {
       }
     };
 
+    // Initial fetch
     fetchDebugEntries();
 
     // Poll for updates every 5 seconds
     const interval = setInterval(fetchDebugEntries, 5000);
 
+    // Cleanup
     return () => {
       clearInterval(interval);
-      storage = null; // Help with cleanup
     };
-  }, []);
+  }, [storage]);
 
   return { entries, isLoading, error };
 }
