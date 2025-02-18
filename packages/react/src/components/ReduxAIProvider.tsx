@@ -63,6 +63,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.log('[ReduxAIProvider] Initialization complete');
       } catch (error) {
         console.error('[ReduxAIProvider] Initialization error:', error);
+        store.dispatch({ type: '__VECTOR_ERROR__', payload: error instanceof Error ? error.message : 'Vector storage initialization failed' });
       }
     };
 

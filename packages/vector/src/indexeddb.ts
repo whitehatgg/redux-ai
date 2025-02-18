@@ -2,7 +2,7 @@ import { VectorEntry } from './storage';
 
 const DB_NAME = 'reduxai_vector';
 const STORE_NAME = 'vector_entries';
-const DB_VERSION = 2; // Increment version to trigger database upgrade
+const DB_VERSION = 3; // Increment version to trigger database upgrade
 
 export class IndexedDBStorage {
   private db: IDBDatabase | null = null;
@@ -12,6 +12,13 @@ export class IndexedDBStorage {
       console.warn('[IndexedDB] IndexedDB not available');
       return;
     }
+
+    // Delete existing database to ensure clean slate
+    await new Promise<void>((resolve) => {
+      const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+      deleteRequest.onsuccess = () => resolve();
+      deleteRequest.onerror = () => resolve(); // Continue even if delete fails
+    });
 
     return new Promise((resolve, reject) => {
       try {
@@ -35,11 +42,8 @@ export class IndexedDBStorage {
               db.deleteObjectStore(STORE_NAME);
             }
             console.log('[IndexedDB] Creating vector entries store');
-            const store = db.createObjectStore(STORE_NAME, { 
-              keyPath: 'id'
-            });
+            const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
             store.createIndex('timestamp', 'timestamp', { unique: false });
-            store.createIndex('id', 'id', { unique: true });
           } catch (error) {
             console.error('[IndexedDB] Error in upgrade:', error);
             reject(error);
@@ -59,16 +63,17 @@ export class IndexedDBStorage {
       if (!this.db) throw new Error('Failed to initialize database');
     }
 
-    if (!entry.id) {
-      entry.id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    }
-
     return new Promise((resolve, reject) => {
       try {
         const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
 
-        const request = store.add(entry);
+        const entryWithId = {
+          ...entry,
+          id: entry.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        };
+
+        const request = store.add(entryWithId);
 
         request.onerror = () => {
           console.error('[IndexedDB] Error adding entry:', request.error);
@@ -78,11 +83,6 @@ export class IndexedDBStorage {
         request.onsuccess = () => {
           console.log('[IndexedDB] Successfully added entry');
           resolve();
-        };
-
-        transaction.onerror = (event) => {
-          console.error('[IndexedDB] Transaction error:', transaction.error);
-          reject(new Error('Transaction failed'));
         };
 
       } catch (error) {
