@@ -26,20 +26,47 @@ const demoActions: ReduxAIAction[] = [
   }
 ];
 
-// Placeholder for the actual LLM interaction.  Replace with your OpenAI API call.
+// LLM interaction handler with proper validation
 const matchActionWithLLM = async (query: string, contextData: any) => {
-  //  Replace this with your actual OpenAI API call.  This is a placeholder.
-  //  The API call should take the query and contextData as input and return an action and a message.
+  try {
+    // In a real implementation, this would be an OpenAI API call
+    // For now, we'll simulate the response based on the query and context
 
-  // Example placeholder: Simulate a successful API call.  Remove this for production
-  const simulatedResponse = {
-    action: contextData.chatHistory.length > 0 && query.includes("search") ? null : { type: 'applicant/setSearchTerm', payload: query },
-    message: `Simulated LLM Response:  Query: ${query} Context: ${JSON.stringify(contextData)}`
-  };
+    const searchTerms = ['search', 'find', 'look', 'filter'];
+    const isSearchQuery = searchTerms.some(term => query.toLowerCase().includes(term));
 
-  return simulatedResponse;
+    if (isSearchQuery) {
+      // Extract the search term by removing the command words
+      const searchTerm = query.toLowerCase()
+        .replace(/^(search|find|look|filter)(\s+for)?/i, '')
+        .trim();
+
+      return {
+        action: {
+          type: 'applicant/setSearchTerm',
+          payload: searchTerm
+        },
+        message: `Searching for "${searchTerm}" in applicants.`
+      };
+    }
+
+    // If no specific action is determined, return a response based on context
+    const recentInteractions = contextData.chatHistory || [];
+    return {
+      action: null,
+      message: recentInteractions.length > 0
+        ? `Based on your recent activity, I can help you search or filter the applicants. What would you like to do?`
+        : `I can help you search through applicants or manage table columns. What would you like to do?`
+    };
+
+  } catch (error) {
+    console.error('Error in matchActionWithLLM:', error);
+    return {
+      action: null,
+      message: 'I encountered an error processing your request. Please try again.'
+    };
+  }
 };
-
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -86,10 +113,26 @@ function App() {
           onActionMatch={async (query: string, context: string) => {
             try {
               const contextData = JSON.parse(context);
-              const { action, message } = await matchActionWithLLM(query, contextData);
+              const result = await matchActionWithLLM(query, contextData);
+
+              // Validate the result before returning
+              if (!result) {
+                return null;
+              }
+
+              const { action, message } = result;
+
+              // Validate action structure if present
+              if (action && (!action.type || !demoActions.some(a => a.type === action.type))) {
+                return {
+                  action: null,
+                  message: 'Invalid action type. Please try a different command.'
+                };
+              }
+
               return { action, message };
             } catch (error) {
-              console.error('Error matching action:', error);
+              console.error('Error in onActionMatch:', error);
               return null;
             }
           }}
