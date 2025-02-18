@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { getReduxAI, initializeReduxAI } from '@redux-ai/state';
+import { getReduxAI } from '@redux-ai/state';
 
 interface RAGResponse {
   ragResponse: string;
@@ -27,9 +27,13 @@ export function useReduxAI() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        await initializeReduxAI();
-        setIsInitialized(true);
-        console.log('ReduxAI initialized successfully');
+        try {
+          getReduxAI();
+          setIsInitialized(true);
+          console.log('ReduxAI already initialized');
+        } catch (err) {
+          console.log('Waiting for ReduxAI initialization...');
+        }
       } catch (err: unknown) {
         console.error('Failed to initialize ReduxAI:', err);
         setError('Failed to initialize AI functionality');
@@ -37,6 +41,18 @@ export function useReduxAI() {
     };
 
     initialize();
+
+    const interval = setInterval(() => {
+      try {
+        getReduxAI();
+        setIsInitialized(true);
+        clearInterval(interval);
+      } catch (err) {
+        // Continue polling
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
   }, []);
 
   const sendQuery = useCallback(async (query: string): Promise<string> => {
@@ -46,31 +62,29 @@ export function useReduxAI() {
 
     setIsProcessing(true);
     setError(null);
-    setRagResults(null);
 
     try {
       const reduxAI = getReduxAI();
       console.log('Processing query:', query);
       const response = await reduxAI.processQuery(query);
       console.log('Query response:', response);
-      const similarDocs = await reduxAI.getSimilarInteractions(query);
-      console.log('Similar docs:', similarDocs);
 
-      // Safely convert similarDocs to the expected format
-      const formattedSimilarDocs = (Array.isArray(similarDocs) ? similarDocs : []).map(doc => ({
-        query: doc?.query || 'No query available',
-        response: doc?.response || 'No response available',
-        state: doc?.state || '{}',
-        timestamp: doc?.timestamp || new Date().toISOString()
-      }));
+      let similarDocs = [];
+      try {
+        similarDocs = await reduxAI.getSimilarInteractions(query) || [];
+        console.log('Similar docs:', similarDocs);
+      } catch (err) {
+        console.warn('Failed to get similar interactions:', err);
+      }
 
-      // Create RAG results with proper type safety
+      // Create RAG results with proper type safety and defaults
       const ragResponse: RAGResponse = {
-        ragResponse: response.message,
-        similarDocs: formattedSimilarDocs,
+        ragResponse: response.message || '',
+        similarDocs: Array.isArray(similarDocs) ? similarDocs : [],
         timestamp: new Date().toISOString()
       };
 
+      console.log('Setting RAG results:', ragResponse);
       setRagResults(ragResponse);
       return response.message;
     } catch (error) {

@@ -41,26 +41,26 @@ export class ReduxAIState<TState, TAction extends Action> {
       console.log('AI Response:', response);
 
       if (response.action) {
-        // If schema is provided, validate action
-        if (this.schema && !this.schema.validateAction(response.action)) {
-          throw new Error('Invalid action format returned from AI');
-        }
-
+        console.log('Dispatching action:', response.action);
         // Store the pre-action state
         const preActionState = JSON.stringify(this.store.getState(), null, 2);
-        console.log('Pre-action state:', preActionState);
 
         // Dispatch the action
         this.store.dispatch(response.action);
-        console.log('Action dispatched:', response.action);
 
         // Get post-action state and store the interaction
         const postActionState = JSON.stringify(this.store.getState(), null, 2);
-        console.log('Post-action state:', postActionState);
         await this.vectorStorage.storeInteraction(
           query,
           response.message,
           postActionState
+        );
+      } else {
+        // Store the interaction even if no action was taken
+        await this.vectorStorage.storeInteraction(
+          query,
+          response.message,
+          JSON.stringify(this.store.getState(), null, 2)
         );
       }
 
@@ -76,7 +76,14 @@ export class ReduxAIState<TState, TAction extends Action> {
   }
 
   async getSimilarInteractions(query: string, limit: number = 5) {
-    return this.vectorStorage.retrieveSimilar(query, limit);
+    try {
+      const results = await this.vectorStorage.retrieveSimilar(query, limit);
+      console.log('Retrieved similar interactions:', results);
+      return results;
+    } catch (error) {
+      console.error('Error getting similar interactions:', error);
+      return [];
+    }
   }
 
   private async generateAIResponse(query: string, state: TState, previousInteractions: any[]): Promise<{
@@ -86,9 +93,9 @@ export class ReduxAIState<TState, TAction extends Action> {
     try {
       // Get all available action creators from the store
       const availableActions = Object.keys(this.store.dispatch)
-        .filter(key => typeof this.store.dispatch[key as keyof typeof this.store.dispatch] === 'function')
+        .filter(key => typeof (this.store.dispatch as any)[key] === 'function')
         .map(key => ({
-          type: `${key}`,
+          type: `demo/${key}`,
           description: `Action creator for ${key}`
         }));
 
@@ -131,7 +138,8 @@ export const createReduxAIState = async <TState, TAction extends Action>(
     return _reduxAI as ReduxAIState<TState, TAction>;
   }
 
-  _reduxAI = new ReduxAIState<TState, TAction>(config);
+  const instance = new ReduxAIState<TState, TAction>(config);
+  _reduxAI = instance;
 
   // Store initial state in vector storage
   const initialState = config.store.getState();
@@ -141,7 +149,7 @@ export const createReduxAIState = async <TState, TAction extends Action>(
     JSON.stringify(initialState, null, 2)
   );
 
-  return _reduxAI;
+  return instance;
 };
 
 export const getReduxAI = () => {

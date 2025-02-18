@@ -12,7 +12,7 @@ export class IndexedDBStorage {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => reject(request.error);
-      
+
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
@@ -21,9 +21,11 @@ export class IndexedDBStorage {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { 
+          console.log('Creating vector entries store');
+          const store = db.createObjectStore(STORE_NAME, { 
             keyPath: 'timestamp'
           });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
         }
       };
     });
@@ -37,8 +39,14 @@ export class IndexedDBStorage {
       const store = transaction.objectStore(STORE_NAME);
       const request = store.add(entry);
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        console.error('Error adding entry:', request.error);
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        console.log('Successfully added entry to IndexedDB');
+        resolve();
+      };
     });
   }
 
@@ -48,10 +56,18 @@ export class IndexedDBStorage {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.getAll();
+      const index = store.index('timestamp');
+      const request = index.getAll();
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.error('Error getting entries:', request.error);
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        const entries = request.result;
+        console.log(`Retrieved ${entries.length} entries from IndexedDB`);
+        resolve(entries);
+      };
     });
   }
 
@@ -63,8 +79,14 @@ export class IndexedDBStorage {
       const store = transaction.objectStore(STORE_NAME);
       const request = store.clear();
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        console.error('Error clearing store:', request.error);
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        console.log('Successfully cleared IndexedDB store');
+        resolve();
+      };
     });
   }
 }

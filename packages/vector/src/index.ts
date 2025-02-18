@@ -46,7 +46,7 @@ export class ReduxAIVector {
         timestamp: new Date().toISOString(),
       };
 
-      await this.storage.addEntry(entry);
+      await this.storage.storeInteraction(query, response, state);
       console.log('Interaction stored successfully');
     } catch (error) {
       console.error('Error storing interaction:', error);

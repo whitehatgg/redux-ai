@@ -24,10 +24,10 @@ export const VectorDebugger: React.FC = () => {
 
       if (similarDocs.length > 0) {
         const newEntry: DebugEntry = {
-          query: similarDocs[0].query,
-          response: similarDocs[0].response,
-          state: similarDocs[0].state,
-          timestamp: new Date().toISOString()
+          query: similarDocs[0].query || '',
+          response: similarDocs[0].response || '',
+          state: similarDocs[0].state || '',
+          timestamp: similarDocs[0].timestamp || new Date().toISOString()
         };
         console.log('Adding new debug entry:', newEntry);
         setEntries(prev => [newEntry, ...prev]);
@@ -51,9 +51,9 @@ export const VectorDebugger: React.FC = () => {
           <div className="font-semibold">Current Counter: {counter}</div>
         </div>
         <div className="h-[400px] overflow-auto">
-          {entries.length > 0 ? (
+          {entries && entries.length > 0 ? (
             entries.map((entry, index) => (
-              <div key={index} className="mb-6 p-4 border rounded">
+              <div key={`${entry.timestamp}-${index}`} className="mb-6 p-4 border rounded">
                 <div className="font-semibold mb-2">
                   Query: {entry.query}
                 </div>
