@@ -25,7 +25,7 @@ export interface ReduxAIProviderProps {
   store: Store;
   schema?: ReduxAISchema<any>;
   availableActions: ReduxAIAction[];
-  onActionMatch?: (query: string) => { action: any; message: string } | null;
+  onActionMatch?: (query: string) => Promise<{ action: any; message: string } | null>;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({

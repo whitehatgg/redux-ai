@@ -27,12 +27,8 @@ const demoActions: ReduxAIAction[] = [
 ];
 
 // Custom action matching logic
-const matchAction = (query: string) => {
+const matchAction = async (query: string) => {
   const lowerQuery = query.toLowerCase().trim();
-
-  // Store the last query in memory
-  let lastQuery = '';
-  let lastSearchTerm = '';
 
   // Match show columns command
   const showColumnsMatch = /^show\s+(?:only\s+)?(\w+)(?:\s+(?:and|,)\s+(\w+))?\s*(?:columns?)?$/.exec(lowerQuery);
@@ -40,7 +36,7 @@ const matchAction = (query: string) => {
     const requestedColumns = [showColumnsMatch[1], showColumnsMatch[2]].filter(Boolean);
     const validColumns = ['name', 'email', 'status', 'position', 'appliedDate'];
 
-    const columns = requestedColumns.filter(col => 
+    const columns = requestedColumns.filter(col =>
       validColumns.includes(col as any)
     );
 
@@ -60,8 +56,6 @@ const matchAction = (query: string) => {
   const searchMatch = searchPattern.exec(lowerQuery);
   if (searchMatch) {
     const searchTerm = searchMatch[1].trim();
-    lastSearchTerm = searchTerm;
-    lastQuery = query;
     return {
       action: {
         type: 'applicant/setSearchTerm',
@@ -74,10 +68,12 @@ const matchAction = (query: string) => {
   // Match query about last search
   const lastQueryPattern = /^(?:what|show|tell\s+me)\s+(?:was|is)\s+(?:my\s+)?(?:last|previous)\s+(?:search|query)$/i;
   if (lastQueryPattern.test(lowerQuery)) {
-    if (lastQuery) {
+    const interactions = await vectorStorage.retrieveSimilar('search', 1);
+    if (interactions.length > 0) {
+      const lastInteraction = JSON.parse(interactions[0].data);
       return {
         action: null,
-        message: `Your last search query was: "${lastQuery}"`
+        message: `Your last search query was: "${lastInteraction.query}"`
       };
     }
     return {
@@ -89,14 +85,18 @@ const matchAction = (query: string) => {
   // Match navigation/history commands
   const historyPattern = /^(?:go\s+back\s+to|return\s+to|show)\s+(?:the\s+)?(first|last|previous)\s+(?:search|query)$/i;
   const historyMatch = historyPattern.exec(lowerQuery);
-  if (historyMatch && lastSearchTerm) {
-    return {
-      action: {
-        type: 'applicant/setSearchTerm',
-        payload: lastSearchTerm
-      },
-      message: `Returning to previous search: "${lastSearchTerm}"`
-    };
+  if (historyMatch) {
+    const interactions = await vectorStorage.retrieveSimilar('search', 1);
+    if (interactions.length > 0) {
+      const lastInteraction = JSON.parse(interactions[0].data);
+      return {
+        action: {
+          type: 'applicant/setSearchTerm',
+          payload: lastInteraction.action.payload
+        },
+        message: `Returning to previous search: "${lastInteraction.query}"`
+      };
+    }
   }
 
   return null;
@@ -120,7 +120,6 @@ function AppContent() {
         </div>
       </main>
 
-      {/* Fixed Chat Bubble and Activity Log */}
       <div className="fixed bottom-4 right-4 z-40">
         <ChatBubble 
           className="w-[350px] sm:w-[400px] shadow-lg rounded-lg bg-background border" 
@@ -145,7 +144,14 @@ function App() {
         <ReduxAIProvider 
           store={store} 
           availableActions={demoActions}
-          onActionMatch={matchAction}
+          onActionMatch={async (query: string) => {
+            try {
+              return await matchAction(query);
+            } catch (error) {
+              console.error('Error matching action:', error);
+              return null;
+            }
+          }}
         >
           <AppContent />
         </ReduxAIProvider>
