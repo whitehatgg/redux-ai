@@ -1,16 +1,15 @@
 pnpm install
-
-````
+```
 
 2. Start development:
 
 ```bash
 pnpm run dev
-````
+```
 
 ## Code Style & Formatting
 
-We use Prettier for code formatting. To format your code:
+We use Prettier for code formatting and ESLint for code quality. To format your code:
 
 ```bash
 # Format all files
@@ -21,7 +20,6 @@ pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .pre
 ```
 
 Our formatting rules include:
-
 - Semi-colons
 - Single quotes
 - 100 character line width
@@ -45,3 +43,23 @@ pnpm run test
 ```bash
 pnpm changeset
 ```
+
+## Semantic Versioning
+
+We follow [Semantic Versioning](https://semver.org/). When making changes:
+
+- MAJOR version for incompatible API changes (1.0.0)
+- MINOR version for added functionality in a backward compatible manner (0.1.0)
+- PATCH version for backward compatible bug fixes (0.0.1)
+
+Use changesets to document your changes and automate version management:
+
+```bash
+# Add a changeset
+pnpm changeset
+
+# Version packages based on changesets
+pnpm changeset version
+
+# Publish packages (maintainers only)
+pnpm changeset publish

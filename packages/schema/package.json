@@ -13,14 +13,14 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage",
+    "build": "pnpm tsc",
+    "dev": "pnpm tsc --watch",
+    "lint": "pnpm eslint \"src/**/*.{ts,tsx}\"",
+    "format": "pnpm prettier --write \"src/**/*.{ts,tsx,json}\"",
+    "format:check": "pnpm prettier --check \"src/**/*.{ts,tsx,json}\"",
+    "test": "pnpm vitest run",
+    "test:watch": "pnpm vitest watch",
+    "test:coverage": "pnpm vitest run --coverage",
     "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
     "preversion": "pnpm run ci"
   },

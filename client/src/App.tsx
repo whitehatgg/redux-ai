@@ -1,5 +1,5 @@
 /**
- * feat(app): Update repository link and improve code style
+ * feat(app): Update repository description and improve code style
  *
  * Changes:
  * - Updated repository URL for Get Started button to point to whitehatgg/redux-ai
@@ -91,7 +91,7 @@ function AppContent() {
             Redux AI
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-xl sm:text-2xl text-muted-foreground">
-            Vibe coding your Redux store—let your users chat with your app using AI
+            Intelligent extension that brings AI-powered interactions to your Redux applications
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
@@ -115,23 +115,23 @@ function AppContent() {
         <div className="grid gap-8 md:grid-cols-3">
           <div className="rounded-lg border bg-card p-6 transition-shadow hover:shadow-lg">
             <RiAiGenerate className="mb-4 h-12 w-12 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Agentic State Management</h3>
+            <h3 className="mb-2 text-xl font-semibold">AI-Powered State Enhancement</h3>
             <p className="text-muted-foreground">
-              Let AI understand and manage your Redux store through natural language interactions.
+              Extend your Redux store with intelligent interactions and natural language processing capabilities.
             </p>
           </div>
           <div className="rounded-lg border bg-card p-6 transition-shadow hover:shadow-lg">
             <SiOpenai className="mb-4 h-12 w-12 text-primary" />
             <h3 className="mb-2 text-xl font-semibold">Powered by OpenAI</h3>
             <p className="text-muted-foreground">
-              Leverages GPT-4 for intelligent state understanding and action dispatching.
+              Leverages GPT-4 for intelligent state interpretation and action suggestions.
             </p>
           </div>
           <div className="rounded-lg border bg-card p-6 transition-shadow hover:shadow-lg">
             <RiChatVoiceLine className="mb-4 h-12 w-12 text-primary" />
             <h3 className="mb-2 text-xl font-semibold">Natural Language Control</h3>
             <p className="text-muted-foreground">
-              Control your app's state using simple English commands and queries.
+              Interact with your Redux store using natural language commands and queries.
             </p>
           </div>
         </div>
