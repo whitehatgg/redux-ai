@@ -59,14 +59,21 @@ const AppWithAI = () => {
 };
 ```
 
-## Packages
+### Debug Components
 
-The project is organized into several packages:
+```typescript
+import { VectorDebugger, ActivityLog, RAGResults } from '@redux-ai/react';
 
-- `@redux-ai/react`: React components and hooks for AI integration
-- `@redux-ai/state`: Core state management and AI logic
-- `@redux-ai/schema`: Type definitions and validation schemas
-- `@redux-ai/vector`: Vector storage and similarity search functionality
+const DebugPanel = () => {
+  return (
+    <div>
+      <VectorDebugger />
+      <ActivityLog />
+      <RAGResults results={vectorResults} />
+    </div>
+  );
+};
+```
 
 ## Development
 
