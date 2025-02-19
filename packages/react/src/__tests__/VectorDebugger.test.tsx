@@ -1,15 +1,16 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import type { ReduxAIAction } from '@redux-ai/state';
 import type { VectorEntry } from '@redux-ai/vector';
-import { render, screen } from '@testing-library/react';
 
 import { VectorDebugger } from '../components/VectorDebugger';
 import { useVectorDebug } from '../hooks/useVectorDebug';
 
 // Mock the hook
-jest.mock('../hooks/useVectorDebug');
-const mockUseVectorDebug = useVectorDebug as jest.MockedFunction<typeof useVectorDebug>;
+vi.mock('../hooks/useVectorDebug');
+const mockUseVectorDebug = useVectorDebug as unknown as ReturnType<typeof vi.fn>;
 
 describe('VectorDebugger', () => {
   const mockActions: ReduxAIAction[] = [
@@ -23,10 +24,15 @@ describe('VectorDebugger', () => {
   const mockEntries: VectorEntry[] = [];
 
   beforeEach(() => {
-    mockUseVectorDebug.mockReset();
+    vi.resetAllMocks();
   });
 
-  it('renders loading state correctly', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('renders loading state correctly', async () => {
     mockUseVectorDebug.mockReturnValue({
       isLoading: true,
       error: null,
@@ -38,7 +44,7 @@ describe('VectorDebugger', () => {
     expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
   });
 
-  it('renders error state correctly', () => {
+  it('renders error state correctly', async () => {
     const errorMessage = 'Test error message';
     mockUseVectorDebug.mockReturnValue({
       isLoading: false,
@@ -52,7 +58,7 @@ describe('VectorDebugger', () => {
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  it('renders available actions correctly', () => {
+  it('renders available actions correctly', async () => {
     mockUseVectorDebug.mockReturnValue({
       isLoading: false,
       error: null,
@@ -67,12 +73,24 @@ describe('VectorDebugger', () => {
     expect(screen.getByText('action')).toBeInTheDocument();
   });
 
-  it('renders empty state correctly', () => {
+  it('renders empty state correctly', async () => {
     mockUseVectorDebug.mockReturnValue({
       isLoading: false,
       error: null,
       availableActions: [],
       entries: mockEntries,
+    });
+
+    render(<VectorDebugger />);
+    expect(screen.getByText('No actions available')).toBeInTheDocument();
+  });
+
+  it('handles undefined entries gracefully', async () => {
+    mockUseVectorDebug.mockReturnValue({
+      isLoading: false,
+      error: null,
+      availableActions: [],
+      entries: undefined as any,
     });
 
     render(<VectorDebugger />);
