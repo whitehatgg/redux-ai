@@ -1,3 +1,4 @@
+/* global HTMLDivElement */
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Minimize2, Sidebar } from 'lucide-react';
 
@@ -26,13 +27,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const { sendQuery, isProcessing, error } = useReduxAI();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
