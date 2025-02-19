@@ -1,5 +1,5 @@
 import { createReduxAISchema } from '../index';
-import { Action } from '@reduxjs/toolkit';
+import type { Action } from '@reduxjs/toolkit';
 
 interface TestAction extends Action {
   type: 'test/action';

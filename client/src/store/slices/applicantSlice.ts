@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction, Slice } from '@reduxjs/toolkit';
+import type { PayloadAction, Slice } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
 export interface Applicant {
   id: string;

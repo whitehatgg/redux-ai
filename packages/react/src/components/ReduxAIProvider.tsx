@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Store, Action } from '@reduxjs/toolkit';
-import { ReduxAISchema } from '@redux-ai/schema';
-import { createReduxAIVector, VectorStorage } from '@redux-ai/vector';
-import { createReduxAIState, ReduxAIAction } from '@redux-ai/state';
+import type { Store, Action } from '@reduxjs/toolkit';
+import type { ReduxAISchema } from '@redux-ai/schema';
+import type { VectorStorage } from '@redux-ai/vector';
+import { createReduxAIVector } from '@redux-ai/vector';
+import type { ReduxAIAction } from '@redux-ai/state';
+import { createReduxAIState } from '@redux-ai/state';
 
 interface ReduxAIContextType {
   availableActions: ReduxAIAction[];

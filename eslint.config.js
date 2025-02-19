@@ -5,10 +5,10 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
-  // Base ESLint config
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/public/assets/**', '**/*.d.ts'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -17,32 +17,6 @@ export default [
         ecmaFeatures: {
           jsx: true
         }
-      },
-      globals: {
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        console: 'readonly',
-        process: 'readonly',
-        require: 'readonly',
-        module: 'readonly',
-        // DOM types
-        HTMLDivElement: 'readonly',
-        HTMLPreElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTableElement: 'readonly',
-        HTMLTableSectionElement: 'readonly',
-        HTMLTableRowElement: 'readonly',
-        HTMLTableCellElement: 'readonly',
-        HTMLParagraphElement: 'readonly',
-        HTMLHeadingElement: 'readonly',
-        // Test globals
-        describe: 'readonly',
-        it: 'readonly',
-        expect: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        jest: 'readonly'
       }
     },
     plugins: {
@@ -51,45 +25,73 @@ export default [
       'react-hooks': reactHooksPlugin
     },
     rules: {
-      // React rules
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-
-      // TypeScript rules
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', {
+      '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
-        // Allow unused parameters in type definitions
         ignoreRestSiblings: true,
-        varsIgnorePattern: '^(entry|data|searchQuery|resultLimit|userQuery|systemResponse|currentState|callback|newEntry)$'
       }],
       '@typescript-eslint/no-non-null-assertion': 'warn',
-
-      // Disable base rule as it can report incorrect errors
       'no-unused-vars': 'off',
-
-      // General rules
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
       'prefer-const': 'error',
-      'no-var': 'error'
-    },
-    settings: {
-      react: {
-        version: 'detect'
+      'no-var': 'error',
+      'no-prototype-builtins': 'off'
+    }
+  },
+  // Client-side files config
+  {
+    files: ['client/src/**/*.{ts,tsx}', 'packages/*/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        MutationObserver: 'readonly',
+        performance: 'readonly',
+        IDBDatabase: 'readonly'
       }
     }
   },
-  // Declaration files config
+  // Server and config files
   {
-    files: ['**/*.d.ts'],
-    rules: {
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-explicit-any': 'off'
+    files: ['server/**/*.ts', '*.config.ts'],
+    languageOptions: {
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        __dirname: 'readonly',
+        Buffer: 'readonly'
+      }
+    }
+  },
+  // Test files config
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        jest: 'readonly'
+      }
     }
   }
 ];

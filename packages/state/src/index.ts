@@ -1,8 +1,10 @@
 import { createMachine } from "xstate";
 import { createConversationMachine } from "./machine";
-import { configureStore, createSlice, PayloadAction, Store, Action } from "@reduxjs/toolkit";
-import { ReduxAISchema } from "@redux-ai/schema";
-import { ReduxAIVector, VectorEntry } from "@redux-ai/vector";
+import type { Store, Action } from "@reduxjs/toolkit";
+import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import type { ReduxAISchema } from "@redux-ai/schema";
+import type { ReduxAIVector} from "@redux-ai/vector";
+import { VectorEntry } from "@redux-ai/vector";
 import { generateSystemPrompt, generateActionExamples } from './prompts';
 
 // Export the prompt generation functions

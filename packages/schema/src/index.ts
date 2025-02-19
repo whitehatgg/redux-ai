@@ -1,6 +1,6 @@
 import { validate } from './validation';
-import { JSONSchemaType } from 'ajv';
-import { Action } from '@reduxjs/toolkit';
+import type { JSONSchemaType } from 'ajv';
+import type { Action } from '@reduxjs/toolkit';
 
 export interface SchemaConfig<T extends Action> {
   schema: JSONSchemaType<T>;
