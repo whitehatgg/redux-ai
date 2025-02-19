@@ -1,7 +1,7 @@
 # Install dependencies
 pnpm install
 
-# Build all packages
+# Build packages
 pnpm build
 ```
 
@@ -59,6 +59,15 @@ const AppWithAI = () => {
 };
 ```
 
+## Packages
+
+The project is organized into several packages:
+
+- `@redux-ai/react`: React components and hooks for AI integration
+- `@redux-ai/state`: Core state management and AI logic
+- `@redux-ai/schema`: Type definitions and validation schemas
+- `@redux-ai/vector`: Vector storage and similarity search functionality
+
 ## Development
 
 ### Building Packages
@@ -71,13 +80,35 @@ pnpm build
 pnpm --filter @redux-ai/react build
 ```
 
-### Running Tests
+### Testing
 
 ```bash
+# Run all tests
 pnpm test
+
+# Run tests for specific package
+pnpm --filter @redux-ai/react test
+
+# Run tests with coverage
+pnpm test:coverage
 ```
 
 ### Type Checking
 
 ```bash
 pnpm typecheck
+```
+
+### Code Style & Quality
+
+We use ESLint and Prettier for code quality and formatting. Run these commands from the root:
+
+```bash
+# Lint all packages
+pnpm lint
+
+# Format code
+pnpm format
+
+# Check formatting
+pnpm format:check
