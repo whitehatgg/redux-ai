@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { useStore } from 'react-redux';
+import { useCallback, useState } from 'react';
 import { getReduxAI } from '@redux-ai/state';
+import { useStore } from 'react-redux';
 
 export function useReduxAI() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -35,6 +35,6 @@ export function useReduxAI() {
   return {
     sendQuery,
     isProcessing,
-    error
+    error,
   };
 }

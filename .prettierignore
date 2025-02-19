@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+.pnpm-store
+.cache
+.local
+
+# Build outputs
+dist
+build
+coverage
+
+# Generated files
+.tsbuildinfo
+generated-icon.png
+pnpm-lock.yaml
+
+# Logs
+*.log
+
+# Environment files
+.env*
+!.env.example
+
+# IDE
+.vscode
+.idea
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Package manager files
+.npm
+.pnpm-debug.log

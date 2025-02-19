@@ -8,14 +8,22 @@
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "endOfLine": "lf",
-  "plugins": ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
-  "importOrder": [
-    "^(react/(.*)$)|^(react$)",
-    "^(@redux-ai/(.*)$)",
-    "<THIRD_PARTY_MODULES>",
-    "",
-    "^@/(.*)$",
-    "^[./]"
-  ],
-  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"]
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
+      "options": {
+        "plugins": ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+        "importOrder": [
+          "^(react/(.*)$)|^(react$)",
+          "^(@redux-ai/(.*)$)",
+          "<THIRD_PARTY_MODULES>",
+          "",
+          "^@/(.*)$",
+          "^[./]"
+        ],
+        "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"]
+      }
+    }
+  ]
 }

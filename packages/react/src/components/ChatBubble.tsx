@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { MessageSquare, Minimize2, Sidebar } from 'lucide-react';
+
 import { useReduxAI } from '../hooks/useReduxAI';
-import { MessageSquare, Sidebar, Minimize2 } from 'lucide-react';
 
 export interface ChatMessage {
   id: string;
@@ -20,7 +21,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   className,
   onToggleActivityLog,
   isMinimized = false,
-  onMinimize
+  onMinimize,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -53,7 +54,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       id: generateMessageId(),
       role: 'user',
       content: trimmedInput,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Clear input immediately to prevent re-submission
@@ -72,7 +73,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         id: generateMessageId(),
         role: 'assistant',
         content: response,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
@@ -82,7 +83,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         id: generateMessageId(),
         role: 'error',
         content: error instanceof Error ? error.message : 'Failed to get response',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -94,52 +95,50 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     return (
       <button
         onClick={onMinimize}
-        className="p-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+        className="rounded-full bg-primary p-4 text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
       >
-        <MessageSquare className="w-6 h-6" />
+        <MessageSquare className="h-6 w-6" />
       </button>
     );
   }
 
   return (
     <div className={className}>
-      <div className="flex flex-col h-[600px] max-h-[80vh] relative">
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 border-b bg-background">
+      <div className="relative flex h-[600px] max-h-[80vh] flex-col">
+        <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between border-b bg-background p-3">
           <h3 className="font-semibold">AI Assistant</h3>
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleActivityLog}
-              className="p-1 hover:bg-muted rounded-md"
+              className="rounded-md p-1 hover:bg-muted"
               title="Toggle Activity Log"
             >
-              <Sidebar className="w-5 h-5" />
+              <Sidebar className="h-5 w-5" />
             </button>
             <button
               onClick={onMinimize}
-              className="p-1 hover:bg-muted rounded-md"
+              className="rounded-md p-1 hover:bg-muted"
               title="Minimize Chat"
             >
-              <Minimize2 className="w-5 h-5" />
+              <Minimize2 className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pt-14 pb-24">
-          <div className="p-4 space-y-4">
-            {messages.map((message) => (
+        <div className="flex-1 overflow-y-auto pb-24 pt-14">
+          <div className="space-y-4 p-4">
+            {messages.map(message => (
               <div
                 key={message.id}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`inline-block p-3 rounded-lg max-w-[80%] ${
+                  className={`inline-block max-w-[80%] rounded-lg p-3 ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : message.role === 'error'
-                      ? 'bg-destructive text-destructive-foreground'
-                      : 'bg-muted'
+                        ? 'bg-destructive text-destructive-foreground'
+                        : 'bg-muted'
                   }`}
                 >
                   {message.content}
@@ -155,7 +154,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             <div className="flex gap-2">
               <input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={e => setInput(e.target.value)}
                 placeholder="Ask something..."
                 disabled={isProcessing || isSubmitting}
                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -163,16 +162,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               <button
                 type="submit"
                 disabled={isProcessing || isSubmitting}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
               >
                 {isProcessing || isSubmitting ? 'Sending...' : 'Send'}
               </button>
             </div>
-            {error && (
-              <div className="mt-2 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+            {error && <div className="mt-2 text-sm text-destructive">{error}</div>}
           </form>
         </div>
       </div>

@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import { VectorDebugger } from '../components/VectorDebugger';
-import { useVectorDebug } from '../hooks/useVectorDebug';
+
 import type { ReduxAIAction } from '@redux-ai/state';
 import type { VectorEntry } from '@redux-ai/vector';
+import { render, screen } from '@testing-library/react';
+
+import { VectorDebugger } from '../components/VectorDebugger';
+import { useVectorDebug } from '../hooks/useVectorDebug';
 
 // Mock the hook
 jest.mock('../hooks/useVectorDebug');
@@ -14,8 +16,8 @@ describe('VectorDebugger', () => {
     {
       type: 'test/action',
       description: 'Test action description',
-      keywords: ['test', 'action']
-    }
+      keywords: ['test', 'action'],
+    },
   ];
 
   const mockEntries: VectorEntry[] = [];
@@ -29,7 +31,7 @@ describe('VectorDebugger', () => {
       isLoading: true,
       error: null,
       availableActions: [],
-      entries: mockEntries
+      entries: mockEntries,
     });
 
     render(<VectorDebugger />);
@@ -42,7 +44,7 @@ describe('VectorDebugger', () => {
       isLoading: false,
       error: errorMessage,
       availableActions: [],
-      entries: mockEntries
+      entries: mockEntries,
     });
 
     render(<VectorDebugger />);
@@ -55,7 +57,7 @@ describe('VectorDebugger', () => {
       isLoading: false,
       error: null,
       availableActions: mockActions,
-      entries: mockEntries
+      entries: mockEntries,
     });
 
     render(<VectorDebugger />);
@@ -70,7 +72,7 @@ describe('VectorDebugger', () => {
       isLoading: false,
       error: null,
       availableActions: [],
-      entries: mockEntries
+      entries: mockEntries,
     });
 
     render(<VectorDebugger />);

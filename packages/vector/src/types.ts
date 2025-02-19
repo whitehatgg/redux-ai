@@ -20,6 +20,10 @@ export interface ReduxAIVector {
   addEntry: (data: VectorEntry) => Promise<void>;
   retrieveSimilar: (searchQuery: string, resultLimit?: number) => Promise<VectorEntry[]>;
   getAllEntries: () => Promise<VectorEntry[]>;
-  storeInteraction: (userQuery: string, systemResponse: string, currentState: unknown) => Promise<void>;
+  storeInteraction: (
+    userQuery: string,
+    systemResponse: string,
+    currentState: unknown
+  ) => Promise<void>;
   subscribe: (callback: (newEntry: VectorEntry) => void) => () => void;
 }

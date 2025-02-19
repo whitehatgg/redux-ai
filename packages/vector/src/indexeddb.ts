@@ -80,7 +80,7 @@ export class IndexedDBStorage {
         const store = transaction.objectStore(STORE_NAME);
         const request = store.add({
           ...entry,
-          id: entry.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+          id: entry.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         });
 
         request.onsuccess = () => {

@@ -1,13 +1,8 @@
-import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '@/store';
-import {
-  setVisibleColumns,
-  toggleSearch,
-  setSearchTerm,
-} from '@/store/slices/applicantSlice';
-import type { Applicant } from '@/store/slices/applicantSlice';
-import { Input } from '@/components/ui/input';
+import { useDispatch, useSelector } from 'react-redux';
+
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -16,7 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Label } from '@/components/ui/label';
+import type { RootState } from '@/store';
+import { setSearchTerm, setVisibleColumns, toggleSearch } from '@/store/slices/applicantSlice';
+import type { Applicant } from '@/store/slices/applicantSlice';
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
@@ -49,29 +46,29 @@ export function ApplicantTable() {
   return (
     <div className="space-y-4">
       {/* Controls Section */}
-      <div className="flex flex-col gap-4 p-4 bg-muted rounded-lg">
+      <div className="flex flex-col gap-4 rounded-lg bg-muted p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Checkbox
               id="enableSearch"
               checked={tableConfig.enableSearch}
-              onCheckedChange={(checked) => dispatch(toggleSearch(checked))}
+              onCheckedChange={checked => dispatch(toggleSearch(checked))}
             />
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
           {tableConfig.enableSearch && (
-            <div className="w-full sm:w-auto flex-1">
+            <div className="w-full flex-1 sm:w-auto">
               <Input
                 placeholder="Search applicants..."
                 value={tableConfig.searchTerm}
-                onChange={(e) => dispatch(setSearchTerm(e.target.value))}
+                onChange={e => dispatch(setSearchTerm(e.target.value))}
                 className="max-w-sm"
               />
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
           {allColumns.map(({ key, label }) => (
             <div key={key} className="flex items-center gap-2">
               <Checkbox
@@ -86,25 +83,31 @@ export function ApplicantTable() {
       </div>
 
       {/* Table Section */}
-      <div className="overflow-x-auto border rounded-lg">
+      <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              {allColumns.map(({ key, label }) => (
-                tableConfig.visibleColumns.includes(key) && (
-                  <TableHead key={key} className="whitespace-nowrap">{label}</TableHead>
-                )
-              ))}
+              {allColumns.map(
+                ({ key, label }) =>
+                  tableConfig.visibleColumns.includes(key) && (
+                    <TableHead key={key} className="whitespace-nowrap">
+                      {label}
+                    </TableHead>
+                  )
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredApplicants.map((applicant) => (
+            {filteredApplicants.map(applicant => (
               <TableRow key={applicant.id}>
-                {allColumns.map(({ key }) => (
-                  tableConfig.visibleColumns.includes(key) && (
-                    <TableCell key={key} className="whitespace-nowrap">{applicant[key]}</TableCell>
-                  )
-                ))}
+                {allColumns.map(
+                  ({ key }) =>
+                    tableConfig.visibleColumns.includes(key) && (
+                      <TableCell key={key} className="whitespace-nowrap">
+                        {applicant[key]}
+                      </TableCell>
+                    )
+                )}
               </TableRow>
             ))}
           </TableBody>

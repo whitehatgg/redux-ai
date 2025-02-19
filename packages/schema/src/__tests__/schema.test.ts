@@ -1,5 +1,6 @@
-import { createReduxAISchema } from '../index';
 import type { Action } from '@reduxjs/toolkit';
+
+import { createReduxAISchema } from '../index';
 
 interface TestAction extends Action {
   type: 'test/action';
@@ -17,19 +18,19 @@ describe('ReduxAISchema', () => {
         payload: {
           type: 'object',
           properties: {
-            value: { type: 'string' }
+            value: { type: 'string' },
           },
-          required: ['value']
-        }
+          required: ['value'],
+        },
       },
-      required: ['type', 'payload']
-    }
+      required: ['type', 'payload'],
+    },
   });
 
   it('should validate a correct action', () => {
     const action = {
       type: 'test/action',
-      payload: { value: 'test' }
+      payload: { value: 'test' },
     };
 
     expect(schema.validateAction(action)).toBe(true);
@@ -38,7 +39,7 @@ describe('ReduxAISchema', () => {
   it('should reject an action with wrong type', () => {
     const action = {
       type: 'wrong/action',
-      payload: { value: 'test' }
+      payload: { value: 'test' },
     };
 
     expect(schema.validateAction(action)).toBe(false);
@@ -47,7 +48,7 @@ describe('ReduxAISchema', () => {
   it('should reject an action with wrong payload type', () => {
     const action = {
       type: 'test/action',
-      payload: { value: 123 }
+      payload: { value: 123 },
     };
 
     expect(schema.validateAction(action)).toBe(false);
@@ -55,7 +56,7 @@ describe('ReduxAISchema', () => {
 
   it('should reject an action with missing payload', () => {
     const action = {
-      type: 'test/action'
+      type: 'test/action',
     };
 
     expect(schema.validateAction(action)).toBe(false);

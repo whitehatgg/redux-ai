@@ -1,11 +1,12 @@
-import { createMachine } from "xstate";
-import { createConversationMachine } from "./machine";
-import type { Store, Action } from "@reduxjs/toolkit";
-import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { ReduxAISchema } from "@redux-ai/schema";
-import type { ReduxAIVector} from "@redux-ai/vector";
-import { VectorEntry } from "@redux-ai/vector";
-import { generateSystemPrompt, generateActionExamples } from './prompts';
+import type { ReduxAISchema } from '@redux-ai/schema';
+import type { ReduxAIVector } from '@redux-ai/vector';
+import { VectorEntry } from '@redux-ai/vector';
+import type { Action, Store } from '@reduxjs/toolkit';
+import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createMachine } from 'xstate';
+
+import { createConversationMachine } from './machine';
+import { generateActionExamples, generateSystemPrompt } from './prompts';
 
 // Export the prompt generation functions
 export { generateSystemPrompt, generateActionExamples } from './prompts';
@@ -69,29 +70,26 @@ export class ReduxAIState<TState> {
       const interaction: Interaction = {
         query,
         response,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       this.interactions.push(interaction);
 
       // Store the current state along with the interaction
       const currentState = this.store.getState();
-      await this.vectorStorage.storeInteraction(
-        query, 
-        response,
-        currentState
-      );
+      await this.vectorStorage.storeInteraction(query, response, currentState);
 
       console.log('[ReduxAIState] Stored interaction:', {
         query,
         response,
-        timestamp: interaction.timestamp
+        timestamp: interaction.timestamp,
       });
-
     } catch (error) {
       console.error('[ReduxAIState] Error storing interaction:', error);
       if (this.onError) {
-        this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
+        this.onError(
+          error instanceof Error ? error : new Error('Unknown error storing interaction')
+        );
       }
     }
   }
@@ -133,14 +131,14 @@ export class ReduxAIState<TState> {
         query,
         prompt: systemPrompt,
         availableActions: this.availableActions,
-        currentState: this.store.getState()
+        currentState: this.store.getState(),
       };
 
       console.log('[ReduxAIState] Sending request body:', {
         query: requestBody.query,
         promptLength: systemPrompt.length,
         actionsCount: this.availableActions.length,
-        state: JSON.stringify(this.store.getState()).slice(0, 200) 
+        state: JSON.stringify(this.store.getState()).slice(0, 200),
       });
 
       const apiResponse = await fetch('/api/query', {
@@ -155,7 +153,7 @@ export class ReduxAIState<TState> {
         const errorText = await apiResponse.text();
         console.error('[ReduxAIState] API request failed:', {
           status: apiResponse.status,
-          error: errorText
+          error: errorText,
         });
         throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
       }

@@ -7,9 +7,7 @@ export function validate(schema: any, data: any) {
   const valid = validate(data);
 
   if (!valid) {
-    throw new Error(
-      `Validation failed: ${validate.errors?.map(e => e.message).join(', ')}`
-    );
+    throw new Error(`Validation failed: ${validate.errors?.map(e => e.message).join(', ')}`);
   }
 
   return true;

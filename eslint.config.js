@@ -14,7 +14,7 @@ export default [
       'tailwind.config.ts',
       'jest.config.ts',
       'drizzle.config.ts',
-      '**/coverage/**'
+      '**/coverage/**',
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -22,8 +22,8 @@ export default [
         ecmaVersion: 2022,
         sourceType: 'module',
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
       globals: {
         // Browser globals
@@ -60,18 +60,18 @@ export default [
         process: 'readonly',
         module: 'readonly',
         require: 'readonly',
-        __dirname: 'readonly'
-      }
+        __dirname: 'readonly',
+      },
     },
     settings: {
       react: {
-        version: 'detect'
-      }
+        version: 'detect',
+      },
     },
     plugins: {
       '@typescript-eslint': typescript,
-      'react': reactPlugin,
-      'react-hooks': reactHooksPlugin
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     rules: {
       // React rules
@@ -80,53 +80,62 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
 
       // TypeScript rules
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        ignoreRestSiblings: true
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
 
       // General rules
       'no-unused-vars': 'off',
-      'no-console': process.env.NODE_ENV === 'production' ? 'error' : ['warn', { 
-        allow: ['warn', 'error', 'info', 'debug'] 
-      }],
+      'no-console':
+        process.env.NODE_ENV === 'production'
+          ? 'error'
+          : [
+              'warn',
+              {
+                allow: ['warn', 'error', 'info', 'debug'],
+              },
+            ],
       'prefer-const': 'error',
       'no-var': 'error',
-      'no-prototype-builtins': 'off'
-    }
+      'no-prototype-builtins': 'off',
+    },
   },
   // TypeScript declaration files
   {
     files: ['**/*.d.ts'],
     languageOptions: {
       parserOptions: {
-        project: null
-      }
+        project: null,
+      },
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off'
-    }
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
   },
   // Test files
   {
     files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
-        project: null
-      }
+        project: null,
+      },
     },
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
-      'no-undef': 'off'
-    }
+      'no-undef': 'off',
+    },
   },
   // Node.js specific config
   {
@@ -138,8 +147,8 @@ export default [
         console: true,
         module: true,
         require: true,
-        __dirname: true
-      }
-    }
-  }
+        __dirname: true,
+      },
+    },
+  },
 ];

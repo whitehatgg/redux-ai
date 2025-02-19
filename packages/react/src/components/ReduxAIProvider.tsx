@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Store, Action } from '@reduxjs/toolkit';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReduxAISchema } from '@redux-ai/schema';
-import type { VectorStorage } from '@redux-ai/vector';
-import { createReduxAIVector } from '@redux-ai/vector';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { createReduxAIState } from '@redux-ai/state';
+import type { VectorStorage } from '@redux-ai/vector';
+import { createReduxAIVector } from '@redux-ai/vector';
+import type { Action, Store } from '@reduxjs/toolkit';
 
 interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
@@ -16,7 +16,7 @@ interface ReduxAIContextType {
 
 const ReduxAIContext = createContext<ReduxAIContextType>({
   availableActions: [],
-  isInitialized: false
+  isInitialized: false,
 });
 
 export interface ReduxAIProviderProps {
@@ -49,7 +49,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
-          dimensions: 128
+          dimensions: 128,
         });
 
         if (!mounted) return;
@@ -68,7 +68,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
             if (mounted) {
               setError(error.message);
             }
-          }
+          },
         });
 
         if (!mounted) return;
@@ -98,9 +98,9 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   // Show loading state until initialization is complete
   if (!isInitialized && !error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="space-y-4 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
           <p className="text-muted-foreground">Initializing ReduxAI...</p>
         </div>
       </div>
@@ -110,23 +110,25 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   // Show error state if initialization failed
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4 p-4 max-w-md">
-          <p className="text-destructive font-medium">ReduxAI Initialization Error</p>
-          <p className="text-muted-foreground text-sm">{error}</p>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="max-w-md space-y-4 p-4 text-center">
+          <p className="font-medium text-destructive">ReduxAI Initialization Error</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <ReduxAIContext.Provider value={{ 
-      availableActions, 
-      isInitialized, 
-      store, 
-      vectorStorage,
-      error 
-    }}>
+    <ReduxAIContext.Provider
+      value={{
+        availableActions,
+        isInitialized,
+        store,
+        vectorStorage,
+        error,
+      }}
+    >
       {children}
     </ReduxAIContext.Provider>
   );

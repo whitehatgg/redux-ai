@@ -1,7 +1,8 @@
-import { createReduxAIState } from '../index';
-import { configureStore } from '@reduxjs/toolkit';
-import type { ReduxAIAction } from '../index';
 import type { ReduxAIVector } from '@redux-ai/vector';
+import { configureStore } from '@reduxjs/toolkit';
+
+import { createReduxAIState } from '../index';
+import type { ReduxAIAction } from '../index';
 
 jest.mock('node-fetch');
 
@@ -15,16 +16,16 @@ describe('ReduxAIState', () => {
           default:
             return state;
         }
-      }
-    }
+      },
+    },
   });
 
   const mockAvailableActions: ReduxAIAction[] = [
     {
       type: 'test/increment',
       description: 'Increment the counter',
-      keywords: ['increment', 'increase', 'add']
-    }
+      keywords: ['increment', 'increase', 'add'],
+    },
   ];
 
   const mockVectorStorage: ReduxAIVector = {
@@ -32,7 +33,7 @@ describe('ReduxAIState', () => {
     retrieveSimilar: jest.fn(),
     getAllEntries: jest.fn(),
     storeInteraction: jest.fn(),
-    subscribe: jest.fn()
+    subscribe: jest.fn(),
   };
 
   beforeEach(() => {
@@ -44,7 +45,7 @@ describe('ReduxAIState', () => {
     const reduxAI = await createReduxAIState({
       store: mockStore,
       vectorStorage: mockVectorStorage,
-      availableActions: mockAvailableActions
+      availableActions: mockAvailableActions,
     });
 
     expect(reduxAI).toBeDefined();
@@ -54,17 +55,18 @@ describe('ReduxAIState', () => {
     (global.fetch as jest.Mock).mockImplementation(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({
-          message: 'Incrementing counter',
-          action: { type: 'test/increment' }
-        })
+        json: () =>
+          Promise.resolve({
+            message: 'Incrementing counter',
+            action: { type: 'test/increment' },
+          }),
       })
     );
 
     const reduxAI = await createReduxAIState({
       store: mockStore,
       vectorStorage: mockVectorStorage,
-      availableActions: mockAvailableActions
+      availableActions: mockAvailableActions,
     });
 
     const result = await reduxAI.processQuery('increment the counter');
@@ -77,7 +79,7 @@ describe('ReduxAIState', () => {
     (global.fetch as jest.Mock).mockImplementation(() =>
       Promise.resolve({
         ok: false,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       })
     );
 
@@ -86,7 +88,7 @@ describe('ReduxAIState', () => {
       store: mockStore,
       vectorStorage: mockVectorStorage,
       availableActions: mockAvailableActions,
-      onError: mockErrorHandler
+      onError: mockErrorHandler,
     });
 
     await expect(reduxAI.processQuery('increment')).rejects.toThrow();

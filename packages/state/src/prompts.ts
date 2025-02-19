@@ -2,14 +2,17 @@ import type { ReduxAIAction } from './index';
 
 // Helper function to generate action examples based on available actions
 export function generateActionExamples(actions: ReduxAIAction[]): string {
-  const categorizedActions = actions.reduce((acc, action) => {
-    const category = action.type.split('/')[0];
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(action);
-    return acc;
-  }, {} as Record<string, ReduxAIAction[]>);
+  const categorizedActions = actions.reduce(
+    (acc, action) => {
+      const category = action.type.split('/')[0];
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(action);
+      return acc;
+    },
+    {} as Record<string, ReduxAIAction[]>
+  );
 
   return Object.entries(categorizedActions)
     .map(([category, categoryActions]) => {
@@ -24,8 +27,8 @@ export function generateActionExamples(actions: ReduxAIAction[]): string {
 
 // Generate dynamic system prompt based on available actions
 export function generateSystemPrompt(
-  state: any, 
-  availableActions: ReduxAIAction[], 
+  state: any,
+  availableActions: ReduxAIAction[],
   conversationHistory: string
 ): string {
   const actionExamples = generateActionExamples(availableActions);

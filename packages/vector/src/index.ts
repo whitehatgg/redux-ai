@@ -1,13 +1,8 @@
-import type { VectorEntry, VectorConfig, ReduxAIVector, ReduxAIAction } from './types';
-import { VectorStorage } from './storage';
 import { IndexedDBStorage } from './indexeddb';
+import { VectorStorage } from './storage';
+import type { ReduxAIAction, ReduxAIVector, VectorConfig, VectorEntry } from './types';
 
-export type { 
-  VectorEntry,
-  VectorConfig,
-  ReduxAIVector,
-  ReduxAIAction
-};
+export type { VectorEntry, VectorConfig, ReduxAIVector, ReduxAIAction };
 
 export { VectorStorage };
 export { IndexedDBStorage };
@@ -24,7 +19,7 @@ export const createReduxAIVector = async (
     collectionName: 'reduxai_vector',
     maxEntries: 100,
     dimensions: 128,
-    ...config
+    ...config,
   };
   return VectorStorage.create(defaultConfig);
 };

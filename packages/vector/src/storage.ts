@@ -1,5 +1,5 @@
-import type { VectorEntry, VectorConfig } from './types';
 import { IndexedDBStorage } from './indexeddb';
+import type { VectorConfig, VectorEntry } from './types';
 
 function textToVector(text: string, dimensions = 128): number[] {
   const vector = new Array(dimensions).fill(0);
@@ -52,7 +52,7 @@ export class VectorStorage {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       vector: input.vector,
       metadata: input.metadata,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     await this.storage.addEntry(entry);
@@ -66,8 +66,8 @@ export class VectorStorage {
       metadata: {
         query,
         response,
-        state: stateString
-      }
+        state: stateString,
+      },
     });
   }
 
@@ -79,7 +79,7 @@ export class VectorStorage {
       return entries
         .map(entry => ({
           entry,
-          score: cosineSimilarity(queryVector, entry.vector)
+          score: cosineSimilarity(queryVector, entry.vector),
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, limit)

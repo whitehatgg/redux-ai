@@ -62,7 +62,7 @@ export const applicantSlice: Slice<ApplicantState> = createSlice({
     setVisibleColumns: (state, action: PayloadAction<(keyof Applicant)[]>) => {
       state.tableConfig.visibleColumns = action.payload;
     },
-    toggleSearch: (state) => {
+    toggleSearch: state => {
       state.tableConfig.enableSearch = !state.tableConfig.enableSearch;
     },
     setSearchTerm: (state, action: PayloadAction<string>) => {
@@ -78,12 +78,8 @@ export const applicantSlice: Slice<ApplicantState> = createSlice({
   },
 });
 
-export const {
-  setVisibleColumns,
-  toggleSearch,
-  setSearchTerm,
-  addApplicant,
-} = applicantSlice.actions;
+export const { setVisibleColumns, toggleSearch, setSearchTerm, addApplicant } =
+  applicantSlice.actions;
 
 export default applicantSlice.reducer;
 export type { ApplicantState };
