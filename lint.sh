@@ -1,1 +1,0 @@
-# This file is being removed as we are using pnpm for linting
