@@ -37,30 +37,18 @@ export default [
         Response: 'readonly',
         MutationObserver: 'readonly',
         performance: 'readonly',
-        // DOM element types
-        HTMLDivElement: 'readonly',
-        HTMLPreElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTableElement: 'readonly',
-        HTMLTableSectionElement: 'readonly',
-        HTMLTableRowElement: 'readonly',
-        HTMLTableCellElement: 'readonly',
-        HTMLParagraphElement: 'readonly',
-        HTMLHeadingElement: 'readonly',
-        IDBDatabase: 'readonly',
-        // Testing globals
+        // Node.js globals
+        process: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        // Test globals
         jest: 'readonly',
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',
-        global: 'readonly',
-        // Node.js globals
-        process: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        __dirname: 'readonly',
       },
     },
     settings: {
@@ -94,42 +82,15 @@ export default [
 
       // General rules
       'no-unused-vars': 'off',
-      'no-console':
-        process.env.NODE_ENV === 'production'
-          ? 'error'
-          : [
-              'warn',
-              {
-                allow: ['warn', 'error', 'info', 'debug'],
-              },
-            ],
+      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
       'prefer-const': 'error',
       'no-var': 'error',
       'no-prototype-builtins': 'off',
     },
   },
-  // TypeScript declaration files
-  {
-    files: ['**/*.d.ts'],
-    languageOptions: {
-      parserOptions: {
-        project: null,
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-    },
-  },
   // Test files
   {
     files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
-    languageOptions: {
-      parserOptions: {
-        project: null,
-      },
-    },
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
@@ -139,16 +100,16 @@ export default [
   },
   // Node.js specific config
   {
-    files: ['server/**/*.ts', 'packages/**/src/**/*.ts'],
-    ignores: ['**/*.test.ts', '**/__tests__/**'],
-    languageOptions: {
-      globals: {
-        process: true,
-        console: true,
-        module: true,
-        require: true,
-        __dirname: true,
-      },
+    files: ['server/**/*.ts'],
+    rules: {
+      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
+    },
+  },
+  // Vite.ts specific config
+  {
+    files: ['server/vite.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ];

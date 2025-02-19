@@ -1,10 +1,10 @@
-import { users, type InsertUser, type User } from '@shared/schema';
+import type { InsertUser, User } from '@shared/schema';
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getState(): Record<string, any>;
+  getState(): Record<string, unknown>;
 }
 
 export class MemStorage implements IStorage {
@@ -31,7 +31,7 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  getState(): Record<string, any> {
+  getState(): Record<string, unknown> {
     return {
       users: Array.from(this.users.values()),
     };

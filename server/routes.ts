@@ -1,7 +1,4 @@
 import { createServer } from 'http';
-import type { ReduxAIAction } from '@redux-ai/state';
-//import { generateSystemPrompt, generateActionExamples } from "@redux-ai/state";
-import type { ReduxAIVector } from '@redux-ai/vector';
 import type { Express } from 'express';
 import OpenAI from 'openai';
 
@@ -16,15 +13,14 @@ try {
   console.error('Error initializing OpenAI:', error);
 }
 
-async function createChatCompletion(messages: any[], currentState?: any) {
+async function createChatCompletion(messages: OpenAI.ChatCompletionMessageParam[], currentState?: Record<string, unknown>) {
   try {
     // Log the input to the OpenAI request
-    console.log('[OpenAI Request]:', {
+    console.info('[OpenAI Request]:', {
       messages: messages,
       state: currentState ? JSON.stringify(currentState).slice(0, 200) + '...' : 'No state',
     });
 
-    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages,
@@ -34,7 +30,7 @@ async function createChatCompletion(messages: any[], currentState?: any) {
     });
 
     // Log the raw response from OpenAI
-    console.log('[OpenAI Response]:', response.choices[0].message.content);
+    console.info('[OpenAI Response]:', response.choices[0].message.content);
 
     return response;
   } catch (error) {
@@ -59,7 +55,7 @@ export async function registerRoutes(app: Express) {
       const { query, prompt, availableActions, currentState } = req.body;
 
       // Log the entire incoming request data
-      console.log('[API Request - Full]:', {
+      console.info('[API Request - Full]:', {
         rawQuery: query,
         promptLength: prompt?.length,
         availableActionsCount: availableActions?.length,
@@ -69,23 +65,23 @@ export async function registerRoutes(app: Express) {
       });
 
       if (!query) {
-        console.log('[API Error] Missing query in request');
+        console.warn('[API Error] Missing query in request');
         return res.status(400).json({ error: 'Query is required' });
       }
 
       if (!prompt) {
-        console.log('[API Error] Missing prompt in request');
+        console.warn('[API Error] Missing prompt in request');
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
       if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
-        console.log('[API Error] Invalid availableActions:', availableActions);
+        console.warn('[API Error] Invalid availableActions:', availableActions);
         return res
           .status(400)
           .json({ error: 'Available actions are required and must be non-empty array' });
       }
 
-      const messages = [
+      const messages: OpenAI.ChatCompletionMessageParam[] = [
         {
           role: 'system',
           content: prompt,
@@ -109,7 +105,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Log the processed response being sent back
-      console.log('[API Response]:', {
+      console.info('[API Response]:', {
         message: content.message,
         hasAction: !!content.action,
         action: content.action,
