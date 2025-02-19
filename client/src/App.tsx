@@ -17,7 +17,6 @@ import { ApplicantTable } from './components/ApplicantTable';
 import { useState, useEffect } from 'react';
 import { RiAiGenerate, RiChatVoiceLine } from "react-icons/ri";
 import { SiOpenai } from "react-icons/si";
-import { Code } from "@/components/ui/code";
 import { Loader2 } from "lucide-react";
 
 const availableActions: ReduxAIAction[] = [

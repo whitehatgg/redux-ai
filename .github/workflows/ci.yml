@@ -49,7 +49,7 @@ jobs:
       run: pnpm eslint "client/src/**/*.{ts,tsx}" "packages/*/src/**/*.{ts,tsx}" "server/**/*.ts" "*.config.ts" --max-warnings=0
 
     - name: Build packages
-      run: pnpm run build
+      run: pnpm run -r build
 
     - name: Run tests
       run: pnpm run -r test
