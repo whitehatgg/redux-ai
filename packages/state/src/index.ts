@@ -87,9 +87,7 @@ export class ReduxAIState<TState> {
     } catch (error) {
       console.error('[ReduxAIState] Error storing interaction:', error);
       if (this.onError) {
-        this.onError(
-          error instanceof Error ? error : new Error('Unknown error storing interaction')
-        );
+        this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
       }
     }
   }
@@ -106,6 +104,7 @@ export class ReduxAIState<TState> {
       }
 
       console.log('[ReduxAIState] Raw query received:', query);
+
 
       // Get similar queries from vector storage
       let conversationHistory = '';

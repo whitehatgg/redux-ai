@@ -1,13 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { configureStore } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+
 import { AIDebugContainer } from '../components/AIDebugContainer';
 import { ReduxAIProvider } from '../components/ReduxAIProvider';
-import { configureStore } from '@reduxjs/toolkit';
 
 describe('AIDebugContainer', () => {
   it('renders nothing when no actions are available', () => {
     const store = configureStore({
-      reducer: { test: (state = {}) => state }
+      reducer: { test: (state = {}) => state },
     });
 
     render(
@@ -21,15 +22,15 @@ describe('AIDebugContainer', () => {
 
   it('renders activity log with available actions', () => {
     const store = configureStore({
-      reducer: { test: (state = {}) => state }
+      reducer: { test: (state = {}) => state },
     });
 
     const mockActions = [
       {
         type: 'test/action',
         description: 'Test action description',
-        keywords: ['test']
-      }
+        keywords: ['test'],
+      },
     ];
 
     render(
