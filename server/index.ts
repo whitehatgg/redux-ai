@@ -42,7 +42,12 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err instanceof Error ? (err as { status?: number; statusCode?: number }).status || (err as { status?: number; statusCode?: number }).statusCode || 500 : 500;
+    const status =
+      err instanceof Error
+        ? (err as { status?: number; statusCode?: number }).status ||
+          (err as { status?: number; statusCode?: number }).statusCode ||
+          500
+        : 500;
     const message = err instanceof Error ? err.message : 'Internal Server Error';
 
     res.status(status).json({ message });

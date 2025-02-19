@@ -13,7 +13,10 @@ try {
   console.error('Error initializing OpenAI:', error);
 }
 
-async function createChatCompletion(messages: OpenAI.ChatCompletionMessageParam[], currentState?: Record<string, unknown>) {
+async function createChatCompletion(
+  messages: OpenAI.ChatCompletionMessageParam[],
+  currentState?: Record<string, unknown>
+) {
   try {
     // Log the input to the OpenAI request
     console.info('[OpenAI Request]:', {

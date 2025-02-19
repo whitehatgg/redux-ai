@@ -10,6 +10,14 @@ const config: Config.InitialOptions = {
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testMatch: ['**/__tests__/**/*.test.ts?(x)', '**/?(*.)+(spec|test).ts?(x)'],
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+      }
+    }]
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
     'packages/*/src/**/*.{ts,tsx}',
     '!**/node_modules/**',
@@ -23,18 +31,7 @@ const config: Config.InitialOptions = {
       lines: 80,
       statements: 80,
     },
-  },
-  transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
-  },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        jsx: 'react-jsx',
-      },
-    },
-  },
+  }
 };
 
 export default config;
