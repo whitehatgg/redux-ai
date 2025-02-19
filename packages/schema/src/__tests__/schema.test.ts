@@ -1,4 +1,5 @@
 import type { Action } from '@reduxjs/toolkit';
+import { describe, expect, it } from 'vitest';
 
 import { createReduxAISchema } from '../index';
 

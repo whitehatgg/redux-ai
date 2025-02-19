@@ -1,7 +1,7 @@
 import type { Action } from '@reduxjs/toolkit';
 import type { JSONSchemaType } from 'ajv';
 
-import { validate } from './validation';
+import { hasProperty, isObject, validateSchema } from './validation';
 
 export interface SchemaConfig<T extends Action> {
   schema: JSONSchemaType<T>;
@@ -17,12 +17,23 @@ export class ReduxAISchema<T extends Action> {
     this.validatePayload = config.validatePayload ?? true;
   }
 
-  validateAction(action: unknown): action is T {
-    if (!action || typeof action !== 'object' || !('type' in action)) {
+  /**
+   * Validates if the given value is a valid action according to the schema
+   */
+  validateAction(value: unknown): value is T {
+    // Step 1: Basic structure validation
+    if (!isObject(value)) {
       return false;
     }
 
-    return validate(this.schema, action);
+    // Step 2: Type property validation
+    if (!hasProperty(value, 'type') || typeof value.type !== 'string') {
+      return false;
+    }
+
+    // Step 3: Schema validation
+    const { valid } = validateSchema(this.schema, value);
+    return valid;
   }
 
   /**
