@@ -1,10 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { ReduxAIProvider } from '../components/ReduxAIProvider';
 import { configureStore } from '@reduxjs/toolkit';
-import type { ReduxAIVector } from '@redux-ai/vector';
 
-// Mock the vector module
+// Mock vector creation
 vi.mock('@redux-ai/vector', () => ({
   createReduxAIVector: vi.fn(() =>
     Promise.resolve({
@@ -12,8 +11,8 @@ vi.mock('@redux-ai/vector', () => ({
       retrieveSimilar: vi.fn(),
       getAllEntries: vi.fn(),
       storeInteraction: vi.fn(),
-      subscribe: vi.fn(),
-    } as ReduxAIVector)
+      subscribe: vi.fn(() => vi.fn()),
+    })
   ),
 }));
 
@@ -59,6 +58,7 @@ describe('ReduxAIProvider', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('child')).toBeInTheDocument();
+      expect(screen.getByText('Child content')).toBeInTheDocument();
     });
   });
 
@@ -67,13 +67,18 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider store={mockStore} availableActions={[]}>
+      <ReduxAIProvider 
+        store={mockStore} 
+        availableActions={[]}
+        forceError="Initialization failed"
+      >
         <div>Child content</div>
       </ReduxAIProvider>
     );
 
     await waitFor(() => {
-      expect(screen.getByText('ReduxAI Initialization Error')).toBeInTheDocument();
+      expect(screen.getByText(/ReduxAI Initialization Error/i)).toBeInTheDocument();
+      expect(screen.getByText(/Initialization failed/i)).toBeInTheDocument();
     });
   });
 });

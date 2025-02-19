@@ -15,12 +15,20 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
     },
     deps: {
-      inline: ['@redux-ai/schema', '@redux-ai/state', '@redux-ai/vector'],
+      inline: [
+        '@redux-ai/schema',
+        '@redux-ai/state',
+        '@redux-ai/vector',
+        'react',
+        'react-dom',
+      ],
     },
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      'react': resolve(__dirname, '../../node_modules/react'),
+      'react-dom': resolve(__dirname, '../../node_modules/react-dom'),
     },
   },
 });
