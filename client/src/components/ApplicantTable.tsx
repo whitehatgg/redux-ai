@@ -57,18 +57,18 @@ export function ApplicantTable() {
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
           {tableConfig.enableSearch && (
-            <div className="w-full flex-1 sm:w-auto">
+            <div className="flex-1">
               <Input
                 placeholder="Search applicants..."
                 value={tableConfig.searchTerm}
                 onChange={e => dispatch(setSearchTerm(e.target.value))}
-                className="max-w-sm"
+                className="max-w-full md:max-w-sm"
               />
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {allColumns.map(({ key, label }) => (
             <div key={key} className="flex items-center gap-2">
               <Checkbox
@@ -76,42 +76,55 @@ export function ApplicantTable() {
                 checked={tableConfig.visibleColumns.includes(key)}
                 onCheckedChange={() => toggleColumn(key)}
               />
-              <Label htmlFor={key}>{label}</Label>
+              <Label htmlFor={key} className="text-sm">{label}</Label>
             </div>
           ))}
         </div>
       </div>
 
       {/* Table Section */}
-      <div className="overflow-x-auto rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {allColumns.map(
-                ({ key, label }) =>
-                  tableConfig.visibleColumns.includes(key) && (
-                    <TableHead key={key} className="whitespace-nowrap">
-                      {label}
-                    </TableHead>
-                  )
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredApplicants.map(applicant => (
-              <TableRow key={applicant.id}>
+      <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg sm:border">
+        <div className="min-w-full align-middle">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {allColumns.map(
-                  ({ key }) =>
+                  ({ key, label }) =>
                     tableConfig.visibleColumns.includes(key) && (
-                      <TableCell key={key} className="whitespace-nowrap">
-                        {applicant[key]}
-                      </TableCell>
+                      <TableHead key={key} className="whitespace-nowrap px-4 py-3.5">
+                        {label}
+                      </TableHead>
                     )
                 )}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredApplicants.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={tableConfig.visibleColumns.length}
+                    className="text-center py-4 text-muted-foreground"
+                  >
+                    No applicants found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredApplicants.map(applicant => (
+                  <TableRow key={applicant.id}>
+                    {allColumns.map(
+                      ({ key }) =>
+                        tableConfig.visibleColumns.includes(key) && (
+                          <TableCell key={key} className="whitespace-nowrap px-4 py-3">
+                            {applicant[key]}
+                          </TableCell>
+                        )
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );
