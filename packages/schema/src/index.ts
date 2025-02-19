@@ -38,5 +38,4 @@ export const createReduxAISchema = <T extends Action>(config: SchemaConfig<T>) =
 };
 
 // Helper type to extract payload type from an action
-export type ActionPayload<T> =
-  T extends Action<any> ? (T extends { payload: infer P } ? P : never) : never;
+export type ActionPayload<T extends Action> = T extends { payload: infer P } ? P : never;
