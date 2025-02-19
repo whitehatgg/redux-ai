@@ -11,11 +11,10 @@ export default [
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
-      '**/*.d.ts',
-      '**/public/**',
       'tailwind.config.ts',
       'jest.config.ts',
-      'drizzle.config.ts'
+      'drizzle.config.ts',
+      '**/coverage/**'
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -24,13 +23,7 @@ export default [
         sourceType: 'module',
         ecmaFeatures: {
           jsx: true
-        },
-        project: [
-          './tsconfig.json', 
-          './packages/*/tsconfig.json', 
-          './client/tsconfig.json',
-          './packages/*/src/**/__tests__/tsconfig.json'
-        ]
+        }
       },
       globals: {
         // Browser globals
@@ -41,6 +34,20 @@ export default [
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         fetch: 'readonly',
+        Response: 'readonly',
+        MutationObserver: 'readonly',
+        performance: 'readonly',
+        // DOM element types
+        HTMLDivElement: 'readonly',
+        HTMLPreElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLTableElement: 'readonly',
+        HTMLTableSectionElement: 'readonly',
+        HTMLTableRowElement: 'readonly',
+        HTMLTableCellElement: 'readonly',
+        HTMLParagraphElement: 'readonly',
+        HTMLHeadingElement: 'readonly',
+        IDBDatabase: 'readonly',
         // Testing globals
         jest: 'readonly',
         describe: 'readonly',
@@ -53,17 +60,7 @@ export default [
         process: 'readonly',
         module: 'readonly',
         require: 'readonly',
-        __dirname: 'readonly',
-        // DOM element types
-        HTMLDivElement: 'readonly',
-        HTMLPreElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTableElement: 'readonly',
-        HTMLTableSectionElement: 'readonly',
-        HTMLTableRowElement: 'readonly',
-        HTMLTableCellElement: 'readonly',
-        HTMLParagraphElement: 'readonly',
-        HTMLHeadingElement: 'readonly'
+        __dirname: 'readonly'
       }
     },
     settings: {
@@ -94,60 +91,54 @@ export default [
 
       // General rules
       'no-unused-vars': 'off',
-      'no-console': ['warn', { 
-        allow: ['warn', 'error', 'info', 'debug', 'log'] // Allow console.log during development
+      'no-console': process.env.NODE_ENV === 'production' ? 'error' : ['warn', { 
+        allow: ['warn', 'error', 'info', 'debug'] 
       }],
       'prefer-const': 'error',
       'no-var': 'error',
       'no-prototype-builtins': 'off'
     }
   },
-  // Override for test files
+  // TypeScript declaration files
+  {
+    files: ['**/*.d.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: null
+      }
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off'
+    }
+  },
+  // Test files
   {
     files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: null
+      }
+    },
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
-      'no-undef': 'off'  // Allow test globals
-    },
-    languageOptions: {
-      parserOptions: {
-        project: null
-      },
-      globals: {
-        jest: 'readonly',
-        describe: 'readonly',
-        it: 'readonly',
-        expect: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        test: 'readonly',
-        global: 'readonly'
-      }
+      'no-undef': 'off'
     }
   },
-  // Override for config files
+  // Node.js specific config
   {
-    files: ['*.config.ts', 'drizzle.config.ts', 'jest.config.ts', 'tailwind.config.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-undef': 'off'  // Allow globals like process in config files
-    },
+    files: ['server/**/*.ts', 'packages/**/src/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/__tests__/**'],
     languageOptions: {
-      parser: typescriptParser,
-      parserOptions: {
-        project: null
-      },
       globals: {
-        process: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        __dirname: 'readonly',
-        export: 'readonly',
-        console: 'readonly'
+        process: true,
+        console: true,
+        module: true,
+        require: true,
+        __dirname: true
       }
     }
   }
