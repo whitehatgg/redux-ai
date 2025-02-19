@@ -8,7 +8,12 @@ export default [
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
-    ignores: ['**/dist/**', '**/node_modules/**', '**/public/assets/**', '**/*.d.ts'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/public/assets/**',
+      '**/*.d.ts'
+    ],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -16,7 +21,35 @@ export default [
         sourceType: 'module',
         ecmaFeatures: {
           jsx: true
-        }
+        },
+        project: ['./tsconfig.json', './packages/*/tsconfig.json', './client/tsconfig.json']
+      },
+      globals: {
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        console: 'readonly',
+        // Node.js globals
+        process: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        // DOM element types
+        HTMLDivElement: 'readonly',
+        HTMLPreElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLTableElement: 'readonly',
+        HTMLTableSectionElement: 'readonly',
+        HTMLTableRowElement: 'readonly',
+        HTMLTableCellElement: 'readonly',
+        HTMLParagraphElement: 'readonly',
+        HTMLHeadingElement: 'readonly'
+      }
+    },
+    settings: {
+      react: {
+        version: 'detect'
       }
     },
     plugins: {

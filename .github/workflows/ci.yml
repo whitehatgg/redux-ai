@@ -46,7 +46,7 @@ jobs:
       run: pnpm install
 
     - name: Run lint
-      run: bash ./lint.sh
+      run: pnpm eslint "client/src/**/*.{ts,tsx}" "packages/*/src/**/*.{ts,tsx}" "server/**/*.ts" "*.config.ts" --max-warnings=0
 
     - name: Build packages
       run: pnpm run build
