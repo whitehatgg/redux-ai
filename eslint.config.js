@@ -12,7 +12,10 @@ export default [
       '**/dist/**',
       '**/node_modules/**',
       '**/*.d.ts',
-      '**/public/**'
+      '**/public/**',
+      'tailwind.config.ts',
+      'jest.config.ts',
+      'drizzle.config.ts'
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -22,7 +25,12 @@ export default [
         ecmaFeatures: {
           jsx: true
         },
-        project: ['./tsconfig.json', './packages/*/tsconfig.json', './client/tsconfig.json']
+        project: [
+          './tsconfig.json', 
+          './packages/*/tsconfig.json', 
+          './client/tsconfig.json',
+          './packages/*/src/**/__tests__/tsconfig.json'
+        ]
       },
       globals: {
         // Browser globals
@@ -32,6 +40,15 @@ export default [
         console: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        fetch: 'readonly',
+        // Testing globals
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        global: 'readonly',
         // Node.js globals
         process: 'readonly',
         module: 'readonly',
@@ -77,10 +94,61 @@ export default [
 
       // General rules
       'no-unused-vars': 'off',
-      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
+      'no-console': ['warn', { 
+        allow: ['warn', 'error', 'info', 'debug', 'log'] // Allow console.log during development
+      }],
       'prefer-const': 'error',
       'no-var': 'error',
       'no-prototype-builtins': 'off'
+    }
+  },
+  // Override for test files
+  {
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-undef': 'off'  // Allow test globals
+    },
+    languageOptions: {
+      parserOptions: {
+        project: null
+      },
+      globals: {
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        test: 'readonly',
+        global: 'readonly'
+      }
+    }
+  },
+  // Override for config files
+  {
+    files: ['*.config.ts', 'drizzle.config.ts', 'jest.config.ts', 'tailwind.config.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-undef': 'off'  // Allow globals like process in config files
+    },
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: null
+      },
+      globals: {
+        process: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        export: 'readonly',
+        console: 'readonly'
+      }
     }
   }
 ];
