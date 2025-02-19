@@ -2,39 +2,45 @@ import { createServer } from 'http';
 import type { Express } from 'express';
 import OpenAI from 'openai';
 
-let openai: OpenAI;
+let openai: OpenAI | null = null;
+let isOpenAIConfigured = false;
 
 try {
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key is not configured');
+    console.warn('OpenAI API key is not configured - demo features will be disabled');
+    isOpenAIConfigured = false;
+  } else {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    isOpenAIConfigured = true;
   }
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 } catch (error) {
   console.error('Error initializing OpenAI:', error);
+  isOpenAIConfigured = false;
 }
 
 async function createChatCompletion(
   messages: OpenAI.ChatCompletionMessageParam[],
   currentState?: Record<string, unknown>
 ) {
+  if (!openai) {
+    throw new Error('OpenAI client is not initialized');
+  }
+
   try {
-    // Log the input to the OpenAI request
     console.info('[OpenAI Request]:', {
       messages: messages,
       state: currentState ? JSON.stringify(currentState).slice(0, 200) + '...' : 'No state',
     });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages,
       temperature: 0.7,
       max_tokens: 200,
       response_format: { type: 'json_object' },
     });
 
-    // Log the raw response from OpenAI
     console.info('[OpenAI Response]:', response.choices[0].message.content);
-
     return response;
   } catch (error) {
     console.error('[OpenAI API Error]:', error);
@@ -44,25 +50,28 @@ async function createChatCompletion(
 
 export async function registerRoutes(app: Express) {
   app.get('/health', (_req, res) => {
-    res.status(200).send('OK');
+    res.status(200).json({ 
+      status: 'OK',
+      aiEnabled: isOpenAIConfigured 
+    });
   });
 
   app.post('/api/query', async (req, res) => {
-    try {
-      if (!openai) {
-        return res.status(500).json({
-          error: 'OpenAI client is not initialized. Please ensure API key is configured.',
-        });
-      }
+    if (!isOpenAIConfigured) {
+      return res.status(503).json({
+        error: 'AI features are currently disabled. Please configure your OpenAI API key to enable the demo.',
+        isConfigured: false
+      });
+    }
 
+    try {
       const { query, prompt, availableActions, currentState } = req.body;
 
-      // Log the entire incoming request data
       console.info('[API Request - Full]:', {
         rawQuery: query,
         promptLength: prompt?.length,
         availableActionsCount: availableActions?.length,
-        availableActionTypes: availableActions?.map(a => a.type),
+        availableActionTypes: availableActions?.map((a: { type: string }) => a.type),
         hasState: !!currentState,
         stateKeys: currentState ? Object.keys(currentState) : [],
       });
@@ -107,7 +116,6 @@ export async function registerRoutes(app: Express) {
         throw new Error('Invalid response format: missing message');
       }
 
-      // Log the processed response being sent back
       console.info('[API Response]:', {
         message: content.message,
         hasAction: !!content.action,
@@ -125,12 +133,13 @@ export async function registerRoutes(app: Express) {
         if (error.message.includes('API key')) {
           return res.status(401).json({
             error: 'Invalid or missing OpenAI API key. Please check your configuration.',
+            isConfigured: false
           });
         }
         if (error.message.includes('does not have access to model')) {
           return res.status(403).json({
-            error:
-              'Your OpenAI API key does not have access to the required model. Please check your OpenAI account settings.',
+            error: 'Your OpenAI API key does not have access to the required model.',
+            isConfigured: false
           });
         }
         if (error.message.includes('rate limit')) {
