@@ -1,7 +1,52 @@
+# Redux AI State Management Library
+
+An advanced AI-powered Redux state management library that provides intelligent, context-aware state tracking with enhanced debugging capabilities.
+
+## Features
+
+- 🧠 TypeScript-based state intelligence
+- 🐛 Advanced error detection and resolution
+- 📊 Dynamic state visualization and debugging tools
+- ⚡ Optimized performance monitoring
+- 📦 Robust vector storage and indexing
+
+## Architecture
+
+The project is structured as a monorepo with the following packages:
+
+### @redux-ai/vector
+Handles vector storage and similarity search functionality using IndexedDB for persistent storage. Features include:
+- Efficient vector storage and retrieval
+- Cosine similarity-based search
+- Real-time state tracking
+- Subscription-based updates
+
+### @redux-ai/react
+React components and hooks for debugging and visualizing Redux state:
+- `VectorDebugger`: Displays available actions and their metadata
+- `RAGResults`: Visualizes vector similarity search results
+- `ActivityLog`: Real-time logging of vector operations
+- Custom hooks for accessing vector storage
+
+### @redux-ai/state
+Core state management functionality:
+- AI-powered state tracking
+- Automatic action suggestion
+- State prediction and optimization
+
+### @redux-ai/schema
+Schema definitions and type utilities:
+- Redux action schemas
+- State validation rules
+- Type definitions for the entire system
+
+## Installation
+
+```bash
 # Install dependencies
 pnpm install
 
-# Build packages
+# Build all packages
 pnpm build
 ```
 
@@ -11,27 +56,24 @@ pnpm build
 
 ```typescript
 import { ReduxAIProvider } from '@redux-ai/react';
+import { createReduxAIVector } from '@redux-ai/vector';
 import { configureStore } from '@reduxjs/toolkit';
 
-// Your existing Redux store
 const store = configureStore({
   reducer: rootReducer
 });
 
-// Define available actions for AI interpretation
-const availableActions = [
-  {
-    type: 'users/filter',
-    description: 'Filter users by search criteria',
-    keywords: ['search', 'find', 'filter', 'users']
-  }
-];
-
 const App = () => {
   return (
-    <ReduxAIProvider
+    <ReduxAIProvider 
       store={store}
-      availableActions={availableActions}
+      availableActions={[
+        {
+          type: 'users/add',
+          description: 'Add a new user to the system',
+          keywords: ['user', 'create', 'add']
+        }
+      ]}
     >
       <YourApp />
     </ReduxAIProvider>
@@ -39,37 +81,39 @@ const App = () => {
 };
 ```
 
-### Adding Chat Interface
+### Debug Components
 
 ```typescript
-import { ChatBubble, ActivityLog } from '@redux-ai/react';
+import { ActivityLog } from '@redux-ai/react';
 
-const AppWithAI = () => {
+const DebugPanel = () => {
   return (
     <div>
-      <YourAppContent />
-
-      {/* Add floating chat interface */}
-      <ChatBubble className="fixed bottom-4 right-4" />
-
-      {/* Optional: Add activity logging */}
       <ActivityLog />
     </div>
   );
 };
 ```
 
-### Debug Components
+### Vector Storage
 
 ```typescript
-import { VectorDebugger, ActivityLog, RAGResults } from '@redux-ai/react';
+import { useVectorDebug } from '@redux-ai/react';
 
-const DebugPanel = () => {
+const VectorViewer = () => {
+  const { entries, isLoading, error } = useVectorDebug();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  
   return (
     <div>
-      <VectorDebugger />
-      <ActivityLog />
-      <RAGResults results={vectorResults} />
+      {entries.map(entry => (
+        <div key={entry.timestamp}>
+          <p>Query: {entry.query}</p>
+          <p>Response: {entry.response}</p>
+        </div>
+      ))}
     </div>
   );
 };
@@ -84,20 +128,13 @@ const DebugPanel = () => {
 pnpm build
 
 # Build specific package
-pnpm --filter @redux-ai/react build
+cd packages/vector && pnpm build
 ```
 
-### Testing
+### Running Tests
 
 ```bash
-# Run all tests
 pnpm test
-
-# Run tests for specific package
-pnpm --filter @redux-ai/react test
-
-# Run tests with coverage
-pnpm test:coverage
 ```
 
 ### Type Checking
@@ -106,16 +143,37 @@ pnpm test:coverage
 pnpm typecheck
 ```
 
-### Code Style & Quality
+## Technical Details
 
-We use ESLint and Prettier for code quality and formatting. Run these commands from the root:
+### Vector Storage
 
-```bash
-# Lint all packages
-pnpm lint
+The vector storage system uses IndexedDB for persistent storage and implements:
+- Simple but effective text-to-vector encoding
+- Cosine similarity for vector matching
+- Real-time subscription system for updates
+- Automatic garbage collection for old entries
 
-# Format code
-pnpm format
+### Debugging Tools
 
-# Check formatting
-pnpm format:check
+The debugging interface provides:
+- Real-time state visualization
+- Activity logging with timestamps
+
+### Performance Optimization
+
+- Efficient vector calculations
+- Batch updates for IndexedDB operations
+- Memoized React components
+- Optimized re-rendering patterns
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## License
+
+MIT
