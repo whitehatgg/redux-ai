@@ -1,19 +1,16 @@
 module.exports = {
-  root: true,
+  root: false,
   extends: [
-    '../../eslint.config.js',
-    'plugin:@typescript-eslint/recommended',
+    '../../.eslintrc.js',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
   ],
-  parser: '@typescript-eslint/parser',
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ['./tsconfig.json'],
     ecmaFeatures: {
       jsx: true,
     },
-    sourceType: 'module',
   },
   settings: {
     react: {
@@ -25,21 +22,10 @@ module.exports = {
     node: true,
     es6: true,
   },
-  globals: {
-    HTMLDivElement: 'readonly',
-  },
   rules: {
     'react/react-in-jsx-scope': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    'no-undef': 'off', // TypeScript handles this better
+    'no-undef': 'off', // TypeScript handles this
+    '@typescript-eslint/no-explicit-any': 'warn',
   },
-  overrides: [
-    {
-      files: ['*.ts', '*.tsx'],
-      rules: {
-        'no-undef': 'off',
-        '@typescript-eslint/no-explicit-any': 'warn'
-      }
-    }
-  ]
 };

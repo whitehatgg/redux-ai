@@ -14,7 +14,15 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
+    "preversion": "pnpm run ci"
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*",
