@@ -30,7 +30,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -49,7 +51,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       return;
     }
 
-    // Create user message
     const userMessage: ChatMessage = {
       id: generateMessageId(),
       role: 'user',
@@ -57,18 +58,15 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       timestamp: Date.now(),
     };
 
-    // Clear input immediately to prevent re-submission
     setInput('');
     setIsSubmitting(true);
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Process the query
-      console.log('[ChatBubble] Processing query:', trimmedInput);
+      console.debug('[ChatBubble] Processing query:', trimmedInput);
       const response = await sendQuery(trimmedInput);
-      console.log('[ChatBubble] Received response:', response);
+      console.debug('[ChatBubble] Received response:', response);
 
-      // Add assistant message
       const assistantMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'assistant',
@@ -78,7 +76,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('[ChatBubble] Error processing query:', error);
-      // Add error message
       const errorMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'error',

@@ -43,7 +43,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     const initialize = async () => {
       try {
         if (isInitialized) return; // Prevent multiple initializations
-        console.log('[ReduxAIProvider] Starting initialization...');
+        console.debug('[ReduxAIProvider] Starting initialization...');
 
         // Initialize vector storage
         vectorDb = await createReduxAIVector({
@@ -54,7 +54,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (!mounted) return;
 
-        console.log('[ReduxAIProvider] Vector storage initialized');
+        console.debug('[ReduxAIProvider] Vector storage initialized');
         setVectorStorage(vectorDb);
 
         // Initialize Redux AI state
@@ -73,7 +73,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
 
         if (!mounted) return;
 
-        console.log('[ReduxAIProvider] State initialization complete');
+        console.debug('[ReduxAIProvider] State initialization complete');
         setIsInitialized(true);
         setError(undefined);
       } catch (error) {
@@ -90,10 +90,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     return () => {
       mounted = false;
       if (vectorDb) {
-        console.log('[ReduxAIProvider] Cleaning up vector storage');
+        console.debug('[ReduxAIProvider] Cleaning up vector storage');
       }
     };
-  }, [store, schema, availableActions]); // Only re-run if these props change
+  }, [store, schema, availableActions, isInitialized]); // Added isInitialized to dependencies
 
   // Show loading state until initialization is complete
   if (!isInitialized && !error) {

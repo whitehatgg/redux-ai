@@ -5,4 +5,8 @@ module.exports = {
     tsconfigRootDir: __dirname,
     project: ['./tsconfig.json'],
   },
+  env: {
+    browser: true,
+    node: true,
+  },
 };
