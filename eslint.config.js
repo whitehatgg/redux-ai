@@ -12,7 +12,7 @@ export default [
       '**/dist/**',
       '**/node_modules/**',
       '**/public/assets/**',
-      '**/*.d.ts'
+      '**/*.d.ts'  // Explicitly ignore .d.ts files
     ],
     languageOptions: {
       parser: typescriptParser,
