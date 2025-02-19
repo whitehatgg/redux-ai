@@ -91,7 +91,7 @@ function AppContent() {
             Redux AI
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-xl sm:text-2xl text-muted-foreground">
-            Intelligent extension that brings AI-powered interactions to your Redux applications
+            Vibe coding your Redux store—let your users chat with your app using AI
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
