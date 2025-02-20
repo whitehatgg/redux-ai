@@ -62,8 +62,8 @@ function AppContent() {
   useEffect(() => {
     // Check if AI features are enabled
     fetch('/health')
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         setIsAIEnabled(data.aiEnabled);
         setIsInitializing(false);
       })
@@ -90,10 +90,10 @@ function AppContent() {
           <h1 className="mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-5xl">
             Redux AI
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-xl sm:text-2xl text-muted-foreground">
+          <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground sm:text-2xl">
             Vibe coding your Redux store—let your users chat with your app using AI
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <a
               href="https://github.com/whitehatgg/redux-ai"
               className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-primary-foreground transition-colors hover:bg-primary/90"
@@ -117,7 +117,8 @@ function AppContent() {
             <RiAiGenerate className="mb-4 h-12 w-12 text-primary" />
             <h3 className="mb-2 text-xl font-semibold">AI-Powered State Enhancement</h3>
             <p className="text-muted-foreground">
-              Extend your Redux store with intelligent interactions and natural language processing capabilities.
+              Extend your Redux store with intelligent interactions and natural language processing
+              capabilities.
             </p>
           </div>
           <div className="rounded-lg border bg-card p-6 transition-shadow hover:shadow-lg">
@@ -154,9 +155,12 @@ function AppContent() {
         ) : (
           <div className="mx-auto max-w-2xl rounded-lg border bg-amber-50 p-6 text-center">
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-amber-500" />
-            <h3 className="mb-2 text-xl font-semibold text-amber-700">Demo Currently Unavailable</h3>
+            <h3 className="mb-2 text-xl font-semibold text-amber-700">
+              Demo Currently Unavailable
+            </h3>
             <p className="text-amber-600">
-              The AI features are currently disabled. To enable the demo, please configure your OpenAI API key.
+              The AI features are currently disabled. To enable the demo, please configure your
+              OpenAI API key.
             </p>
           </div>
         )}
@@ -174,7 +178,9 @@ function AppContent() {
         </div>
       )}
 
-      {isAIEnabled && <ActivityLog open={showActivityLog} onClose={() => setShowActivityLog(false)} />}
+      {isAIEnabled && (
+        <ActivityLog open={showActivityLog} onClose={() => setShowActivityLog(false)} />
+      )}
     </div>
   );
 }

@@ -28,14 +28,7 @@
       "@redux-ai/vector": ["../../packages/vector/src"]
     }
   },
-  "include": [
-    "src/**/*",
-    "../../vitest.setup.ts"
-  ],
+  "include": ["src/**/*", "../../vitest.setup.ts"],
   "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../schema" },
-    { "path": "../state" },
-    { "path": "../vector" }
-  ]
+  "references": [{ "path": "../schema" }, { "path": "../state" }, { "path": "../vector" }]
 }

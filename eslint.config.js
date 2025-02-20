@@ -18,7 +18,7 @@ export default [
       '.tsbuildinfo',
       '**/vitest.config.ts',
       '**/postcss.config.js',
-      '**/generated/**'
+      '**/generated/**',
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -58,7 +58,9 @@ export default [
         afterEach: 'readonly',
         vi: 'readonly',
         test: 'readonly',
-        jest: 'readonly'
+        jest: 'readonly',
+        Blob: 'readonly',
+        FormData: 'readonly',
       },
     },
     settings: {
@@ -114,6 +116,18 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       'no-undef': 'off',
+    },
+  },
+  // Configuration files
+  {
+    files: ['**/*.config.{js,ts}', '**/.eslintrc.js'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        process: 'readonly',
+      },
     },
   },
   // Vector package browser environment

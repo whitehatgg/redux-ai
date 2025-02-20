@@ -50,17 +50,18 @@ async function createChatCompletion(
 
 export async function registerRoutes(app: Express) {
   app.get('/health', (_req, res) => {
-    res.status(200).json({ 
+    res.status(200).json({
       status: 'OK',
-      aiEnabled: isOpenAIConfigured 
+      aiEnabled: isOpenAIConfigured,
     });
   });
 
   app.post('/api/query', async (req, res) => {
     if (!isOpenAIConfigured) {
       return res.status(503).json({
-        error: 'AI features are currently disabled. Please configure your OpenAI API key to enable the demo.',
-        isConfigured: false
+        error:
+          'AI features are currently disabled. Please configure your OpenAI API key to enable the demo.',
+        isConfigured: false,
       });
     }
 
@@ -133,13 +134,13 @@ export async function registerRoutes(app: Express) {
         if (error.message.includes('API key')) {
           return res.status(401).json({
             error: 'Invalid or missing OpenAI API key. Please check your configuration.',
-            isConfigured: false
+            isConfigured: false,
           });
         }
         if (error.message.includes('does not have access to model')) {
           return res.status(403).json({
             error: 'Your OpenAI API key does not have access to the required model.',
-            isConfigured: false
+            isConfigured: false,
           });
         }
         if (error.message.includes('rate limit')) {

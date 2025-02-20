@@ -15,27 +15,35 @@ An advanced AI-powered Redux state management library that provides intelligent,
 The project is structured as a monorepo with the following packages:
 
 ### @redux-ai/vector
+
 Handles vector storage and similarity search functionality using IndexedDB for persistent storage. Features include:
+
 - Efficient vector storage and retrieval
 - Cosine similarity-based search
 - Real-time state tracking
 - Subscription-based updates
 
 ### @redux-ai/react
+
 React components and hooks for debugging and visualizing Redux state:
+
 - `VectorDebugger`: Displays available actions and their metadata
 - `RAGResults`: Visualizes vector similarity search results
 - `ActivityLog`: Real-time logging of vector operations
 - Custom hooks for accessing vector storage
 
 ### @redux-ai/state
+
 Core state management functionality:
+
 - AI-powered state tracking
 - Automatic action suggestion
 - State prediction and optimization
 
 ### @redux-ai/schema
+
 Schema definitions and type utilities:
+
 - Redux action schemas
 - State validation rules
 - Type definitions for the entire system
@@ -65,7 +73,7 @@ const store = configureStore({
 
 const App = () => {
   return (
-    <ReduxAIProvider 
+    <ReduxAIProvider
       store={store}
       availableActions={[
         {
@@ -102,10 +110,10 @@ import { useVectorDebug } from '@redux-ai/react';
 
 const VectorViewer = () => {
   const { entries, isLoading, error } = useVectorDebug();
-  
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
-  
+
   return (
     <div>
       {entries.map(entry => (
@@ -148,6 +156,7 @@ pnpm typecheck
 ### Vector Storage
 
 The vector storage system uses IndexedDB for persistent storage and implements:
+
 - Simple but effective text-to-vector encoding
 - Cosine similarity for vector matching
 - Real-time subscription system for updates
@@ -156,6 +165,7 @@ The vector storage system uses IndexedDB for persistent storage and implements:
 ### Debugging Tools
 
 The debugging interface provides:
+
 - Real-time state visualization
 - Activity logging with timestamps
 

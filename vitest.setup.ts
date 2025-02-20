@@ -1,11 +1,12 @@
-import { expect, afterEach, vi, beforeAll } from 'vitest';
-import { cleanup } from '@testing-library/react';
-import { configure } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+import { afterEach, beforeAll, expect, vi } from 'vitest';
+
 import '@testing-library/jest-dom';
+
 import type { MockedFunction, MockedObject } from 'vitest';
 
 // Configure testing library
-configure({ 
+configure({
   testIdAttribute: 'data-testid',
 });
 
@@ -15,9 +16,7 @@ interface MockImplementation<T> {
 }
 
 // Create a more structured mock factory
-export const createMock = <T extends object>(
-  mockImplementation?: Partial<T>
-): MockedObject<T> => {
+export const createMock = <T extends object>(mockImplementation?: Partial<T>): MockedObject<T> => {
   const mock = vi.fn() as unknown as MockedObject<T>;
   if (mockImplementation) {
     Object.entries(mockImplementation).forEach(([key, value]) => {

@@ -1,11 +1,12 @@
 pnpm install
-```
+
+````
 
 2. Start development:
 
 ```bash
 pnpm run dev
-```
+````
 
 ## Code Style & Formatting
 
@@ -20,6 +21,7 @@ pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .pre
 ```
 
 Our formatting rules include:
+
 - Semi-colons
 - Single quotes
 - 100 character line width
@@ -63,3 +65,4 @@ pnpm changeset version
 
 # Publish packages (maintainers only)
 pnpm changeset publish
+```

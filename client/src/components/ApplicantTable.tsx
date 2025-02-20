@@ -76,7 +76,9 @@ export function ApplicantTable() {
                 checked={tableConfig.visibleColumns.includes(key)}
                 onCheckedChange={() => toggleColumn(key)}
               />
-              <Label htmlFor={key} className="text-sm">{label}</Label>
+              <Label htmlFor={key} className="text-sm">
+                {label}
+              </Label>
             </div>
           ))}
         </div>
@@ -103,7 +105,7 @@ export function ApplicantTable() {
                 <TableRow>
                   <TableCell
                     colSpan={tableConfig.visibleColumns.length}
-                    className="text-center py-4 text-muted-foreground"
+                    className="py-4 text-center text-muted-foreground"
                   >
                     No applicants found
                   </TableCell>

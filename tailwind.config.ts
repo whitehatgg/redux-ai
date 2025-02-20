@@ -1,12 +1,12 @@
 import type { Config } from 'tailwindcss';
 
-export default {
+const config: Config = {
   darkMode: ['class'],
   content: [
     './client/src/**/*.{js,jsx,ts,tsx}',
     './client/index.html',
     './packages/react/src/**/*.{js,jsx,ts,tsx}',
-    './packages/*/src/**/*.{js,jsx,ts,tsx}' // Include all package components
+    './packages/*/src/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
     extend: {
@@ -66,8 +66,7 @@ export default {
       },
     },
   },
-  plugins: [
-    require('tailwindcss-animate'),
-    require('@tailwindcss/typography')
-  ],
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 } satisfies Config;
+
+export default config;

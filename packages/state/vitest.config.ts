@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -12,16 +12,15 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
     },
     deps: {
-      inline: [
-        '@redux-ai/schema',
-        '@redux-ai/vector',
-        '@testing-library/jest-dom'
-      ],
+      inline: ['@redux-ai/schema', '@redux-ai/vector', '@testing-library/jest-dom'],
     },
   },
   resolve: {
     alias: {
-      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom')
-    }
-  }
+      '@testing-library/jest-dom': resolve(
+        __dirname,
+        '../../node_modules/@testing-library/jest-dom'
+      ),
+    },
+  },
 });

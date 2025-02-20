@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -13,13 +13,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/**',
-        'src/types/**',
-        '**/*.d.ts',
-        'test/**',
-        'dist/**',
-      ],
+      exclude: ['node_modules/**', 'src/types/**', '**/*.d.ts', 'test/**', 'dist/**'],
     },
     deps: {
       inline: [
@@ -39,9 +33,12 @@ export default defineConfig({
       '@redux-ai/schema': resolve(__dirname, '../schema/src'),
       '@redux-ai/state': resolve(__dirname, '../state/src'),
       '@redux-ai/vector': resolve(__dirname, '../vector/src'),
-      'react': resolve(__dirname, '../../node_modules/react'),
+      react: resolve(__dirname, '../../node_modules/react'),
       'react-dom': resolve(__dirname, '../../node_modules/react-dom'),
-      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom'),
+      '@testing-library/jest-dom': resolve(
+        __dirname,
+        '../../node_modules/@testing-library/jest-dom'
+      ),
     },
   },
 });
