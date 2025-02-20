@@ -9,6 +9,11 @@ configure({
   testIdAttribute: 'data-testid',
 });
 
+type Procedure = (...args: any[]) => any;
+interface MockImplementation<T> {
+  [key: string]: T[keyof T];
+}
+
 // Create a more structured mock factory
 export const createMock = <T extends object>(
   mockImplementation?: Partial<T>
@@ -16,10 +21,11 @@ export const createMock = <T extends object>(
   const mock = vi.fn() as unknown as MockedObject<T>;
   if (mockImplementation) {
     Object.entries(mockImplementation).forEach(([key, value]) => {
+      const typedKey = key as keyof T;
       if (typeof value === 'function') {
-        mock[key] = vi.fn(value) as MockedFunction<typeof value>;
+        (mock as MockImplementation<T>)[key] = vi.fn(value as Procedure) as T[keyof T];
       } else {
-        mock[key] = value;
+        (mock as MockImplementation<T>)[key] = value as T[keyof T];
       }
     });
   }

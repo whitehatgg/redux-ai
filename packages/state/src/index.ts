@@ -1,5 +1,5 @@
 import type { ReduxAISchema } from '@redux-ai/schema';
-import type { ReduxAIVector } from '@redux-ai/vector';
+import type { ReduxAIVector, VectorEntry } from '@redux-ai/vector';
 import type { Action, Store } from '@reduxjs/toolkit';
 
 import { createConversationMachine } from './machine';
@@ -97,7 +97,7 @@ export class ReduxAIState {
     try {
       const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
       conversationHistory = similarEntries
-        .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
+        .map((entry: VectorEntry) => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
         .join('\n\n');
     } catch (error) {
       if (this.onError) {
@@ -178,4 +178,4 @@ export const getReduxAI = (): ReduxAIState => {
     throw new Error('ReduxAI not initialized. Call createReduxAIState first.');
   }
   return instance;
-}; // test comment
+};

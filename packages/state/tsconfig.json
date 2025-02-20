@@ -10,12 +10,16 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "declaration": true,
     "noEmit": false,
     "allowImportingTsExtensions": false,
     "composite": true,
-    "tsBuildInfoFile": "./.tsbuildinfo"
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "paths": {
+      "@redux-ai/vector": ["../../packages/vector/src"],
+      "@redux-ai/schema": ["../../packages/schema/src"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts", "dist"],
