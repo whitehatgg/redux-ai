@@ -10,17 +10,27 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/**',
+        'src/types/**',
+        '**/*.d.ts',
+        'test/**',
+        'dist/**',
+      ],
     },
     deps: {
       inline: [
         '@redux-ai/schema',
-        '@testing-library/jest-dom'
+        '@testing-library/jest-dom',
       ],
     },
   },
   resolve: {
     alias: {
-      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom')
-    }
-  }
+      '@': resolve(__dirname, './src'),
+      '@shared': resolve(__dirname, '../../shared'),
+      '@redux-ai/schema': resolve(__dirname, '../schema/src'),
+      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom'),
+    },
+  },
 });

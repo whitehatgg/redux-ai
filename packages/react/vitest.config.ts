@@ -13,6 +13,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/**',
+        'src/types/**',
+        '**/*.d.ts',
+        'test/**',
+        'dist/**',
+      ],
     },
     deps: {
       inline: [
@@ -21,16 +28,20 @@ export default defineConfig({
         '@redux-ai/vector',
         'react',
         'react-dom',
-        '@testing-library/jest-dom'
+        '@testing-library/jest-dom',
       ],
     },
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@shared': resolve(__dirname, '../../shared'),
+      '@redux-ai/schema': resolve(__dirname, '../schema/src'),
+      '@redux-ai/state': resolve(__dirname, '../state/src'),
+      '@redux-ai/vector': resolve(__dirname, '../vector/src'),
       'react': resolve(__dirname, '../../node_modules/react'),
       'react-dom': resolve(__dirname, '../../node_modules/react-dom'),
-      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom')
+      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom'),
     },
   },
 });
