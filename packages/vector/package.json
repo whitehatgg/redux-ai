@@ -13,16 +13,16 @@
     }
   },
   "scripts": {
-    "build": "pnpm tsc",
-    "dev": "pnpm tsc --watch",
-    "lint": "pnpm eslint \"src/**/*.{ts,tsx}\" --fix",
-    "format": "pnpm prettier --write \"src/**/*.{ts,tsx,json}\"",
-    "format:check": "pnpm prettier --check \"src/**/*.{ts,tsx,json}\"",
-    "test": "pnpm vitest run",
-    "test:watch": "pnpm vitest",
-    "test:coverage": "pnpm vitest run --coverage",
-    "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
-    "preversion": "pnpm run ci"
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "ci": "npm run lint && npm run format:check && npm run test && npm run build",
+    "preversion": "npm run ci"
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*"
