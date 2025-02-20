@@ -59,9 +59,8 @@ export class ReduxAIState {
   }
 
   private handleError(error: unknown, message?: string): never {
-    const wrappedError = error instanceof Error 
-      ? error 
-      : new Error(message || 'Unknown error occurred');
+    const wrappedError =
+      error instanceof Error ? error : new Error(message || 'Unknown error occurred');
 
     if (this.onError) {
       this.onError(wrappedError);
@@ -102,7 +101,9 @@ export class ReduxAIState {
         .join('\n\n');
     } catch (error) {
       if (this.onError) {
-        this.onError(error instanceof Error ? error : new Error('Failed to retrieve similar entries'));
+        this.onError(
+          error instanceof Error ? error : new Error('Failed to retrieve similar entries')
+        );
       }
       conversationHistory = '';
     }
@@ -177,4 +178,4 @@ export const getReduxAI = (): ReduxAIState => {
     throw new Error('ReduxAI not initialized. Call createReduxAIState first.');
   }
   return instance;
-};
+}; // test comment
