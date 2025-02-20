@@ -3,29 +3,29 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 // Import from the package's test utils
-import { createMock, mockApiError, mockFetch } from '../test-utils';
+import { createMock, mockApiError } from '../test-utils';
 
 // Example of mocking a store
 const mockStore = createMock<Store>({
   getState: () => ({
-    /* mock state */
+    theme: { mode: 'light' },
   }),
   dispatch: vi.fn(),
   subscribe: vi.fn(),
 });
 
-// Added test description comment
 describe('Example Test Suite', () => {
   beforeEach(() => {
     // Reset all mocks before each test
     vi.clearAllMocks();
   });
 
-  it('should demonstrate mock usage', () => {
-    // Example of mocking API responses
-    mockFetch({ data: 'test' });
+  it('should demonstrate mock usage with DOM testing', () => {
+    // Example of rendering a test component and using screen
+    render(<div data-testid="test-element">Test Content</div>);
 
-    // Your test implementation here
+    const element = screen.getByTestId('test-element');
+    expect(element).toHaveTextContent('Test Content');
     expect(mockStore.dispatch).not.toHaveBeenCalled();
   });
 
@@ -33,7 +33,7 @@ describe('Example Test Suite', () => {
     // Example of mocking API errors
     mockApiError(404, 'Not Found');
 
-    // Your test implementation here
+    // Test API error handling
     const response = await fetch('/api/test');
     expect(response.ok).toBe(false);
     expect(response.status).toBe(404);

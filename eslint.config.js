@@ -6,6 +6,28 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   js.configs.recommended,
+  // Declaration files first to ensure they take precedence
+  {
+    files: ['**/*.d.ts'],
+    ignores: ['**/dist/**', '**/node_modules/**'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: null, // Don't require tsconfig for .d.ts files
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-empty-interface': 'off',
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/ban-types': 'off',
+      '@typescript-eslint/no-unused-vars': 'off', // Completely disable for .d.ts files
+      'no-unused-vars': 'off', // Disable the base rule as well
+      'no-var': 'off',
+      'no-undef': 'off',
+    },
+  },
+  // Regular TypeScript/React files
   {
     files: ['**/*.{ts,tsx}'],
     ignores: [
@@ -18,6 +40,7 @@ export default [
       '**/vitest.config.ts',
       '**/postcss.config.js',
       '**/generated/**',
+      '**/*.d.ts',
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -27,7 +50,11 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
-        project: './tsconfig.json',
+        project: true,
+        projectService: {
+          projects: ['./tsconfig.json', './packages/*/tsconfig.json'],
+          tsconfigRootDir: '.',
+        },
       },
       globals: {
         // Browser globals
@@ -111,6 +138,15 @@ export default [
   // Test files
   {
     files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: true,
+        projectService: {
+          projects: ['./tsconfig.json', './packages/*/tsconfig.json'],
+          tsconfigRootDir: '.',
+        },
+      },
+    },
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
@@ -124,7 +160,7 @@ export default [
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
-        project: null, // Don't require tsconfig for config files
+        project: null,
       },
       globals: {
         module: 'readonly',

@@ -1,6 +1,11 @@
 {
-  "*.{js,jsx,ts,tsx}": ["prettier --write", "eslint --fix"],
+  "*.{js,jsx,ts,tsx}": [
+    "prettier --write",
+    "eslint --fix",
+    "vitest related --run"
+  ],
   "*.{json,md}": ["prettier --write"],
-  "*.css": ["prettier --write", "stylelint --fix"],
-  "packages/*/src/**/*.{ts,tsx,json}": ["prettier --write", "eslint --fix"]
+  "*.{css,scss}": ["prettier --write", "stylelint --fix"],
+  "packages/*/src/**/*.{ts,tsx,json}": ["prettier --write", "eslint --fix"],
+  "*.{cjs,mjs}": ["prettier --write", "eslint --fix"]
 }
