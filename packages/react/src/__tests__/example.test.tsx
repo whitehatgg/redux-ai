@@ -13,6 +13,7 @@ const mockStore = createMock<Store>({
   subscribe: vi.fn(),
 });
 
+// Added test description comment
 describe('Example Test Suite', () => {
   beforeEach(() => {
     // Reset all mocks before each test
