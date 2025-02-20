@@ -1,7 +1,7 @@
 import type React from 'react';
 import { type ReactElement } from 'react';
 import { configureStore } from '@reduxjs/toolkit';
-import { render, renderHook, type RenderOptions } from '@testing-library/react';
+import { render, renderHook, type RenderOptions, type RenderResult } from '@testing-library/react';
 import { vi } from 'vitest';
 
 // Create and export mock hooks
@@ -32,7 +32,13 @@ function Wrapper({ children }: WrapperProps) {
   return children;
 }
 
-const customRender = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) => {
+// Add explicit return type annotation to avoid inference issues
+type CustomRenderResult = RenderResult & { mockStore: typeof mockStore };
+
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>
+): CustomRenderResult => {
   return {
     ...render(ui, { wrapper: Wrapper, ...options }),
     mockStore,
