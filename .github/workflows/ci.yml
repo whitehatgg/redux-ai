@@ -45,7 +45,18 @@ jobs:
           ${{ runner.os }}-pnpm-store-
 
     - name: Install dependencies
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
+
+    # Build packages in the correct order
+    - name: Build packages
+      run: |
+        # Build shared dependencies first
+        pnpm --filter "@redux-ai/schema" build
+        pnpm --filter "@redux-ai/vector" build
+        pnpm --filter "@redux-ai/state" build
+        pnpm --filter "@redux-ai/react" build
+        # Then build the application
+        pnpm run build
 
     # Run checks on all packages in parallel
     - name: Run checks on packages
@@ -53,11 +64,6 @@ jobs:
         pnpm -r run lint
         pnpm -r run format:check
         pnpm -r run test
-        pnpm -r run build
-
-    # Build the entire application
-    - name: Build application
-      run: pnpm run build
 
     - name: Upload coverage
       uses: codecov/codecov-action@v3
@@ -83,9 +89,23 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

@@ -1,0 +1,18 @@
+client build: x Build failed in 788ms
+client build: error during build:
+client build: [commonjs--resolver] Failed to resolve entry for package "@redux-ai/react". The package may have incorrect main/module/exports specified in its package.json.
+client build:     at packageEntryFailure (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/vite@5.4.14_@types+node@20.17.19/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:46638:15)
+client build:     at resolvePackageEntry (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/vite@5.4.14_@types+node@20.17.19/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:46635:3)
+client build:     at tryNodeResolve (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/vite@5.4.14_@types+node@20.17.19/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:46451:16)
+client build:     at Object.resolveId (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/vite@5.4.14_@types+node@20.17.19/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:46201:19)
+client build:     at file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/rollup@4.34.8/node_modules/rollup/dist/es/shared/node-entry.js:21835:40
+client build:     at async PluginDriver.hookFirstAndGetPlugin (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/rollup@4.34.8/node_modules/rollup/dist/es/shared/node-entry.js:21735:28)
+client build:     at async resolveId (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/rollup@4.34.8/node_modules/rollup/dist/es/shared/node-entry.js:20335:26)
+client build:     at async ModuleLoader.resolveId (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/rollup@4.34.8/node_modules/rollup/dist/es/shared/node-entry.js:20771:15)
+client build:     at async Object.resolveId (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/vite@5.4.14_@types+node@20.17.19/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js:12834:10)
+client build:     at async PluginDriver.hookFirstAndGetPlugin (file:///home/runner/work/redux-ai/redux-ai/node_modules/.pnpm/rollup@4.34.8/node_modules/rollup/dist/es/shared/node-entry.js:21735:28)
+client build: Failed
+/home/runner/work/redux-ai/redux-ai/client:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @redux-ai/client@0.1.0 build: `tsc && vite build`
+Exit status 1
+Error: Process completed with exit code 1.
