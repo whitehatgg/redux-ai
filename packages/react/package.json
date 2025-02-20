@@ -24,8 +24,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "ci": "npm run lint && npm run format:check && npm run test && npm run build",
-    "preversion": "npm run ci"
+    "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
+    "preversion": "pnpm run ci"
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*",

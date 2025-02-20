@@ -1,10 +1,6 @@
-`
+pnpm install
 
-2. Start development:
-
-```bash
-pnpm run dev
-```
+````
 
 ## Code Style & Formatting
 
@@ -16,7 +12,7 @@ pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .pre
 
 # Check formatting without making changes
 pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .prettierignore
-```
+````
 
 Our formatting rules include:
 
