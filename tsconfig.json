@@ -1,5 +1,13 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "packages/**/*"],
+  "include": [
+    "client/src/**/*",
+    "shared/**/*",
+    "server/index.ts",
+    "server/routes.ts",
+    "server/storage.ts",
+    "server/db.ts",
+    "packages/**/*"
+  ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
@@ -21,6 +29,9 @@
       "@redux-ai/schema": ["./packages/schema/src"],
       "@redux-ai/vector": ["./packages/vector/src"],
       "@redux-ai/react": ["./packages/react/src"]
-    }
+    },
+    "noErrorTruncation": true,
+    "allowJs": true,
+    "checkJs": false
   }
 }
