@@ -8,6 +8,11 @@ export interface SchemaConfig<T extends Action> {
   validatePayload?: boolean;
 }
 
+export interface ValidationResult {
+  valid: boolean;
+  errors?: string[];
+}
+
 export class ReduxAISchema<T extends Action> {
   private schema: JSONSchemaType<T>;
   private validatePayload: boolean;
@@ -19,21 +24,34 @@ export class ReduxAISchema<T extends Action> {
 
   /**
    * Validates if the given value is a valid action according to the schema
+   * @returns A ValidationResult object containing validation status and any errors
    */
-  validateAction(value: unknown): value is T {
+  validateAction(value: unknown): ValidationResult & { value: T | null } {
     // Step 1: Basic structure validation
     if (!isObject(value)) {
-      return false;
+      return {
+        valid: false,
+        errors: ['Value must be an object'],
+        value: null
+      };
     }
 
     // Step 2: Type property validation
     if (!hasProperty(value, 'type') || typeof value.type !== 'string') {
-      return false;
+      return {
+        valid: false,
+        errors: ['Action must have a string "type" property'],
+        value: null
+      };
     }
 
     // Step 3: Schema validation
-    const { valid } = validateSchema(this.schema, value);
-    return valid;
+    const { valid, errors } = validateSchema(this.schema, value);
+    return {
+      valid,
+      errors,
+      value: valid ? value as T : null
+    };
   }
 
   /**

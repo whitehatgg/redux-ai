@@ -34,7 +34,10 @@ describe('ReduxAISchema', () => {
       payload: { value: 'test' },
     };
 
-    expect(schema.validateAction(action)).toBe(true);
+    const result = schema.validateAction(action);
+    expect(result.valid).toBe(true);
+    expect(result.value).toEqual(action);
+    expect(result.errors).toBeUndefined();
   });
 
   it('should reject an action with wrong type', () => {
@@ -43,7 +46,11 @@ describe('ReduxAISchema', () => {
       payload: { value: 'test' },
     };
 
-    expect(schema.validateAction(action)).toBe(false);
+    const result = schema.validateAction(action);
+    expect(result.valid).toBe(false);
+    expect(result.value).toBeNull();
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.length).toBeGreaterThan(0);
   });
 
   it('should reject an action with wrong payload type', () => {
@@ -52,7 +59,11 @@ describe('ReduxAISchema', () => {
       payload: { value: 123 },
     };
 
-    expect(schema.validateAction(action)).toBe(false);
+    const result = schema.validateAction(action);
+    expect(result.valid).toBe(false);
+    expect(result.value).toBeNull();
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.length).toBeGreaterThan(0);
   });
 
   it('should reject an action with missing payload', () => {
@@ -60,7 +71,18 @@ describe('ReduxAISchema', () => {
       type: 'test/action',
     };
 
-    expect(schema.validateAction(action)).toBe(false);
+    const result = schema.validateAction(action);
+    expect(result.valid).toBe(false);
+    expect(result.value).toBeNull();
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.length).toBeGreaterThan(0);
+  });
+
+  it('should reject non-object values', () => {
+    const result = schema.validateAction("not an object");
+    expect(result.valid).toBe(false);
+    expect(result.value).toBeNull();
+    expect(result.errors).toEqual(['Value must be an object']);
   });
 
   it('should return schema definition', () => {

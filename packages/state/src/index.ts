@@ -7,11 +7,8 @@ import { generateSystemPrompt } from './prompts';
 
 export { generateSystemPrompt } from './prompts';
 
-// Declare the type for import.meta.env
-declare global {
-  interface ImportMetaEnv {
-    MODE: string;
-  }
+export interface ImportMetaEnv {
+  MODE: string;
 }
 
 export interface ReduxAIAction {
@@ -26,7 +23,7 @@ export interface AIStateConfig {
   vectorStorage: ReduxAIVector;
   availableActions: ReduxAIAction[];
   onError?: (error: Error) => void;
-  forceNewInstance?: boolean; // Added for testing purposes
+  forceNewInstance?: boolean;
 }
 
 export interface Interaction {
@@ -107,7 +104,6 @@ export class ReduxAIState {
       if (this.onError) {
         this.onError(error instanceof Error ? error : new Error('Failed to retrieve similar entries'));
       }
-      // Continue without vector DB results
       conversationHistory = '';
     }
 
@@ -145,6 +141,14 @@ export class ReduxAIState {
         this.handleError(new Error('Invalid response format from API'));
       }
 
+      if (action && this.schema) {
+        const validationResult = this.schema.validateAction(action);
+        if (!validationResult.valid) {
+          const errors = validationResult.errors?.join(', ') || 'Unknown validation error';
+          this.handleError(new Error(`Invalid action format: ${errors}`));
+        }
+      }
+
       await this.storeInteraction(query, message);
 
       if (action) {
@@ -161,8 +165,7 @@ export class ReduxAIState {
 let instance: ReduxAIState | null = null;
 
 export const createReduxAIState = async (config: AIStateConfig): Promise<ReduxAIState> => {
-  // Allow creating a new instance in test environment or when explicitly requested
-  if (import.meta.env.MODE === 'test' || config.forceNewInstance || !instance) {
+  if (process.env.NODE_ENV === 'test' || config.forceNewInstance || !instance) {
     instance = new ReduxAIState(config);
     await instance.initialize();
   }

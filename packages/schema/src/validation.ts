@@ -12,17 +12,16 @@ export function validateSchema<T>(
   data: unknown
 ): {
   valid: boolean;
-  errors: string[];
+  errors?: string[];
 } {
   const validate = ajv.compile(schema);
   const valid = validate(data);
 
   return {
     valid,
-    errors: valid
-      ? []
-      : validate.errors?.map(e => e.message).filter((msg): msg is string => msg !== undefined) ||
-        [],
+    errors: valid 
+      ? undefined 
+      : validate.errors?.map(e => e.message).filter((msg): msg is string => msg !== undefined),
   };
 }
 
