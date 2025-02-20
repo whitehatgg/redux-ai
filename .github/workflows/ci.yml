@@ -16,6 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        # This is important for changesets to work correctly
+        fetch-depth: 0
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
@@ -45,14 +48,22 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Run lint
-      run: pnpm eslint "client/src/**/*.{ts,tsx}" "packages/*/src/**/*.{ts,tsx}" "server/**/*.ts" "*.config.ts" --max-warnings=0
+    # First handle monorepo packages
+    - name: Run lint on packages
+      run: pnpm --filter "./packages/*" lint
+
+    - name: Check formatting on packages
+      run: pnpm --filter "./packages/*" format:check
+
+    - name: Run tests on packages
+      run: pnpm --filter "./packages/*" test
 
     - name: Build packages
-      run: pnpm run -r build
+      run: pnpm --filter "./packages/*" build
 
-    - name: Run tests
-      run: pnpm run -r test
+    # Then handle client/server
+    - name: Build client & server
+      run: pnpm run build
 
     - name: Upload coverage
       uses: codecov/codecov-action@v3
@@ -87,6 +98,8 @@ jobs:
         uses: changesets/action@v1
         with:
           publish: pnpm run publish-packages
+          commit: 'chore(release): version packages'
+          title: 'chore(release): version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
