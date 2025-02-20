@@ -1,3 +1,5 @@
+#!/usr/bin/env sh
+
 # Run TypeScript type checking
 pnpm exec tsc --noEmit || exit 1
 
