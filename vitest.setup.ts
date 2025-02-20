@@ -2,6 +2,7 @@ import { expect, afterEach, vi, beforeAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { configure } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import type { MockedFunction, MockedObject } from 'vitest';
 
 // Configure testing library
 configure({ 
@@ -11,12 +12,12 @@ configure({
 // Create a more structured mock factory
 export const createMock = <T extends object>(
   mockImplementation?: Partial<T>
-): vi.MockedObject<T> => {
-  const mock = vi.fn() as any;
+): MockedObject<T> => {
+  const mock = vi.fn() as unknown as MockedObject<T>;
   if (mockImplementation) {
     Object.entries(mockImplementation).forEach(([key, value]) => {
       if (typeof value === 'function') {
-        mock[key] = vi.fn(value);
+        mock[key] = vi.fn(value) as MockedFunction<typeof value>;
       } else {
         mock[key] = value;
       }
