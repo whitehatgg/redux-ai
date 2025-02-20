@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatBubble } from '../components/ChatBubble';
@@ -18,18 +18,14 @@ describe('ChatBubble', () => {
     const mockScrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = mockScrollIntoView;
 
-    (useReduxAI as jest.Mock).mockReturnValue({
+    (useReduxAI as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       sendQuery: mockSendQuery,
       isProcessing: false,
       error: null,
     });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('renders minimized state correctly', async () => {
+  it('renders minimized state correctly', () => {
     render(
       <ChatBubble
         className="test-class"
@@ -38,14 +34,12 @@ describe('ChatBubble', () => {
       />
     );
 
-    await waitFor(() => {
-      const button = screen.getByRole('button');
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveClass('rounded-full');
-    });
+    const button = screen.getByRole('button');
+    expect(button).toBeDefined();
+    expect(button.className).toContain('rounded-full');
   });
 
-  it('renders chat interface when not minimized', async () => {
+  it('renders chat interface when not minimized', () => {
     render(
       <ChatBubble
         className="test-class"
@@ -54,11 +48,9 @@ describe('ChatBubble', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('AI Assistant')).toBeInTheDocument();
-      const input = screen.getByPlaceholderText('Ask something...');
-      expect(input).toBeInTheDocument();
-    });
+    expect(screen.getByText('AI Assistant')).toBeDefined();
+    const input = screen.getByPlaceholderText('Ask something...');
+    expect(input).toBeDefined();
   });
 
   it('handles message submission', async () => {
@@ -72,11 +64,7 @@ describe('ChatBubble', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Ask something...')).toBeInTheDocument();
-    });
-
-    const input = screen.getByPlaceholderText('Ask something...');
+    const input = screen.getByPlaceholderText('Ask something...') as HTMLInputElement;
     const submitButton = screen.getByText('Send');
 
     await user.type(input, 'Test message');

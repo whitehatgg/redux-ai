@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ActivityLog } from '../components/ActivityLog';
 import { useReduxAIContext } from '../components/ReduxAIProvider';
@@ -19,7 +19,7 @@ describe('ActivityLog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'debug').mockImplementation(() => {});
-    (useReduxAIContext as jest.Mock).mockReturnValue({
+    (useReduxAIContext as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       vectorStorage: mockVectorStorage,
       isInitialized: true,
       availableActions: [],
@@ -32,13 +32,13 @@ describe('ActivityLog', () => {
 
   it('should not render when closed', () => {
     render(<ActivityLog open={false} />);
-    expect(screen.queryByText('Vector Activity Log')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vector Activity Log')).toBeNull();
   });
 
   it('should render when open', () => {
     render(<ActivityLog open={true} />);
-    expect(screen.getByText('Vector Activity Log')).toBeInTheDocument();
-    expect(screen.getByText('No vector operations logged yet.')).toBeInTheDocument();
+    expect(screen.getByText('Vector Activity Log')).toBeDefined();
+    expect(screen.getByText('No vector operations logged yet.')).toBeDefined();
   });
 
   it('should setup subscription on mount', () => {

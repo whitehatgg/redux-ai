@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { ReduxAIProvider } from '../components/ReduxAIProvider';
 import { configureStore } from '@reduxjs/toolkit';
@@ -46,7 +46,7 @@ describe('ReduxAIProvider', () => {
       </ReduxAIProvider>
     );
 
-    expect(screen.getByText(/Initializing ReduxAI/i)).toBeInTheDocument();
+    expect(screen.getByText(/Initializing ReduxAI/i)).toBeDefined();
   });
 
   it('renders children when initialized', async () => {
@@ -57,8 +57,8 @@ describe('ReduxAIProvider', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('child')).toBeInTheDocument();
-      expect(screen.getByText('Child content')).toBeInTheDocument();
+      expect(screen.getByTestId('child')).toBeDefined();
+      expect(screen.getByText('Child content')).toBeDefined();
     });
   });
 
@@ -70,15 +70,14 @@ describe('ReduxAIProvider', () => {
       <ReduxAIProvider 
         store={mockStore} 
         availableActions={[]}
-        forceError="Initialization failed"
       >
         <div>Child content</div>
       </ReduxAIProvider>
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/ReduxAI Initialization Error/i)).toBeInTheDocument();
-      expect(screen.getByText(/Initialization failed/i)).toBeInTheDocument();
+      expect(screen.getByText(/ReduxAI Initialization Error/i)).toBeDefined();
+      expect(screen.getByText(/Initialization failed/i)).toBeDefined();
     });
   });
 });
