@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-pnpm exec tsc --noEmit
-pnpm lint-staged
+# Run TypeScript type checking
+pnpm exec tsc --noEmit || exit 1
+
+# Run lint-staged
+pnpm lint-staged || exit 1
