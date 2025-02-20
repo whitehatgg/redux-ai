@@ -1,10 +1,11 @@
 import type { ReduxAIVector } from '@redux-ai/vector';
 import { configureStore } from '@reduxjs/toolkit';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { createReduxAIState } from '../index';
 import type { ReduxAIAction } from '../index';
 
-jest.mock('node-fetch');
+vi.mock('node-fetch');
 
 describe('ReduxAIState', () => {
   const mockStore = configureStore({
@@ -29,16 +30,16 @@ describe('ReduxAIState', () => {
   ];
 
   const mockVectorStorage: ReduxAIVector = {
-    addEntry: jest.fn(),
-    retrieveSimilar: jest.fn(),
-    getAllEntries: jest.fn(),
-    storeInteraction: jest.fn(),
-    subscribe: jest.fn(),
+    addEntry: vi.fn(),
+    retrieveSimilar: vi.fn(),
+    getAllEntries: vi.fn(),
+    storeInteraction: vi.fn(),
+    subscribe: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock) = jest.fn();
+    vi.clearAllMocks();
+    (global.fetch as ReturnType<typeof vi.fn>) = vi.fn();
   });
 
   it('should initialize ReduxAIState with config', async () => {
@@ -52,7 +53,7 @@ describe('ReduxAIState', () => {
   });
 
   it('should process query and dispatch action', async () => {
-    (global.fetch as jest.Mock).mockImplementation(() =>
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({
         ok: true,
         json: () =>
@@ -76,14 +77,14 @@ describe('ReduxAIState', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    (global.fetch as jest.Mock).mockImplementation(() =>
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
       Promise.resolve({
         ok: false,
         statusText: 'Internal Server Error',
       })
     );
 
-    const mockErrorHandler = jest.fn();
+    const mockErrorHandler = vi.fn();
     const reduxAI = await createReduxAIState({
       store: mockStore,
       vectorStorage: mockVectorStorage,
