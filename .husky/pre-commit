@@ -3,8 +3,11 @@
 # Run TypeScript type checking
 pnpm exec tsc --noEmit || exit 1
 
-# Run format checks for all packages using prettier directly
-pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .prettierignore || exit 1
+# Run format fixes for all packages using prettier directly
+pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .prettierignore || exit 1
 
-# Run lint-staged
+# Run lint-staged with fixes
 pnpm lint-staged || exit 1
+
+# Run build check to catch production build issues early
+npm run build || exit 1
