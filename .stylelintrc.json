@@ -1,0 +1,16 @@
+{
+  "extends": ["stylelint-config-standard", "stylelint-config-tailwindcss"],
+  "rules": {
+    "at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": ["tailwind", "apply", "variants", "responsive", "screen", "layer"]
+      }
+    ],
+    "no-descending-specificity": null,
+    "at-rule-no-deprecated": null,
+    "selector-class-pattern": null,
+    "property-no-vendor-prefix": null,
+    "value-no-vendor-prefix": null
+  }
+}

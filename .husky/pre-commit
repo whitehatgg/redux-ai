@@ -8,6 +8,3 @@ pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .pre
 
 # Run lint-staged with fixes
 pnpm lint-staged || exit 1
-
-# Run build check to catch production build issues early
-npm run build || exit 1

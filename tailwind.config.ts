@@ -1,20 +1,23 @@
 import type { Config } from 'tailwindcss';
 
-const config: Config = {
+export default {
   darkMode: ['class'],
   content: [
-    './client/src/**/*.{js,jsx,ts,tsx}',
+    './index.html',
+    './client/src/**/*.{js,ts,jsx,tsx}',
     './client/index.html',
-    './packages/react/src/**/*.{js,jsx,ts,tsx}',
-    './packages/*/src/**/*.{js,jsx,ts,tsx}',
+    './packages/*/src/**/*.{js,ts,jsx,tsx}',
+    './shared/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
-    extend: {
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
       },
+    },
+    extend: {
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -50,6 +53,11 @@ const config: Config = {
           foreground: 'hsl(var(--card-foreground))',
         },
       },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -68,5 +76,3 @@ const config: Config = {
   },
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 } satisfies Config;
-
-export default config;

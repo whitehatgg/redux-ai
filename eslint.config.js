@@ -11,7 +11,6 @@ export default [
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
-      'tailwind.config.ts',
       'jest.config.ts',
       'drizzle.config.ts',
       '**/coverage/**',
@@ -28,6 +27,7 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
+        project: './tsconfig.json',
       },
       globals: {
         // Browser globals
@@ -122,12 +122,20 @@ export default [
   {
     files: ['**/*.config.{js,ts}', '**/.eslintrc.js'],
     languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        project: null, // Don't require tsconfig for config files
+      },
       globals: {
         module: 'readonly',
         require: 'readonly',
         __dirname: 'readonly',
         process: 'readonly',
       },
+    },
+    rules: {
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/consistent-type-imports': 'off',
     },
   },
   // Vector package browser environment
