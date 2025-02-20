@@ -41,6 +41,10 @@ export default [
         Response: 'readonly',
         MutationObserver: 'readonly',
         performance: 'readonly',
+        IDBDatabase: 'readonly',
+        IDBObjectStore: 'readonly',
+        IDBIndex: 'readonly',
+        IDBTransaction: 'readonly',
         // Node.js globals
         process: 'readonly',
         module: 'readonly',
@@ -110,6 +114,18 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       'no-undef': 'off',
+    },
+  },
+  // Vector package browser environment
+  {
+    files: ['packages/vector/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        IDBDatabase: 'readonly',
+        IDBObjectStore: 'readonly',
+        IDBIndex: 'readonly',
+        IDBTransaction: 'readonly',
+      },
     },
   },
   // Node.js specific config

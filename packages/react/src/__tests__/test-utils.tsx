@@ -1,4 +1,5 @@
-import React, { type ReactElement } from 'react';
+import type React from 'react';
+import { type ReactElement } from 'react';
 import { render, renderHook, type RenderOptions } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
 import { vi } from 'vitest';

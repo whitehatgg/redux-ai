@@ -1,21 +1,16 @@
 import { IndexedDBStorage } from './indexeddb';
+import type { VectorEntry, ReduxAIVector } from './types';
 
-export interface VectorEntry {
-  query: string;
-  response: string;
-  state: string;
-  timestamp: string;
-}
 export declare class VectorStorage {
-  private storage;
+  private storage: IndexedDBStorage;
   private constructor();
   static create(): Promise<VectorStorage>;
-  storeInteraction(query: string, response: string, state: any): Promise<void>;
+  storeInteraction(query: string, response: string, state: unknown): Promise<void>;
   retrieveSimilar(query: string, limit?: number): Promise<VectorEntry[]>;
   getAllEntries(): Promise<VectorEntry[]>;
 }
 export declare const createReduxAIVector: (config?: {
   collectionName?: string;
   maxEntries?: number;
-}) => Promise<any>;
+}) => Promise<ReduxAIVector>;
 export { IndexedDBStorage };

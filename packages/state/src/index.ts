@@ -1,15 +1,11 @@
 import type { ReduxAISchema } from '@redux-ai/schema';
 import type { ReduxAIVector } from '@redux-ai/vector';
-import { VectorEntry } from '@redux-ai/vector';
 import type { Action, Store } from '@reduxjs/toolkit';
-import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { createMachine } from 'xstate';
 
 import { createConversationMachine } from './machine';
-import { generateActionExamples, generateSystemPrompt } from './prompts';
+import { generateSystemPrompt } from './prompts';
 
-// Export the prompt generation functions
-export { generateSystemPrompt, generateActionExamples } from './prompts';
+export { generateSystemPrompt } from './prompts';
 
 export interface ReduxAIAction {
   type: string;
@@ -58,9 +54,7 @@ export class ReduxAIState<TState> {
     try {
       // Any async initialization can go here
       this.initialized = true;
-      console.log('[ReduxAIState] Initialization complete');
     } catch (error) {
-      console.error('[ReduxAIState] Initialization failed:', error);
       throw error;
     }
   }
@@ -78,14 +72,7 @@ export class ReduxAIState<TState> {
       // Store the current state along with the interaction
       const currentState = this.store.getState();
       await this.vectorStorage.storeInteraction(query, response, currentState);
-
-      console.log('[ReduxAIState] Stored interaction:', {
-        query,
-        response,
-        timestamp: interaction.timestamp,
-      });
     } catch (error) {
-      console.error('[ReduxAIState] Error storing interaction:', error);
       if (this.onError) {
         this.onError(error instanceof Error ? error : new Error('Unknown error storing interaction'));
       }
@@ -99,12 +86,8 @@ export class ReduxAIState<TState> {
       }
 
       if (!this.initialized) {
-        console.log('[ReduxAIState] Initializing before first query');
         await this.initialize();
       }
-
-      console.log('[ReduxAIState] Raw query received:', query);
-
 
       // Get similar queries from vector storage
       let conversationHistory = '';
@@ -113,9 +96,7 @@ export class ReduxAIState<TState> {
         conversationHistory = similarEntries
           .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
           .join('\n\n');
-        console.log('[Vector DB] Found similar entries:', similarEntries.length);
       } catch (error) {
-        console.error('[Vector DB] Error retrieving similar entries:', error);
         // Continue without vector DB results if there's an error
       }
 
@@ -133,13 +114,6 @@ export class ReduxAIState<TState> {
         currentState: this.store.getState(),
       };
 
-      console.log('[ReduxAIState] Sending request body:', {
-        query: requestBody.query,
-        promptLength: systemPrompt.length,
-        actionsCount: this.availableActions.length,
-        state: JSON.stringify(this.store.getState()).slice(0, 200),
-      });
-
       const apiResponse = await fetch('/api/query', {
         method: 'POST',
         headers: {
@@ -150,10 +124,6 @@ export class ReduxAIState<TState> {
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
-        console.error('[ReduxAIState] API request failed:', {
-          status: apiResponse.status,
-          error: errorText,
-        });
         throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
       }
 
@@ -168,14 +138,12 @@ export class ReduxAIState<TState> {
       await this.storeInteraction(query, message);
 
       if (action) {
-        console.log('[ReduxAIState] Dispatching action:', action);
         this.store.dispatch(action);
       }
 
       return { message, action };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      console.error('[ReduxAIState] Error in processQuery:', errorMessage);
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
@@ -184,7 +152,7 @@ export class ReduxAIState<TState> {
   }
 }
 
-let instance: ReduxAIState<any> | null = null;
+let instance: ReduxAIState<unknown> | null = null;
 
 export const createReduxAIState = async <TState>(
   config: AIStateConfig<TState>
@@ -198,7 +166,6 @@ export const createReduxAIState = async <TState>(
     await instance.initialize();
     return instance;
   } catch (error) {
-    console.error('[createReduxAIState] Failed to create instance:', error);
     throw error;
   }
 };
