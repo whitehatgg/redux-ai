@@ -1,61 +1,33 @@
-// vi.mock must be at the top level
-vi.mock('../storage', () => {
-  const mockState = {
-    entries: [] as any[],
-    spies: {
-      addEntry: vi.fn(),
-      retrieveSimilar: vi.fn(),
-      getAllEntries: vi.fn(),
-      storeInteraction: vi.fn(),
-      subscribe: vi.fn(),
-      initialize: vi.fn(),
-    },
-  };
+vi.mock('../storage');
 
-  // Setup spy implementations
-  mockState.spies.addEntry.mockImplementation((entry) => {
-    mockState.entries.push(entry);
-    return Promise.resolve();
-  });
-
-  mockState.spies.retrieveSimilar.mockImplementation(() =>
-    Promise.resolve(mockState.entries)
-  );
-
-  mockState.spies.getAllEntries.mockImplementation(() =>
-    Promise.resolve(mockState.entries)
-  );
-
-  mockState.spies.storeInteraction.mockImplementation((query, response, state) => {
-    mockState.entries.push({ metadata: { query, response, state } });
-    return Promise.resolve();
-  });
-
-  mockState.spies.subscribe.mockImplementation(() => vi.fn());
-  mockState.spies.initialize.mockResolvedValue(undefined);
-
-  // Export mockState so tests can access it
-  (global as any).__vectorMockState = mockState;
-
-  return {
-    VectorStorage: {
-      create: vi.fn().mockImplementation(() => mockState.spies),
-    },
-  };
-});
-
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createReduxAIVector } from '../index';
 import { VectorStorage } from '../storage';
 import type { IndexedDBStorage } from '../indexeddb';
 
-// Get mock state from global
-const mockState = (global as any).__vectorMockState;
-
 describe('ReduxAIVector', () => {
+  const mockStorage: Partial<IndexedDBStorage> = {
+    addEntry: vi.fn(),
+    retrieveSimilar: vi.fn(),
+    getAllEntries: vi.fn(),
+    storeInteraction: vi.fn(),
+    subscribe: vi.fn(),
+    initialize: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockState.entries.length = 0; // Clear entries array
+
+    // Setup mock implementations
+    mockStorage.addEntry?.mockResolvedValue(undefined);
+    mockStorage.retrieveSimilar?.mockResolvedValue([]);
+    mockStorage.getAllEntries?.mockResolvedValue([]);
+    mockStorage.storeInteraction?.mockResolvedValue(undefined);
+    mockStorage.subscribe?.mockReturnValue(vi.fn());
+    mockStorage.initialize?.mockResolvedValue(undefined);
+
+    // Mock the static create method using spyOn
+    vi.spyOn(VectorStorage, 'create').mockResolvedValue(mockStorage as IndexedDBStorage);
   });
 
   it('should create a vector instance', async () => {
@@ -70,10 +42,14 @@ describe('ReduxAIVector', () => {
     const response = 'test response';
     const state = { test: 'state' };
 
+    // Setup mock for this specific test
+    const mockEntry = { metadata: { query, response, state } };
+    mockStorage.retrieveSimilar?.mockResolvedValueOnce([mockEntry]);
+
     await vector.storeInteraction(query, response, state);
     const similar = await vector.retrieveSimilar(query, 1);
 
-    expect(mockState.spies.storeInteraction).toHaveBeenCalledWith(query, response, state);
+    expect(mockStorage.storeInteraction).toHaveBeenCalledWith(query, response, state);
     expect(similar).toHaveLength(1);
     expect(similar[0].metadata).toEqual({
       query,
@@ -90,7 +66,7 @@ describe('ReduxAIVector', () => {
     expect(typeof unsubscribe).toBe('function');
 
     await vector.storeInteraction('test', 'response', {});
-    expect(mockState.spies.storeInteraction).toHaveBeenCalledWith('test', 'response', {});
+    expect(mockStorage.storeInteraction).toHaveBeenCalledWith('test', 'response', {});
 
     unsubscribe();
   });
