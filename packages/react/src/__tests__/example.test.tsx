@@ -1,6 +1,8 @@
 import type { Store } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import '@testing-library/jest-dom/vitest'; // Import Vitest DOM matchers
 
 // Import from the package's test utils
 import { createMock, mockApiError } from '../test-utils';
@@ -25,7 +27,8 @@ describe('Example Test Suite', () => {
     render(<div data-testid="test-element">Test Content</div>);
 
     const element = screen.getByTestId('test-element');
-    expect(element).toHaveTextContent('Test Content');
+    expect(element).toBeDefined();
+    expect(element.textContent).toBe('Test Content');
     expect(mockStore.dispatch).not.toHaveBeenCalled();
   });
 

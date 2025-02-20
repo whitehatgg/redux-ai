@@ -17,8 +17,8 @@
     "composite": true,
     "tsBuildInfoFile": "./.tsbuildinfo",
     "paths": {
-      "@redux-ai/vector": ["../../packages/vector/src"],
-      "@redux-ai/schema": ["../../packages/schema/src"]
+      "@redux-ai/schema": ["../../packages/schema/src"],
+      "@redux-ai/vector": ["../../packages/vector/src"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.test.ts"],

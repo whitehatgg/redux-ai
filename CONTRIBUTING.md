@@ -29,6 +29,37 @@ Our formatting rules include:
 - Trailing commas in objects and arrays
 - Organized imports using @ianvs/prettier-plugin-sort-imports
 
+## Package Dependencies
+
+The project uses a monorepo structure with the following package dependencies:
+
+- `@redux-ai/schema`: Base types and validation schemas
+- `@redux-ai/vector`: Vector storage and similarity search
+- `@redux-ai/state`: Redux state management and XState machines
+- `@redux-ai/react`: React components and hooks
+
+Dependencies flow upward in this order. To avoid circular dependencies:
+
+1. `schema` should not depend on any other package
+2. `vector` can only depend on `schema`
+3. `state` can depend on `schema` and `vector`
+4. `react` can depend on all other packages
+
+## Type Checking
+
+Type checking is enforced through pre-commit hooks and should be run during development:
+
+```bash
+# Check types for all packages
+pnpm exec tsc -b packages/*/tsconfig.json client/tsconfig.json
+
+# Check single package
+cd packages/<package-name>
+pnpm exec tsc
+```
+
+The pre-commit hook runs type checking across all packages to ensure type safety.
+
 ## Making Changes
 
 1. Create a new branch for your changes

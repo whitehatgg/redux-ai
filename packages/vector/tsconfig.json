@@ -18,11 +18,10 @@
     "composite": true,
     "tsBuildInfoFile": "./.tsbuildinfo",
     "paths": {
-      "@redux-ai/state": ["../../packages/state/src"],
       "@redux-ai/schema": ["../../packages/schema/src"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.test.ts"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../schema" }, { "path": "../state" }]
+  "references": [{ "path": "../schema" }]
 }

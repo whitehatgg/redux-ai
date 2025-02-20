@@ -1,34 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createReduxAIVector } from '../index';
-import type { IndexedDBStorage } from '../indexeddb';
 import { VectorStorage } from '../storage';
+import type { VectorEntry } from '../types';
 
 vi.mock('../storage');
 
 describe('ReduxAIVector', () => {
-  const mockStorage: Partial<IndexedDBStorage> = {
+  const mockStorage: Partial<VectorStorage> = {
     addEntry: vi.fn(),
     retrieveSimilar: vi.fn(),
     getAllEntries: vi.fn(),
     storeInteraction: vi.fn(),
     subscribe: vi.fn(),
-    initialize: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Setup mock implementations
-    mockStorage.addEntry?.mockResolvedValue(undefined);
-    mockStorage.retrieveSimilar?.mockResolvedValue([]);
-    mockStorage.getAllEntries?.mockResolvedValue([]);
-    mockStorage.storeInteraction?.mockResolvedValue(undefined);
-    mockStorage.subscribe?.mockReturnValue(vi.fn());
-    mockStorage.initialize?.mockResolvedValue(undefined);
+    (mockStorage.addEntry as any).mockResolvedValue(undefined);
+    (mockStorage.retrieveSimilar as any).mockResolvedValue([]);
+    (mockStorage.getAllEntries as any).mockResolvedValue([]);
+    (mockStorage.storeInteraction as any).mockResolvedValue(undefined);
+    (mockStorage.subscribe as any).mockReturnValue(vi.fn());
 
-    // Mock the static create method using spyOn
-    vi.spyOn(VectorStorage, 'create').mockResolvedValue(mockStorage as IndexedDBStorage);
+    // Mock the static create method
+    vi.spyOn(VectorStorage, 'create').mockResolvedValue(mockStorage as VectorStorage);
   });
 
   it('should create a vector instance', async () => {
@@ -43,9 +41,15 @@ describe('ReduxAIVector', () => {
     const response = 'test response';
     const state = { test: 'state' };
 
-    // Setup mock for this specific test
-    const mockEntry = { metadata: { query, response, state } };
-    mockStorage.retrieveSimilar?.mockResolvedValueOnce([mockEntry]);
+    // Setup mock for this specific test with complete VectorEntry properties
+    const mockEntry: VectorEntry = {
+      id: '123',
+      vector: new Array(128).fill(0),
+      timestamp: Date.now(),
+      metadata: { query, response, state },
+    };
+
+    (mockStorage.retrieveSimilar as any).mockResolvedValueOnce([mockEntry]);
 
     await vector.storeInteraction(query, response, state);
     const similar = await vector.retrieveSimilar(query, 1);

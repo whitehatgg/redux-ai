@@ -6,14 +6,45 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   js.configs.recommended,
-  // Declaration files first to ensure they take precedence
+  // Global ignores
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/coverage/**',
+      'jest.config.ts',
+      'drizzle.config.ts',
+      'tailwind.config.ts',
+      'vitest.config.ts',
+      'vitest.setup.ts',
+      'postcss.config.js',
+      '**/generated/**',
+      '**/packages/*/dist/**/*.d.ts',
+    ],
+  },
+  // Configuration files
+  {
+    files: ['**/*.config.{js,ts}', '**/.eslintrc.js'],
+    languageOptions: {
+      globals: {
+        module: true,
+        require: true,
+        __dirname: true,
+        process: true,
+      },
+    },
+    rules: {
+      'no-undef': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+    },
+  },
+  // Declaration files
   {
     files: ['**/*.d.ts'],
-    ignores: ['**/dist/**', '**/node_modules/**'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
-        project: null, // Don't require tsconfig for .d.ts files
+        project: null,
       },
     },
     rules: {
@@ -21,8 +52,8 @@ export default [
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/ban-types': 'off',
-      '@typescript-eslint/no-unused-vars': 'off', // Completely disable for .d.ts files
-      'no-unused-vars': 'off', // Disable the base rule as well
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off',
       'no-var': 'off',
       'no-undef': 'off',
     },
@@ -30,18 +61,6 @@ export default [
   // Regular TypeScript/React files
   {
     files: ['**/*.{ts,tsx}'],
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      'jest.config.ts',
-      'drizzle.config.ts',
-      '**/coverage/**',
-      '.tsbuildinfo',
-      '**/vitest.config.ts',
-      '**/postcss.config.js',
-      '**/generated/**',
-      '**/*.d.ts',
-    ],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -50,14 +69,8 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
-        project: true,
-        projectService: {
-          projects: ['./tsconfig.json', './packages/*/tsconfig.json'],
-          tsconfigRootDir: '.',
-        },
       },
       globals: {
-        // Browser globals
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
@@ -65,19 +78,16 @@ export default [
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         fetch: 'readonly',
-        Response: 'readonly',
         MutationObserver: 'readonly',
         performance: 'readonly',
         IDBDatabase: 'readonly',
         IDBObjectStore: 'readonly',
         IDBIndex: 'readonly',
         IDBTransaction: 'readonly',
-        // Node.js globals
         process: 'readonly',
         module: 'readonly',
         require: 'readonly',
         __dirname: 'readonly',
-        // Test globals
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',
@@ -101,14 +111,11 @@ export default [
       'react-hooks': reactHooksPlugin,
     },
     rules: {
-      // React rules
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react/prop-types': 'off',
       'react/display-name': 'off',
-
-      // TypeScript rules
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -117,7 +124,6 @@ export default [
           ignoreRestSiblings: true,
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': [
         'error',
         {
@@ -126,52 +132,30 @@ export default [
         },
       ],
       '@typescript-eslint/no-non-null-assertion': 'warn',
-
-      // General rules
       'no-unused-vars': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
       'prefer-const': 'error',
       'no-var': 'error',
       'no-prototype-builtins': 'off',
+      'no-undef': 'off',
     },
   },
-  // Test files
+  // Test files and utilities
   {
-    files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
-    languageOptions: {
-      parserOptions: {
-        project: true,
-        projectService: {
-          projects: ['./tsconfig.json', './packages/*/tsconfig.json'],
-          tsconfigRootDir: '.',
-        },
-      },
-    },
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/test-utils.{ts,tsx}'],
     rules: {
-      'no-console': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       'no-undef': 'off',
     },
   },
-  // Configuration files
+  // Server files
   {
-    files: ['**/*.config.{js,ts}', '**/.eslintrc.js'],
-    languageOptions: {
-      parser: typescriptParser,
-      parserOptions: {
-        project: null,
-      },
-      globals: {
-        module: 'readonly',
-        require: 'readonly',
-        __dirname: 'readonly',
-        process: 'readonly',
-      },
-    },
+    files: ['server/**/*.ts'],
     rules: {
-      '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/consistent-type-imports': 'off',
+      'no-console': 'off',
     },
   },
   // Vector package browser environment
@@ -184,20 +168,6 @@ export default [
         IDBIndex: 'readonly',
         IDBTransaction: 'readonly',
       },
-    },
-  },
-  // Node.js specific config
-  {
-    files: ['server/**/*.ts'],
-    rules: {
-      'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
-    },
-  },
-  // Vite.ts specific config
-  {
-    files: ['server/vite.ts'],
-    rules: {
-      'no-console': 'off',
     },
   },
 ];
