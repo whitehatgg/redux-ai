@@ -2,7 +2,8 @@ import type { Store } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createMock, mockApiError, mockFetch } from '../../../../vitest.setup';
+// Import from the package's test utils
+import { createMock, mockApiError, mockFetch } from '../test-utils';
 
 // Example of mocking a store
 const mockStore = createMock<Store>({
