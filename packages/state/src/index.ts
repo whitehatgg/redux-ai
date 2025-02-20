@@ -13,7 +13,7 @@ export interface ReduxAIAction {
   keywords: string[];
 }
 
-export interface AIStateConfig<TState> {
+export interface AIStateConfig {
   store: Store;
   schema?: ReduxAISchema<Action>;
   vectorStorage: ReduxAIVector;
@@ -27,7 +27,7 @@ export interface Interaction {
   timestamp: string;
 }
 
-export class ReduxAIState<TState> {
+export class ReduxAIState {
   private store: Store;
   private schema?: ReduxAISchema<Action>;
   private machine;
@@ -37,7 +37,7 @@ export class ReduxAIState<TState> {
   private interactions: Interaction[] = [];
   private initialized: boolean = false;
 
-  constructor(config: AIStateConfig<TState>) {
+  constructor(config: AIStateConfig) {
     this.store = config.store;
     this.schema = config.schema;
     this.machine = createConversationMachine();
@@ -51,12 +51,8 @@ export class ReduxAIState<TState> {
       return;
     }
 
-    try {
-      // Any async initialization can go here
-      this.initialized = true;
-    } catch (error) {
-      throw error;
-    }
+    // Any async initialization can go here
+    this.initialized = true;
   }
 
   private async storeInteraction(query: string, response: string) {
@@ -80,99 +76,85 @@ export class ReduxAIState<TState> {
   }
 
   async processQuery(query: string) {
-    try {
-      if (!query || typeof query !== 'string') {
-        throw new Error('Query must be a non-empty string');
-      }
-
-      if (!this.initialized) {
-        await this.initialize();
-      }
-
-      // Get similar queries from vector storage
-      let conversationHistory = '';
-      try {
-        const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
-        conversationHistory = similarEntries
-          .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
-          .join('\n\n');
-      } catch (error) {
-        // Continue without vector DB results if there's an error
-      }
-
-      // Generate system prompt with conversation history
-      const systemPrompt = generateSystemPrompt(
-        this.store.getState(),
-        this.availableActions,
-        conversationHistory
-      );
-
-      const requestBody = {
-        query,
-        prompt: systemPrompt,
-        availableActions: this.availableActions,
-        currentState: this.store.getState(),
-      };
-
-      const apiResponse = await fetch('/api/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!apiResponse.ok) {
-        const errorText = await apiResponse.text();
-        throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
-      }
-
-      const result = await apiResponse.json();
-      const { message, action } = result;
-
-      if (!message) {
-        throw new Error('Invalid response format from API');
-      }
-
-      // Store the interaction before dispatching action
-      await this.storeInteraction(query, message);
-
-      if (action) {
-        this.store.dispatch(action);
-      }
-
-      return { message, action };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      if (this.onError) {
-        this.onError(new Error(errorMessage));
-      }
-      throw error;
+    if (!query || typeof query !== 'string') {
+      throw new Error('Query must be a non-empty string');
     }
+
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    // Get similar queries from vector storage
+    let conversationHistory = '';
+    try {
+      const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
+      conversationHistory = similarEntries
+        .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
+        .join('\n\n');
+    } catch {
+      // Continue without vector DB results if there's an error
+    }
+
+    // Generate system prompt with conversation history
+    const systemPrompt = generateSystemPrompt(
+      this.store.getState(),
+      this.availableActions,
+      conversationHistory
+    );
+
+    const requestBody = {
+      query,
+      prompt: systemPrompt,
+      availableActions: this.availableActions,
+      currentState: this.store.getState(),
+    };
+
+    const apiResponse = await fetch('/api/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      throw new Error(`API request failed: ${apiResponse.status} - ${errorText}`);
+    }
+
+    const result = await apiResponse.json();
+    const { message, action } = result;
+
+    if (!message) {
+      throw new Error('Invalid response format from API');
+    }
+
+    // Store the interaction before dispatching action
+    await this.storeInteraction(query, message);
+
+    if (action) {
+      this.store.dispatch(action);
+    }
+
+    return { message, action };
   }
 }
 
-let instance: ReduxAIState<unknown> | null = null;
+let instance: ReduxAIState | null = null;
 
-export const createReduxAIState = async <TState>(
-  config: AIStateConfig<TState>
-): Promise<ReduxAIState<TState>> => {
+export const createReduxAIState = async (config: AIStateConfig): Promise<ReduxAIState> => {
   if (instance) {
-    return instance as ReduxAIState<TState>;
+    return instance;
   }
 
-  try {
-    instance = new ReduxAIState(config);
-    await instance.initialize();
-    return instance;
-  } catch (error) {
-    throw error;
-  }
+  instance = new ReduxAIState(config);
+  await instance.initialize();
+  return instance;
 };
 
-export const getReduxAI = <TState>(): ReduxAIState<TState> => {
+export const getReduxAI = (): ReduxAIState => {
   if (!instance) {
     throw new Error('ReduxAI not initialized. Call createReduxAIState first.');
   }
-  return instance as ReduxAIState<TState>;
+  return instance;
 };

@@ -27,7 +27,7 @@ export function generateActionExamples(actions: ReduxAIAction[]): string {
 
 // Generate dynamic system prompt based on available actions
 export function generateSystemPrompt(
-  state: any,
+  state: unknown,
   availableActions: ReduxAIAction[],
   conversationHistory: string
 ): string {

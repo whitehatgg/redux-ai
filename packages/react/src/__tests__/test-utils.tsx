@@ -3,7 +3,6 @@ import { type ReactElement } from 'react';
 import { render, renderHook, type RenderOptions } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
 import { vi } from 'vitest';
-import { act } from 'react';
 
 // Create and export mock hooks
 export const mockUseReduxAI = vi.fn().mockReturnValue({
@@ -15,7 +14,7 @@ export const mockUseReduxAI = vi.fn().mockReturnValue({
 // Mock store
 const mockStore = configureStore({
   reducer: {
-    test: (state = {}, action) => state,
+    test: (state = {}, _action) => state,
   },
 });
 

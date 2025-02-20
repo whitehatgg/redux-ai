@@ -24,7 +24,7 @@ vi.mock('@redux-ai/state', () => ({
 // Create a mock store
 const mockStore = configureStore({
   reducer: {
-    test: (state = {}, action) => state,
+    test: (_state = {}, _action) => _state,
   },
 });
 
