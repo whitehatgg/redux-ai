@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['../../vitest.setup.browser.ts'],
+    setupFiles: ['../../vitest.setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
@@ -12,8 +13,14 @@ export default defineConfig({
     },
     deps: {
       inline: [
-        '@redux-ai/schema'
+        '@redux-ai/schema',
+        '@testing-library/jest-dom'
       ],
     },
   },
+  resolve: {
+    alias: {
+      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom')
+    }
+  }
 });

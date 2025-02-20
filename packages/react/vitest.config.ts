@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['../../vitest.setup.browser.ts'],
+    setupFiles: ['../../vitest.setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
@@ -21,6 +21,7 @@ export default defineConfig({
         '@redux-ai/vector',
         'react',
         'react-dom',
+        '@testing-library/jest-dom'
       ],
     },
   },
@@ -29,6 +30,7 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
       'react': resolve(__dirname, '../../node_modules/react'),
       'react-dom': resolve(__dirname, '../../node_modules/react-dom'),
+      '@testing-library/jest-dom': resolve(__dirname, '../../node_modules/@testing-library/jest-dom')
     },
   },
 });

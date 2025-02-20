@@ -15,6 +15,10 @@ export default [
       'jest.config.ts',
       'drizzle.config.ts',
       '**/coverage/**',
+      '.tsbuildinfo',
+      '**/vitest.config.ts',
+      '**/postcss.config.js',
+      '**/generated/**'
     ],
     languageOptions: {
       parser: typescriptParser,
@@ -43,12 +47,14 @@ export default [
         require: 'readonly',
         __dirname: 'readonly',
         // Test globals
-        jest: 'readonly',
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',
+        vi: 'readonly',
+        test: 'readonly',
+        jest: 'readonly'
       },
     },
     settings: {
@@ -66,6 +72,8 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      'react/prop-types': 'off',
+      'react/display-name': 'off',
 
       // TypeScript rules
       '@typescript-eslint/no-unused-vars': [
@@ -77,7 +85,13 @@ export default [
         },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'inline-type-imports',
+        },
+      ],
       '@typescript-eslint/no-non-null-assertion': 'warn',
 
       // General rules
