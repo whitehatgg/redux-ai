@@ -1,12 +1,10 @@
-pnpm install
-
-````
+`
 
 2. Start development:
 
 ```bash
 pnpm run dev
-````
+```
 
 ## Code Style & Formatting
 
@@ -28,6 +26,41 @@ Our formatting rules include:
 - 2 space indentation
 - Trailing commas in objects and arrays
 - Organized imports using @ianvs/prettier-plugin-sort-imports
+
+### ESLint Configuration
+
+Our ESLint setup is optimized for the monorepo structure with specific rules for different file types:
+
+1. Regular TypeScript/React files:
+
+   - Strict type checking
+   - React hooks rules enforcement
+   - Import organization
+
+2. Test files and utilities:
+
+   - Relaxed rules for test files
+   - Allows test-specific patterns
+   - Disabled unused variable checks
+
+3. Declaration files (.d.ts):
+
+   - Specialized parsing for type definitions
+   - Disabled unnecessary checks
+
+4. Configuration files:
+   - Node.js environment globals
+   - Relaxed module requirements
+
+The pre-commit hook will run ESLint checks automatically. You can also run them manually:
+
+```bash
+# Check all files
+pnpm exec eslint .
+
+# Fix auto-fixable issues
+pnpm exec eslint . --fix
+```
 
 ## Package Dependencies
 

@@ -1,28 +1,27 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+#!/bin/sh
 
-# Run TypeScript type checking for all packages
+# Type checking
 echo "Running TypeScript type checking..."
 pnpm exec tsc -b packages/*/tsconfig.json client/tsconfig.json || {
   echo "❌ TypeScript type checking failed. Please fix the type errors before committing."
   exit 1
 }
 
-# Run ESLint for staged files
+# ESLint
 echo "Running ESLint..."
 pnpm exec eslint . || {
   echo "❌ ESLint check failed. Please fix the linting errors before committing."
   exit 1
 }
 
-# Run format fixes for all packages using prettier
+# Prettier
 echo "Running Prettier..."
 pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .prettierignore || {
   echo "❌ Prettier formatting failed. Please fix the formatting issues before committing."
   exit 1
 }
 
-# Run lint-staged for final checks
+# Lint-staged
 echo "Running lint-staged..."
 pnpm lint-staged || {
   echo "❌ lint-staged checks failed. Please fix the issues before committing."
