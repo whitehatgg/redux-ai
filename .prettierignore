@@ -33,3 +33,6 @@ pnpm-lock.yaml
 # Package manager files
 .npm
 .pnpm-debug.log
+
+# Shell scripts and config files
+.husky/*
