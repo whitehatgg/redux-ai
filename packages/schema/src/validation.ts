@@ -19,8 +19,8 @@ export function validateSchema<T>(
 
   return {
     valid,
-    errors: valid 
-      ? undefined 
+    errors: valid
+      ? undefined
       : validate.errors?.map(e => e.message).filter((msg): msg is string => msg !== undefined),
   };
 }

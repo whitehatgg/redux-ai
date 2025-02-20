@@ -32,7 +32,7 @@ export class ReduxAISchema<T extends Action> {
       return {
         valid: false,
         errors: ['Value must be an object'],
-        value: null
+        value: null,
       };
     }
 
@@ -41,7 +41,7 @@ export class ReduxAISchema<T extends Action> {
       return {
         valid: false,
         errors: ['Action must have a string "type" property'],
-        value: null
+        value: null,
       };
     }
 
@@ -50,7 +50,7 @@ export class ReduxAISchema<T extends Action> {
     return {
       valid,
       errors,
-      value: valid ? value as T : null
+      value: valid ? (value as T) : null,
     };
   }
 

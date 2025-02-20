@@ -17,7 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        # This is important for changesets to work correctly
         fetch-depth: 0
 
     - name: Use Node.js ${{ matrix.node-version }}
@@ -48,21 +47,16 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    # First handle monorepo packages
-    - name: Run lint on packages
-      run: pnpm --filter "./packages/*" lint
+    # Run checks on all packages in parallel
+    - name: Run checks on packages
+      run: |
+        pnpm -r run lint
+        pnpm -r run format:check
+        pnpm -r run test
+        pnpm -r run build
 
-    - name: Check formatting on packages
-      run: pnpm --filter "./packages/*" format:check
-
-    - name: Run tests on packages
-      run: pnpm --filter "./packages/*" test
-
-    - name: Build packages
-      run: pnpm --filter "./packages/*" build
-
-    # Then handle client/server
-    - name: Build client & server
+    # Build the entire application
+    - name: Build application
       run: pnpm run build
 
     - name: Upload coverage

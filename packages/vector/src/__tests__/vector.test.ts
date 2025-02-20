@@ -1,9 +1,10 @@
-vi.mock('../storage');
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createReduxAIVector } from '../index';
-import { VectorStorage } from '../storage';
 import type { IndexedDBStorage } from '../indexeddb';
+import { VectorStorage } from '../storage';
+
+vi.mock('../storage');
 
 describe('ReduxAIVector', () => {
   const mockStorage: Partial<IndexedDBStorage> = {

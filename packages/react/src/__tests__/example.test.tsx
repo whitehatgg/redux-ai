@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { createMock, mockFetch, mockApiError } from '../../../../vitest.setup';
 import type { Store } from '@reduxjs/toolkit';
+import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { createMock, mockApiError, mockFetch } from '../../../../vitest.setup';
 
 // Example of mocking a store
 const mockStore = createMock<Store>({
-  getState: () => ({ /* mock state */ }),
+  getState: () => ({
+    /* mock state */
+  }),
   dispatch: vi.fn(),
   subscribe: vi.fn(),
 });

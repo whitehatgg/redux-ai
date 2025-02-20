@@ -79,7 +79,7 @@ describe('ReduxAISchema', () => {
   });
 
   it('should reject non-object values', () => {
-    const result = schema.validateAction("not an object");
+    const result = schema.validateAction('not an object');
     expect(result.valid).toBe(false);
     expect(result.value).toBeNull();
     expect(result.errors).toEqual(['Value must be an object']);

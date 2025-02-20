@@ -1,6 +1,6 @@
 import type { ReduxAIVector } from '@redux-ai/vector';
 import { configureStore } from '@reduxjs/toolkit';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createReduxAIState } from '../index';
 import type { ReduxAIAction } from '../index';
@@ -54,10 +54,11 @@ describe('ReduxAIState', () => {
   it('should process query and dispatch action', async () => {
     const mockResponse = {
       ok: true,
-      json: () => Promise.resolve({
-        message: 'Incrementing counter',
-        action: { type: 'test/increment' },
-      }),
+      json: () =>
+        Promise.resolve({
+          message: 'Incrementing counter',
+          action: { type: 'test/increment' },
+        }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
 
