@@ -1,7 +1,8 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { ReduxAIProvider } from '../components/ReduxAIProvider';
 import { configureStore } from '@reduxjs/toolkit';
+import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ReduxAIProvider } from '../components/ReduxAIProvider';
 
 // Mock vector creation
 vi.mock('@redux-ai/vector', () => ({
@@ -67,10 +68,7 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider 
-        store={mockStore} 
-        availableActions={[]}
-      >
+      <ReduxAIProvider store={mockStore} availableActions={[]}>
         <div>Child content</div>
       </ReduxAIProvider>
     );

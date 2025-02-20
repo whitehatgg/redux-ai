@@ -1,5 +1,5 @@
 import { IndexedDBStorage } from './indexeddb';
-import type { VectorEntry, ReduxAIVector } from './types';
+import type { ReduxAIVector, VectorEntry } from './types';
 
 export declare class VectorStorage {
   private storage: IndexedDBStorage;

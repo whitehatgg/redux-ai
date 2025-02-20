@@ -1,7 +1,7 @@
 import type React from 'react';
 import { type ReactElement } from 'react';
-import { render, renderHook, type RenderOptions } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
+import { render, renderHook, type RenderOptions } from '@testing-library/react';
 import { vi } from 'vitest';
 
 // Create and export mock hooks
@@ -32,10 +32,7 @@ function Wrapper({ children }: WrapperProps) {
   return children;
 }
 
-const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) => {
+const customRender = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) => {
   return {
     ...render(ui, { wrapper: Wrapper, ...options }),
     mockStore,

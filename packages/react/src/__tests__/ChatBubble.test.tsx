@@ -1,6 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { ChatBubble } from '../components/ChatBubble';
 import { useReduxAI } from '../hooks/useReduxAI';
 
@@ -26,13 +27,7 @@ describe('ChatBubble', () => {
   });
 
   it('renders minimized state correctly', () => {
-    render(
-      <ChatBubble
-        className="test-class"
-        onToggleActivityLog={() => {}}
-        isMinimized={true}
-      />
-    );
+    render(<ChatBubble className="test-class" onToggleActivityLog={() => {}} isMinimized={true} />);
 
     const button = screen.getByRole('button');
     expect(button).toBeDefined();
@@ -41,11 +36,7 @@ describe('ChatBubble', () => {
 
   it('renders chat interface when not minimized', () => {
     render(
-      <ChatBubble
-        className="test-class"
-        onToggleActivityLog={() => {}}
-        isMinimized={false}
-      />
+      <ChatBubble className="test-class" onToggleActivityLog={() => {}} isMinimized={false} />
     );
 
     expect(screen.getByText('AI Assistant')).toBeDefined();
@@ -57,11 +48,7 @@ describe('ChatBubble', () => {
     const user = userEvent.setup();
 
     render(
-      <ChatBubble
-        className="test-class"
-        onToggleActivityLog={() => {}}
-        isMinimized={false}
-      />
+      <ChatBubble className="test-class" onToggleActivityLog={() => {}} isMinimized={false} />
     );
 
     const input = screen.getByPlaceholderText('Ask something...') as HTMLInputElement;

@@ -19,7 +19,7 @@
     "format": "pnpm prettier --write \"src/**/*.{ts,tsx,json}\"",
     "format:check": "pnpm prettier --check \"src/**/*.{ts,tsx,json}\"",
     "test": "pnpm vitest run",
-    "test:watch": "pnpm vitest watch",
+    "test:watch": "pnpm vitest",
     "test:coverage": "pnpm vitest run --coverage",
     "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
     "preversion": "pnpm run ci"
