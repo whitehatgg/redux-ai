@@ -97,7 +97,10 @@ export class ReduxAIState {
     try {
       const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
       conversationHistory = similarEntries
-        .map((entry: VectorEntry) => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
+        .map(
+          (entry: VectorEntry) =>
+            `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`
+        )
         .join('\n\n');
     } catch (error) {
       if (this.onError) {
