@@ -46,44 +46,18 @@ jobs:
 
     - name: Install dependencies
       shell: bash
-      run: |
-        echo "Current directory: $(pwd)"
-        echo "Contents of directory:"
-        ls -la
-        echo "PNPM version: $(pnpm --version)"
-        echo "Node version: $(node --version)"
-        echo "Installing dependencies..."
-        # Remove existing lockfile if it exists
-        rm -f pnpm-lock.yaml
-        # Install dependencies without frozen lockfile
-        pnpm install --no-frozen-lockfile
+      run: pnpm install --no-frozen-lockfile
       working-directory: ${{ github.workspace }}
       env:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
         NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
-    # Build packages in the correct order
-    - name: Build packages
+    - name: Build and test packages
       working-directory: ${{ github.workspace }}
       run: |
-        # Build shared dependencies first
-        pnpm --filter "@redux-ai/schema" build
-        pnpm --filter "@redux-ai/vector" build
-        pnpm --filter "@redux-ai/state" build
-        pnpm --filter "@redux-ai/react" build
-        # Then build the application
-        pnpm run build
-      env:
-        PNPM_HOME: ${{ github.workspace }}/.pnpm
-        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
-
-    # Run checks on all packages in parallel
-    - name: Run checks on packages
-      working-directory: ${{ github.workspace }}
-      run: |
-        pnpm -r run lint
-        pnpm -r run format:check
-        pnpm -r run test
+        pnpm build
+        pnpm run -r lint
+        pnpm run -r test
       env:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
         NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
@@ -129,31 +103,23 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Contents of directory:"
-          ls -la
-          echo "PNPM version: $(pnpm --version)"
-          echo "Node version: $(node --version)"
-          echo "Installing dependencies..."
-          # Remove existing lockfile if it exists
-          rm -f pnpm-lock.yaml
-          # Install dependencies without frozen lockfile
-          pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
         working-directory: ${{ github.workspace }}
         env:
           PNPM_HOME: ${{ github.workspace }}/.pnpm
           NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
-      - name: Create Release Pull Request or Publish to npm
+      - name: Version and publish packages
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm run publish-packages
-          commit: 'chore(release): version packages'
-          title: 'chore(release): version packages'
+          version: pnpm changeset version
+          publish: pnpm changeset publish
+          commit: "chore: version packages"
+          title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PNPM_HOME: ${{ github.workspace }}/.pnpm
           NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
