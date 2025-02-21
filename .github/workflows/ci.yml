@@ -13,7 +13,7 @@ env:
   REGISTRY_URL: 'https://registry.npmjs.org'
   NPM_SCOPE: '@redux-ai'
 
-# Add permissions needed for changesets and npm provenance
+# Add permissions needed for changesets
 permissions:
   contents: write
   pull-requests: write
@@ -134,3 +134,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_ENV: production # Ensure production mode
