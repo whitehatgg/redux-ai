@@ -52,7 +52,15 @@ jobs:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
         NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
-    - name: Build and test packages
+    - name: Build packages first
+      working-directory: ${{ github.workspace }}
+      run: |
+        pnpm run -r --filter="./packages/*" build
+      env:
+        PNPM_HOME: ${{ github.workspace }}/.pnpm
+        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+
+    - name: Build and test all
       working-directory: ${{ github.workspace }}
       run: |
         pnpm build
@@ -105,6 +113,14 @@ jobs:
         shell: bash
         run: pnpm install --no-frozen-lockfile
         working-directory: ${{ github.workspace }}
+        env:
+          PNPM_HOME: ${{ github.workspace }}/.pnpm
+          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+
+      - name: Build packages first
+        working-directory: ${{ github.workspace }}
+        run: |
+          pnpm run -r --filter="./packages/*" build
         env:
           PNPM_HOME: ${{ github.workspace }}/.pnpm
           NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
