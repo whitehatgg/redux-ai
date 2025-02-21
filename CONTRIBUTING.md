@@ -56,6 +56,7 @@ pnpm exec eslint .
 
 # Fix auto-fixable issues
 pnpm exec eslint . --fix
+
 ```
 
 ## Package Dependencies
@@ -125,4 +126,8 @@ pnpm changeset version
 
 # Publish packages (maintainers only)
 pnpm changeset publish
+```
+
+```
+
 ```
