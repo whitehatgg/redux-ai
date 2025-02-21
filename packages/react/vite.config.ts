@@ -20,13 +20,14 @@ export default defineConfig({
         '@redux-ai/vector',
       ],
     },
-    minify: false,
     sourcemap: true,
+    emptyOutDir: true,
   },
   plugins: [
     dts({
       include: ['src'],
       exclude: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+      rollupTypes: true,
     }),
   ],
 });
