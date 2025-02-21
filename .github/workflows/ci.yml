@@ -44,6 +44,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pnpm-store-
 
+    - name: Configure npm authentication
+      run: |
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ${{ github.workspace }}/.npmrc
+        echo "registry=https://registry.npmjs.org/" >> ${{ github.workspace }}/.npmrc
+        echo "always-auth=true" >> ${{ github.workspace }}/.npmrc
+
     - name: Install dependencies
       shell: bash
       run: pnpm install --no-frozen-lockfile
@@ -51,6 +57,7 @@ jobs:
       env:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
         NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Build packages first
       working-directory: ${{ github.workspace }}
@@ -59,6 +66,7 @@ jobs:
       env:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
         NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Build and test all
       working-directory: ${{ github.workspace }}
@@ -69,11 +77,6 @@ jobs:
       env:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
         NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
-
-    - name: Upload coverage
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   release:
     needs: build
@@ -109,6 +112,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Configure npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ${{ github.workspace }}/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ${{ github.workspace }}/.npmrc
+          echo "always-auth=true" >> ${{ github.workspace }}/.npmrc
+
       - name: Install dependencies
         shell: bash
         run: pnpm install --no-frozen-lockfile
@@ -116,6 +125,7 @@ jobs:
         env:
           PNPM_HOME: ${{ github.workspace }}/.pnpm
           NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build packages first
         working-directory: ${{ github.workspace }}
@@ -124,6 +134,7 @@ jobs:
         env:
           PNPM_HOME: ${{ github.workspace }}/.pnpm
           NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Version and publish packages
         id: changesets
@@ -139,3 +150,4 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PNPM_HOME: ${{ github.workspace }}/.pnpm
           NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+          npm_config_loglevel: verbose
