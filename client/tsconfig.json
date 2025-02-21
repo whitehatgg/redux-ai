@@ -4,6 +4,9 @@
     "composite": true,
     "rootDir": ".",
     "baseUrl": "src",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noImplicitAny": true,
     "paths": {
       "@/*": ["./*"],
       "@shared/*": ["../../shared/*"],

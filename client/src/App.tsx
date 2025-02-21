@@ -20,6 +20,10 @@ import { ApplicantTable } from './components/ApplicantTable';
 import { queryClient } from './lib/queryClient';
 import { store } from './store';
 
+interface HealthCheckResponse {
+  aiEnabled: boolean;
+}
+
 const availableActions: ReduxAIAction[] = [
   {
     type: 'applicant/setVisibleColumns',
@@ -54,16 +58,16 @@ const availableActions: ReduxAIAction[] = [
 ];
 
 function AppContent() {
-  const [showActivityLog, setShowActivityLog] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [showActivityLog, setShowActivityLog] = useState<boolean>(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isAIEnabled, setIsAIEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Check if AI features are enabled
     fetch('/health')
-      .then(res => res.json())
-      .then(data => {
+      .then((res: Response) => res.json())
+      .then((data: HealthCheckResponse) => {
         setIsAIEnabled(data.aiEnabled);
         setIsInitializing(false);
       })

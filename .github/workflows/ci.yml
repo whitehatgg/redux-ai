@@ -13,6 +13,11 @@ env:
   REGISTRY_URL: 'https://registry.npmjs.org'
   NPM_SCOPE: '@redux-ai'
 
+# Add permissions needed for npm provenance
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -128,6 +133,10 @@ jobs:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Add permissions for the release job
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -168,3 +177,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
