@@ -4,6 +4,6 @@
     "types": ["vitest/globals", "node"],
     "esModuleInterop": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "../vitest.setup.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.test.ts", "../../vitest.setup.ts"],
+  "exclude": ["node_modules", "dist"]
 }

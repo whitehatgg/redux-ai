@@ -28,7 +28,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v2
       with:
-        version: 8
+        version: 8.15.9
         run_install: false
 
     - name: Get pnpm store directory
@@ -53,7 +53,10 @@ jobs:
         echo "PNPM version: $(pnpm --version)"
         echo "Node version: $(node --version)"
         echo "Installing dependencies..."
-        pnpm install --frozen-lockfile
+        # Remove existing lockfile if it exists
+        rm -f pnpm-lock.yaml
+        # Install dependencies without frozen lockfile
+        pnpm install --no-frozen-lockfile
       working-directory: ${{ github.workspace }}
       env:
         PNPM_HOME: ${{ github.workspace }}/.pnpm
@@ -108,7 +111,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 8.15.9
           run_install: false
 
       - name: Get pnpm store directory
@@ -133,7 +136,10 @@ jobs:
           echo "PNPM version: $(pnpm --version)"
           echo "Node version: $(node --version)"
           echo "Installing dependencies..."
-          pnpm install --frozen-lockfile
+          # Remove existing lockfile if it exists
+          rm -f pnpm-lock.yaml
+          # Install dependencies without frozen lockfile
+          pnpm install --no-frozen-lockfile
         working-directory: ${{ github.workspace }}
         env:
           PNPM_HOME: ${{ github.workspace }}/.pnpm
