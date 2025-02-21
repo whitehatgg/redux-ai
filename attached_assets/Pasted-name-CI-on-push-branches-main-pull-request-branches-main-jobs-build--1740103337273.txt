@@ -1,0 +1,11 @@
+[Previous content remains the same until the npm authentication step]
+
+    - name: Configure npm authentication
+      run: |
+        echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > ${{ github.workspace }}/.npmrc
+        echo "registry=https://registry.npmjs.org/" >> ${{ github.workspace }}/.npmrc
+        echo "always-auth=true" >> ${{ github.workspace }}/.npmrc
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
+[Rest of the file remains unchanged]
