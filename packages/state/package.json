@@ -23,7 +23,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
-    "preversion": "pnpm run ci"
+    "preversion": "pnpm run ci",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*",
@@ -32,6 +33,7 @@
     "xstate": "^5.19.2"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
