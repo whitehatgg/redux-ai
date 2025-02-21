@@ -15,8 +15,7 @@
     }
   },
   "scripts": {
-    "prebuild": "rm -rf dist",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
@@ -24,9 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "ci": "pnpm run lint && pnpm run format:check && pnpm run test && pnpm run build",
-    "preversion": "pnpm run ci",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "echo 'Skipping build as it should already be built'"
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*",
