@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  PNPM_VERSION: 8.15.9
+  PNPM_VERSION: 10.4.1  # Updated to match our local version from pnpm-lock.yaml
   NODE_VERSION: 20.x
   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
   REGISTRY_URL: 'https://registry.npmjs.org'
@@ -40,8 +40,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Verify and Install Dependencies
+        run: |
+          if [ ! -f "pnpm-lock.yaml" ]; then
+            echo "pnpm-lock.yaml not found"
+            exit 1
+          fi
+          pnpm install --frozen-lockfile
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Cache node_modules
         uses: actions/cache@v3
