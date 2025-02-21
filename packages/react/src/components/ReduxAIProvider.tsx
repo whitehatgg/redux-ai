@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReduxAISchema } from '@redux-ai/schema';
 import type { ReduxAIAction } from '@redux-ai/state';
 import { createReduxAIState } from '@redux-ai/state';
-import type { VectorStorage } from '@redux-ai/vector';
+import type { ReduxAIVector } from '@redux-ai/vector';
 import { createReduxAIVector } from '@redux-ai/vector';
 import type { Action, Store } from '@reduxjs/toolkit';
 
@@ -10,7 +10,7 @@ interface ReduxAIContextType {
   availableActions: ReduxAIAction[];
   isInitialized: boolean;
   store?: Store;
-  vectorStorage?: VectorStorage;
+  vectorStorage?: ReduxAIVector;
   error?: string;
 }
 
@@ -33,19 +33,19 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   availableActions,
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [vectorStorage, setVectorStorage] = useState<VectorStorage>();
+  const [vectorStorage, setVectorStorage] = useState<ReduxAIVector>();
   const [error, setError] = useState<string>();
 
   useEffect(() => {
     let mounted = true;
-    let vectorDb: VectorStorage;
+    let vectorDb: ReduxAIVector;
 
     const initialize = async () => {
       try {
-        if (isInitialized) return; // Prevent multiple initializations
+        if (isInitialized) return;
         console.debug('[ReduxAIProvider] Starting initialization...');
 
-        // Initialize vector storage
+        // Initialize vector storage with the default configuration
         vectorDb = await createReduxAIVector({
           collectionName: 'reduxai_vector',
           maxEntries: 100,
@@ -93,7 +93,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
         console.debug('[ReduxAIProvider] Cleaning up vector storage');
       }
     };
-  }, [store, schema, availableActions, isInitialized]); // Added isInitialized to dependencies
+  }, [store, schema, availableActions, isInitialized]);
 
   // Show loading state until initialization is complete
   if (!isInitialized && !error) {

@@ -1,13 +1,13 @@
 import { IndexedDBStorage } from './indexeddb';
-import type { VectorConfig, VectorEntry } from './types';
+import type { ReduxAIVector, VectorConfig, VectorEntry } from './types';
 
-export declare class VectorStorage {
+export declare class VectorStorage implements ReduxAIVector {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private readonly listeners: Set<(entry: VectorEntry) => void>;
 
   private constructor(storage: IndexedDBStorage, config: VectorConfig);
-  static create(config: VectorConfig): Promise<VectorStorage>;
+  static create(config: VectorConfig): Promise<ReduxAIVector>;
 
   addEntry(input: { vector: number[]; metadata: Record<string, unknown> }): Promise<void>;
   storeInteraction(query: string, response: string, state: unknown): Promise<void>;
@@ -21,4 +21,5 @@ export declare const createReduxAIVector: (config?: {
   collectionName?: string;
   maxEntries?: number;
 }) => Promise<ReduxAIVector>;
+
 export { IndexedDBStorage };
