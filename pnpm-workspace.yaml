@@ -3,3 +3,6 @@ packages:
   - "client"
   - "server"
   - "shared"
+
+link-workspace-packages: true
+shared-workspace-lockfile: true

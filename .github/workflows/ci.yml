@@ -45,10 +45,23 @@ jobs:
           ${{ runner.os }}-pnpm-store-
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      shell: bash
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Contents of directory:"
+        ls -la
+        echo "PNPM version: $(pnpm --version)"
+        echo "Node version: $(node --version)"
+        echo "Installing dependencies..."
+        pnpm install --frozen-lockfile
+      working-directory: ${{ github.workspace }}
+      env:
+        PNPM_HOME: ${{ github.workspace }}/.pnpm
+        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
     # Build packages in the correct order
     - name: Build packages
+      working-directory: ${{ github.workspace }}
       run: |
         # Build shared dependencies first
         pnpm --filter "@redux-ai/schema" build
@@ -57,13 +70,20 @@ jobs:
         pnpm --filter "@redux-ai/react" build
         # Then build the application
         pnpm run build
+      env:
+        PNPM_HOME: ${{ github.workspace }}/.pnpm
+        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
     # Run checks on all packages in parallel
     - name: Run checks on packages
+      working-directory: ${{ github.workspace }}
       run: |
         pnpm -r run lint
         pnpm -r run format:check
         pnpm -r run test
+      env:
+        PNPM_HOME: ${{ github.workspace }}/.pnpm
+        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
     - name: Upload coverage
       uses: codecov/codecov-action@v3
@@ -105,7 +125,19 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        shell: bash
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Contents of directory:"
+          ls -la
+          echo "PNPM version: $(pnpm --version)"
+          echo "Node version: $(node --version)"
+          echo "Installing dependencies..."
+          pnpm install --frozen-lockfile
+        working-directory: ${{ github.workspace }}
+        env:
+          PNPM_HOME: ${{ github.workspace }}/.pnpm
+          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
@@ -117,3 +149,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PNPM_HOME: ${{ github.workspace }}/.pnpm
+          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
