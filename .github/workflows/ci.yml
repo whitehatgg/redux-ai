@@ -33,39 +33,37 @@ jobs:
         run_install: false
 
     - name: Get pnpm store directory
+      id: pnpm-cache
       shell: bash
       run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
     - name: Setup pnpm cache
       uses: actions/cache@v3
       with:
-        path: ${{ env.STORE_PATH }}
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
         restore-keys: |
           ${{ runner.os }}-pnpm-store-
 
     - name: Configure npm authentication
       run: |
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-        echo "registry=https://registry.npmjs.org/" >> .npmrc
-        echo "always-auth=true" >> .npmrc
-        echo "@redux-ai:registry=https://registry.npmjs.org/" >> .npmrc
+        cat << EOF > .npmrc
+        //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+        registry=https://registry.npmjs.org/
+        always-auth=true
+        @redux-ai:registry=https://registry.npmjs.org/
+        EOF
 
     - name: Install dependencies
-      shell: bash
       run: pnpm install --no-frozen-lockfile
       env:
-        PNPM_HOME: ${{ github.workspace }}/.pnpm
-        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Build packages first
       run: |
         pnpm run -r --filter="./packages/*" build
       env:
-        PNPM_HOME: ${{ github.workspace }}/.pnpm
-        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Build and test all
@@ -74,8 +72,7 @@ jobs:
         pnpm run -r lint
         pnpm run -r test
       env:
-        PNPM_HOME: ${{ github.workspace }}/.pnpm
-        NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   release:
     needs: build
@@ -100,39 +97,37 @@ jobs:
           run_install: false
 
       - name: Get pnpm store directory
+        id: pnpm-cache
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          echo "STORE_PATH=$(pnpm store path)" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.STORE_PATH }}
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
       - name: Configure npm authentication
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-          echo "registry=https://registry.npmjs.org/" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-          echo "@redux-ai:registry=https://registry.npmjs.org/" >> .npmrc
+          cat << EOF > .npmrc
+          //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+          registry=https://registry.npmjs.org/
+          always-auth=true
+          @redux-ai:registry=https://registry.npmjs.org/
+          EOF
 
       - name: Install dependencies
-        shell: bash
         run: pnpm install --no-frozen-lockfile
         env:
-          PNPM_HOME: ${{ github.workspace }}/.pnpm
-          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build packages first
         run: |
           pnpm run -r --filter="./packages/*" build
         env:
-          PNPM_HOME: ${{ github.workspace }}/.pnpm
-          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Version and publish packages
@@ -146,7 +141,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          PNPM_HOME: ${{ github.workspace }}/.pnpm
-          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
-          NPM_CONFIG_REGISTRY: "https://registry.npmjs.org"
-          npm_config_loglevel: verbose
