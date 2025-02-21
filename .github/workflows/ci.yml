@@ -13,9 +13,10 @@ env:
   REGISTRY_URL: 'https://registry.npmjs.org'
   NPM_SCOPE: '@redux-ai'
 
-# Add permissions needed for npm provenance
+# Add permissions needed for changesets and npm provenance
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -38,12 +39,6 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
 
-      - name: Verify pnpm installation
-        run: |
-          pnpm --version
-          echo "Node version: $(node --version)"
-          echo "PATH: $PATH"
-
       - name: Setup pnpm cache
         uses: actions/cache@v3
         with:
@@ -58,13 +53,8 @@ jobs:
           echo "@redux-ai:registry=https://registry.npmjs.org/" >> ~/.npmrc
           echo "access=public" >> ~/.npmrc
 
-      - name: Verify and Install Dependencies
-        run: |
-          if [ ! -f "pnpm-lock.yaml" ]; then
-            echo "pnpm-lock.yaml not found"
-            exit 1
-          fi
-          pnpm install --frozen-lockfile
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -88,18 +78,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
           scope: ${{ env.NPM_SCOPE }}
-          always-auth: true
 
       - uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Configure npm
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          echo "@redux-ai:registry=https://registry.npmjs.org/" >> ~/.npmrc
-          echo "access=public" >> ~/.npmrc
 
       - name: Restore cached node_modules
         uses: actions/cache@v3
@@ -107,36 +89,18 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - name: Install dependencies if needed
-        run: |
-          if [ ! -d "node_modules" ] || [ ! -f "node_modules/.pnpm/lock.yaml" ]; then
-            echo "Installing dependencies..."
-            pnpm install --frozen-lockfile
-          else
-            echo "Dependencies are already installed"
-          fi
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Build and test
         run: |
           pnpm build
           pnpm run -r lint
           pnpm run -r test
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           CI: true
 
   release:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # Add permissions for the release job
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -147,18 +111,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: ${{ env.REGISTRY_URL }}
           scope: ${{ env.NPM_SCOPE }}
-          always-auth: true
 
       - uses: pnpm/action-setup@v2
         with:
           version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Configure npm
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-          echo "@redux-ai:registry=https://registry.npmjs.org/" >> ~/.npmrc
-          echo "access=public" >> ~/.npmrc
 
       - name: Restore cached node_modules
         uses: actions/cache@v3
@@ -166,15 +122,15 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - name: Version and publish packages
+      - name: Create Release Pull Request or Publish
+        id: changesets
         uses: changesets/action@v1
         with:
-          version: pnpm changeset version
-          publish: pnpm changeset publish
-          commit: "chore: version packages"
           title: "chore: version packages"
+          commit: "chore: version packages"
+          # Creates a PR with package version updates when changesets are present
+          publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
