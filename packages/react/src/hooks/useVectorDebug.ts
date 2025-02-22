@@ -7,7 +7,7 @@ export function useVectorDebug() {
   const [entries, setEntries] = useState<VectorEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { availableActions, vectorStorage } = useReduxAIContext();
+  const { actions, vectorStorage } = useReduxAIContext();
 
   useEffect(() => {
     async function fetchEntries() {
@@ -31,5 +31,5 @@ export function useVectorDebug() {
     fetchEntries();
   }, [vectorStorage]);
 
-  return { entries, isLoading, error, availableActions };
+  return { entries, isLoading, error, actions };
 }

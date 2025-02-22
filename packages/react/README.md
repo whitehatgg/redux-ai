@@ -32,7 +32,7 @@ const App = () => {
   return (
     <ReduxAIProvider
       store={store}
-      availableActions={[
+      actions={[
         {
           type: 'users/add',
           description: 'Add a new user',
@@ -96,7 +96,7 @@ Provides Redux AI context to your application.
 #### Props
 
 - `store` (Store) - Redux store instance
-- `availableActions` (Action[]) - List of available actions
+- `actions` (Action[]) - List of available actions
 - `config` (ProviderConfig) - Optional configuration
 
 ### `<VectorDebugger>`

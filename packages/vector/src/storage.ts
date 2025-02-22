@@ -1,5 +1,5 @@
 import { IndexedDBStorage } from './indexeddb';
-import type { VectorConfig, VectorEntry } from './types';
+import type { ReduxAIVector, VectorConfig, VectorEntry } from './types';
 
 function textToVector(text: string, dimensions = 128): number[] {
   const vector = new Array(dimensions).fill(0);
@@ -31,44 +31,63 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return normA && normB ? dotProduct / (normA * normB) : 0;
 }
 
-export class VectorStorage {
+export class VectorStorage implements ReduxAIVector {
   private storage: IndexedDBStorage;
   private dimensions: number;
   private readonly listeners = new Set<(entry: VectorEntry) => void>();
 
-  private constructor(storage: IndexedDBStorage, config: VectorConfig) {
-    this.storage = storage;
+  protected constructor(config: VectorConfig) {
+    this.storage = new IndexedDBStorage();
     this.dimensions = config.dimensions;
   }
 
+  private async initialize(): Promise<void> {
+    try {
+      await this.storage.initialize();
+    } catch (error) {
+      console.error('Failed to initialize vector storage:', error);
+      throw new Error('Vector storage initialization failed');
+    }
+  }
+
   static async create(config: VectorConfig): Promise<VectorStorage> {
-    const storage = new IndexedDBStorage();
+    const storage = new VectorStorage(config);
     await storage.initialize();
-    return new VectorStorage(storage, config);
+    return storage;
   }
 
   async addEntry(input: { vector: number[]; metadata: Record<string, unknown> }): Promise<void> {
-    const entry: VectorEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      vector: input.vector,
-      metadata: input.metadata,
-      timestamp: Date.now(),
-    };
+    try {
+      const entry: VectorEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        vector: input.vector,
+        metadata: input.metadata,
+        timestamp: Date.now(),
+      };
 
-    await this.storage.addEntry(entry);
-    this.notifyListeners(entry);
+      await this.storage.addEntry(entry);
+      this.notifyListeners(entry);
+    } catch (error) {
+      console.error('Failed to add vector entry:', error);
+      throw new Error('Failed to add vector entry');
+    }
   }
 
   async storeInteraction(query: string, response: string, state: unknown): Promise<void> {
-    const stateString = typeof state === 'string' ? state : JSON.stringify(state);
-    await this.addEntry({
-      vector: textToVector(`${query} ${response}`, this.dimensions),
-      metadata: {
-        query,
-        response,
-        state: stateString,
-      },
-    });
+    try {
+      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+      await this.addEntry({
+        vector: textToVector(`${query} ${response}`, this.dimensions),
+        metadata: {
+          query,
+          response,
+          state: stateString,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to store interaction:', error);
+      throw new Error('Failed to store interaction');
+    }
   }
 
   async retrieveSimilar(query: string, limit = 5): Promise<VectorEntry[]> {

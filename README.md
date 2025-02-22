@@ -75,7 +75,7 @@ const App = () => {
   return (
     <ReduxAIProvider
       store={store}
-      availableActions={[
+      actions={[
         {
           type: 'users/add',
           description: 'Add a new user to the system',

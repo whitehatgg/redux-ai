@@ -1,0 +1,16 @@
+{
+  "name": "@redux-ai/runtime",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

@@ -23,7 +23,7 @@ describe('ActivityLog', () => {
     (useReduxAIContext as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       vectorStorage: mockVectorStorage,
       isInitialized: true,
-      availableActions: [],
+      actions: [],
     });
   });
 

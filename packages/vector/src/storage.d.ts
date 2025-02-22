@@ -6,7 +6,8 @@ export declare class VectorStorage implements ReduxAIVector {
   private dimensions: number;
   private readonly listeners: Set<(entry: VectorEntry) => void>;
 
-  private constructor(storage: IndexedDBStorage, config: VectorConfig);
+  constructor(config: VectorConfig);
+  initialize(): Promise<void>;
   static create(config: VectorConfig): Promise<ReduxAIVector>;
 
   addEntry(input: { vector: number[]; metadata: Record<string, unknown> }): Promise<void>;

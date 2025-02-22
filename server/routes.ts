@@ -33,7 +33,7 @@ async function createChatCompletion(
     });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: 'gpt-4o',
       messages,
       temperature: 0.7,
       max_tokens: 200,
@@ -49,13 +49,6 @@ async function createChatCompletion(
 }
 
 export async function registerRoutes(app: Express) {
-  app.get('/health', (_req, res) => {
-    res.status(200).json({
-      status: 'OK',
-      aiEnabled: isOpenAIConfigured,
-    });
-  });
-
   app.post('/api/query', async (req, res) => {
     if (!isOpenAIConfigured) {
       return res.status(503).json({
@@ -66,13 +59,13 @@ export async function registerRoutes(app: Express) {
     }
 
     try {
-      const { query, prompt, availableActions, currentState } = req.body;
+      const { query, prompt, actions, currentState } = req.body;
 
       console.info('[API Request - Full]:', {
         rawQuery: query,
         promptLength: prompt?.length,
-        availableActionsCount: availableActions?.length,
-        availableActionTypes: availableActions?.map((a: { type: string }) => a.type),
+        actionsCount: actions?.length,
+        actionTypes: actions?.map((a: { type: string }) => a.type),
         hasState: !!currentState,
         stateKeys: currentState ? Object.keys(currentState) : [],
       });
@@ -87,11 +80,9 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
-      if (!availableActions || !Array.isArray(availableActions) || availableActions.length === 0) {
-        console.warn('[API Error] Invalid availableActions:', availableActions);
-        return res
-          .status(400)
-          .json({ error: 'Available actions are required and must be non-empty array' });
+      if (!actions || !Array.isArray(actions) || actions.length === 0) {
+        console.warn('[API Error] Invalid actions:', actions);
+        return res.status(400).json({ error: 'Actions are required and must be non-empty array' });
       }
 
       const messages: OpenAI.ChatCompletionMessageParam[] = [

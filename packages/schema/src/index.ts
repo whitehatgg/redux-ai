@@ -13,6 +13,10 @@ export interface ValidationResult {
   errors?: string[];
 }
 
+export interface ValidationResultWithValue<T> extends ValidationResult {
+  value: T | null;
+}
+
 export class ReduxAISchema<T extends Action> {
   private schema: JSONSchemaType<T>;
   private validatePayload: boolean;
@@ -26,7 +30,7 @@ export class ReduxAISchema<T extends Action> {
    * Validates if the given value is a valid action according to the schema
    * @returns A ValidationResult object containing validation status and any errors
    */
-  validateAction(value: unknown): ValidationResult & { value: T | null } {
+  validateAction(value: unknown): ValidationResultWithValue<T> {
     // Step 1: Basic structure validation
     if (!isObject(value)) {
       return {
@@ -62,9 +66,9 @@ export class ReduxAISchema<T extends Action> {
   }
 }
 
-export const createReduxAISchema = <T extends Action>(config: SchemaConfig<T>) => {
+export function createReduxAISchema<T extends Action>(config: SchemaConfig<T>): ReduxAISchema<T> {
   return new ReduxAISchema<T>(config);
-};
+}
 
 // Helper type to extract payload type from an action
 export type ActionPayload<T extends Action> = T extends { payload: infer P } ? P : never;

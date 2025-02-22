@@ -1,7 +1,7 @@
-import { ServerOptions } from 'vite';
+import type { ServerOptions } from 'vite';
 
 declare module 'vite' {
   interface ServerOptions {
-    allowedHosts?: boolean | string[];
+    allowedHosts?: boolean | true | string[] | undefined;
   }
 }

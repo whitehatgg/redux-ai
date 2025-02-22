@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "lib": ["ES2020"],
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "noEmit": false,
+    "emitDeclarationOnly": false,
+    "skipLibCheck": true,
+    "paths": {
+      "@redux-ai/runtime": ["../runtime/src"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [{ "path": "../runtime" }]
+}

@@ -2,8 +2,8 @@ import { IndexedDBStorage } from './indexeddb';
 import { VectorStorage } from './storage';
 import type { ReduxAIAction, ReduxAIVector, VectorConfig, VectorEntry } from './types';
 
-// Export all types that other packages need
-export type { ReduxAIVector, VectorEntry, VectorConfig, ReduxAIAction };
+// Re-export all types explicitly
+export type { ReduxAIAction, ReduxAIVector, VectorConfig, VectorEntry };
 
 // Export implementations
 export { VectorStorage };
@@ -14,15 +14,17 @@ export interface VectorSearchParams {
   limit?: number;
 }
 
+// Create a vector storage instance with proper types
 export const createReduxAIVector = async (
   config: Partial<VectorConfig> = {}
 ): Promise<ReduxAIVector> => {
   const defaultConfig: VectorConfig = {
+    dimensions: 128,
     collectionName: 'reduxai_vector',
     maxEntries: 100,
-    dimensions: 128,
     ...config,
   };
+
   const storage = await VectorStorage.create(defaultConfig);
   return storage;
 };

@@ -42,28 +42,45 @@ ${JSON.stringify(availableActions, null, 2)}
 Current State:
 ${JSON.stringify(state, null, 2)}
 
-Your task is to convert natural language queries into Redux actions from the available list above.
+Your task is to:
+1. For state queries:
+   - Respond with natural language focused on what was specifically asked
+   - For general state queries (e.g. "what's in the state"), give an overview of key data
+   - For specific queries (e.g. "how many pending applicants"), focus only on the relevant information
+   - Always explain the meaning of the data, don't just list values
+   - Examples:
+     Query: "What's in the state?"
+     Response: "The store contains 3 pending job applications and 2 approved applications. The latest application was submitted by John Doe."
 
-Rules for action mapping:
+     Query: "How many pending applications?"
+     Response: "There are currently 3 pending applications awaiting review."
+
+2. For action requests:
+   - Use one of the following action mappings:
 ${actionExamples}
 
-IMPORTANT: You must return a JSON response with:
-1. "message": Clear explanation of the action taken
-2. "action": Must use one of the exact action types listed above, or null if no action matches
+IMPORTANT: Return a JSON response with:
+1. "message": For state queries, provide a focused natural language response about the requested information. For actions, explain what will be done.
+2. "action": Must be exactly one of the action types listed above, or null for state queries.
 
-Response format example:
+Response format examples:
+For state query:
 {
-  "message": "I'll perform the requested action",
+  "message": "There are 3 pending applications waiting for review, and 2 that have been approved.",
+  "action": null
+}
+
+For action:
+{
+  "message": "I'll add the new application for John Doe to the system",
   "action": {
-    "type": "example/actionType",
-    "payload": "relevant data"
+    "type": "applications/add",
+    "payload": { "name": "John Doe", "status": "pending" }
   }
 }`;
 
   // Only include conversation history if it exists
-  if (conversationHistory.trim()) {
-    return `${basePrompt}\n\nPrevious Conversation:\n${conversationHistory}`;
-  }
-
-  return basePrompt;
+  return conversationHistory.trim()
+    ? `${basePrompt}\n\nPrevious Conversation:\n${conversationHistory}`
+    : basePrompt;
 }

@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "lib": ["ES2020"],
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "noEmit": false,
+    "types": ["node", "vitest"],
+    "baseUrl": ".",
+    "paths": {
+      "langchain/*": ["./src/types/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "references": [{ "path": "../runtime" }]
+}

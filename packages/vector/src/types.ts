@@ -3,6 +3,7 @@ export interface ReduxAIAction {
   payload?: unknown;
 }
 
+// Core vector entry type for storing vector data
 export interface VectorEntry {
   id: string;
   vector: number[];
@@ -10,12 +11,14 @@ export interface VectorEntry {
   timestamp: number;
 }
 
+// Configuration options for vector storage
 export interface VectorConfig {
-  collectionName: string;
-  maxEntries: number;
   dimensions: number;
+  collectionName?: string;
+  maxEntries?: number;
 }
 
+// Public interface for vector operations
 export interface ReduxAIVector {
   addEntry: (data: VectorEntry) => Promise<void>;
   retrieveSimilar: (searchQuery: string, resultLimit?: number) => Promise<VectorEntry[]>;

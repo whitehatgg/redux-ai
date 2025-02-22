@@ -42,7 +42,7 @@ describe('ReduxAIProvider', () => {
 
   it('renders loading state initially', () => {
     render(
-      <ReduxAIProvider store={mockStore} availableActions={[]}>
+      <ReduxAIProvider store={mockStore} actions={[]} apiEndpoint="http://localhost:3000/api">
         <div>Child content</div>
       </ReduxAIProvider>
     );
@@ -52,7 +52,7 @@ describe('ReduxAIProvider', () => {
 
   it('renders children when initialized', async () => {
     render(
-      <ReduxAIProvider store={mockStore} availableActions={[]}>
+      <ReduxAIProvider store={mockStore} actions={[]} apiEndpoint="http://localhost:3000/api">
         <div data-testid="child">Child content</div>
       </ReduxAIProvider>
     );
@@ -68,7 +68,7 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider store={mockStore} availableActions={[]}>
+      <ReduxAIProvider store={mockStore} actions={[]} apiEndpoint="http://localhost:3000/api">
         <div>Child content</div>
       </ReduxAIProvider>
     );

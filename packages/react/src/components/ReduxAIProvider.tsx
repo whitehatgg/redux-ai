@@ -1,119 +1,70 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReduxAISchema } from '@redux-ai/schema';
 import type { ReduxAIAction } from '@redux-ai/state';
-import { createReduxAIState } from '@redux-ai/state';
 import type { ReduxAIVector } from '@redux-ai/vector';
 import { createReduxAIVector } from '@redux-ai/vector';
 import type { Action, Store } from '@reduxjs/toolkit';
 
 interface ReduxAIContextType {
-  availableActions: ReduxAIAction[];
-  isInitialized: boolean;
-  store?: Store;
+  actions: ReduxAIAction[];
+  store: Store;
+  schema?: ReduxAISchema<Action>;
   vectorStorage?: ReduxAIVector;
-  error?: string;
+  apiEndpoint: string;
 }
 
-const ReduxAIContext = createContext<ReduxAIContextType>({
-  availableActions: [],
-  isInitialized: false,
-});
+const ReduxAIContext = createContext<ReduxAIContextType | null>(null);
 
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
   schema?: ReduxAISchema<Action>;
-  availableActions: ReduxAIAction[];
+  actions: ReduxAIAction[];
+  apiEndpoint: string;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   children,
   store,
   schema,
-  availableActions,
+  actions,
+  apiEndpoint,
 }) => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [vectorStorage, setVectorStorage] = useState<ReduxAIVector>();
-  const [error, setError] = useState<string>();
+  const [vectorStorage, setVectorStorage] = useState<ReduxAIVector | undefined>();
+  const [error, setError] = useState<Error | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-    let vectorDb: ReduxAIVector;
-
-    const initialize = async () => {
+    const initializeVector = async () => {
       try {
-        if (isInitialized) return;
-        console.debug('[ReduxAIProvider] Starting initialization...');
-
-        // Initialize vector storage with the default configuration
-        vectorDb = await createReduxAIVector({
-          collectionName: 'reduxai_vector',
-          maxEntries: 100,
+        const vector = await createReduxAIVector({
           dimensions: 128,
         });
-
-        if (!mounted) return;
-
-        console.debug('[ReduxAIProvider] Vector storage initialized');
-        setVectorStorage(vectorDb);
-
-        // Initialize Redux AI state
-        await createReduxAIState({
-          store,
-          schema,
-          vectorStorage: vectorDb,
-          availableActions,
-          onError: (error: Error) => {
-            console.error('[ReduxAIProvider] State error:', error);
-            if (mounted) {
-              setError(error.message);
-            }
-          },
-        });
-
-        if (!mounted) return;
-
-        console.debug('[ReduxAIProvider] State initialization complete');
-        setIsInitialized(true);
-        setError(undefined);
-      } catch (error) {
-        console.error('[ReduxAIProvider] Initialization error:', error);
-        if (mounted) {
-          const errorMessage = error instanceof Error ? error.message : 'Initialization failed';
-          setError(errorMessage);
-        }
+        setVectorStorage(vector);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to initialize vector storage'));
+      } finally {
+        setIsInitializing(false);
       }
     };
 
-    initialize();
+    initializeVector();
+  }, []);
 
-    return () => {
-      mounted = false;
-      if (vectorDb) {
-        console.debug('[ReduxAIProvider] Cleaning up vector storage');
-      }
-    };
-  }, [store, schema, availableActions, isInitialized]);
-
-  // Show loading state until initialization is complete
-  if (!isInitialized && !error) {
+  if (isInitializing) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="space-y-4 text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Initializing ReduxAI...</p>
-        </div>
+        <span className="text-lg">Initializing ReduxAI...</span>
       </div>
     );
   }
 
-  // Show error state if initialization failed
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="max-w-md space-y-4 p-4 text-center">
-          <p className="font-medium text-destructive">ReduxAI Initialization Error</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-red-600">ReduxAI Initialization Error</h2>
+          <p className="mt-2 text-gray-600">{error.message}</p>
         </div>
       </div>
     );
@@ -122,11 +73,11 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   return (
     <ReduxAIContext.Provider
       value={{
-        availableActions,
-        isInitialized,
+        actions,
         store,
+        schema,
         vectorStorage,
-        error,
+        apiEndpoint,
       }}
     >
       {children}

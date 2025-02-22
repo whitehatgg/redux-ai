@@ -6,7 +6,9 @@
     "server/routes.ts",
     "server/storage.ts",
     "server/db.ts",
-    "packages/**/*"
+    "packages/**/*",
+    "server/vite.ts",
+    "vite.config.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
@@ -30,7 +32,9 @@
     "paths": {
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"],
-      "@redux-ai/state": ["./packages/state/src"],
+      "@redux-ai/runtime": ["./packages/runtime/src"],
+      "@redux-ai/openai": ["./packages/openai/src"],
+      "@redux-ai/middleware": ["./packages/middleware/src"],
       "@redux-ai/schema": ["./packages/schema/src"],
       "@redux-ai/vector": ["./packages/vector/src"],
       "@redux-ai/react": ["./packages/react/src"]

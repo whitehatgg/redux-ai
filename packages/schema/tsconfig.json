@@ -7,9 +7,13 @@
     "tsBuildInfoFile": "./.tsbuildinfo",
     "noEmit": false,
     "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "module": "ESNext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
   },
-  "include": ["src/**/*", "src/**/*.test.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
