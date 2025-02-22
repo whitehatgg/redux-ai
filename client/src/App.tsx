@@ -9,7 +9,11 @@ import { Provider } from 'react-redux';
 import { ApplicantTable } from './components/ApplicantTable';
 import { queryClient } from './lib/queryClient';
 import { store } from './store';
-import { setSearchTerm, setVisibleColumns, toggleSearch } from './store/slices/applicantSlice';
+import {
+  setSearchTerm as _setSearchTerm,
+  setVisibleColumns as _setVisibleColumns,
+  toggleSearch as _toggleSearch,
+} from './store/slices/applicantSlice';
 
 // Generate actions from slice's action creators
 const actions: ReduxAIAction[] = [

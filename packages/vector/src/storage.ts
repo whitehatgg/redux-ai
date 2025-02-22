@@ -1,7 +1,7 @@
 import { IndexedDBStorage } from './indexeddb';
 import type { ReduxAIVector, VectorConfig, VectorEntry } from './types';
 
-function textToVector(text: string, dimensions = 128): number[] {
+export function textToVector(text: string, dimensions = 128): number[] {
   const vector = new Array(dimensions).fill(0);
   const normalized = text.toLowerCase().trim();
 
@@ -12,7 +12,7 @@ function textToVector(text: string, dimensions = 128): number[] {
   return vector;
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
 
   let dotProduct = 0;

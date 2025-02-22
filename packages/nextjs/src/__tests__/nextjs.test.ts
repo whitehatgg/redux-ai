@@ -12,10 +12,15 @@ describe('NextjsAdapter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock runtime with proper typing
+    // Mock runtime with all required properties according to Runtime interface
     mockRuntime = {
-      query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
+      provider: {
+        complete: vi.fn().mockResolvedValue({ message: 'Success' }),
+      },
+      messages: [{ role: 'system', content: 'Test system message' }],
+      currentState: {},
       debug: false,
+      query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
     };
 
     // Mock Next.js request

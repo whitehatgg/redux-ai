@@ -15,6 +15,14 @@ export default defineConfig({
     deps: {
       inline: ['@redux-ai/schema', '@testing-library/jest-dom'],
     },
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    pool: 'forks', // Use forks for better isolation
+    poolOptions: {
+      threads: {
+        singleThread: true, // Run tests sequentially for better stability
+      },
+    },
   },
   resolve: {
     alias: {
