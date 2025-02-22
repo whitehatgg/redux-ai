@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticPrefixFix",
+    ":ignoreUnstable",
+    ":combinePatchMinorReleases",
+    ":prHourlyLimit2",
+    ":prConcurrentLimit10"
+  ],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "dependencies (non-major)",
+      "groupSlug": "dependencies"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "dev dependencies (non-major)",
+      "groupSlug": "dev-dependencies"
+    },
+    {
+      "matchPackagePatterns": ["^@redux-ai"],
+      "groupName": "internal packages",
+      "groupSlug": "internal"
+    }
+  ],
+  "ignoreDeps": ["pnpm"],
+  "schedule": ["before 3am"],
+  "timezone": "UTC",
+  "semanticCommits": "enabled",
+  "baseBranches": ["main"],
+  "labels": ["dependencies"],
+  "rebaseWhen": "auto",
+  "dependencyDashboard": true,
+  "automerge": true,
+  "automergeType": "branch",
+  "platformAutomerge": true,
+  "major": {
+    "automerge": false
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 4am on monday"]
+  },
+  "prCreation": "not-pending",
+  "stabilityDays": 3
+}

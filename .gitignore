@@ -5,3 +5,6 @@ server/public
 vite.config.ts.*
 *.tar.gz
 *.tsbuildinfo
+.renovate/
+.renovaterc
+renovate-debug.log
