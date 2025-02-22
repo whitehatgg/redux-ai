@@ -51,6 +51,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Create .npmrc
+        run: |
+          cat << EOF > .npmrc
+          //registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}
+          @redux-ai:registry=https://registry.npmjs.org/
+          access=public
+          EOF
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
         env:
@@ -89,6 +97,14 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
+      - name: Create .npmrc
+        run: |
+          cat << EOF > .npmrc
+          //registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}
+          @redux-ai:registry=https://registry.npmjs.org/
+          access=public
+          EOF
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -140,6 +156,14 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
+      - name: Create .npmrc
+        run: |
+          cat << EOF > .npmrc
+          //registry.npmjs.org/:_authToken=\${NODE_AUTH_TOKEN}
+          @redux-ai:registry=https://registry.npmjs.org/
+          access=public
+          EOF
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
