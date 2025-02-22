@@ -3,26 +3,32 @@ import Ajv from 'ajv';
 
 const ajv = new Ajv();
 
+export interface ValidationResult {
+  valid: boolean;
+  errors?: string[];
+}
+
 /**
  * Validates data against a JSON schema
  * @returns Object containing validation result and any error messages
  */
-export function validateSchema<T>(
-  schema: JSONSchemaType<T>,
-  data: unknown
-): {
-  valid: boolean;
-  errors?: string[];
-} {
-  const validate = ajv.compile(schema);
-  const valid = validate(data);
+export function validateSchema<T>(schema: JSONSchemaType<T>, data: unknown): ValidationResult {
+  try {
+    const validate = ajv.compile(schema);
+    const valid = validate(data);
 
-  return {
-    valid,
-    errors: valid
-      ? undefined
-      : validate.errors?.map(e => e.message).filter((msg): msg is string => msg !== undefined),
-  };
+    return {
+      valid,
+      errors: valid
+        ? undefined
+        : validate.errors?.map(e => e.message || 'Unknown error').filter(Boolean),
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      errors: [(error as Error).message],
+    };
+  }
 }
 
 /**

@@ -28,6 +28,12 @@ export default defineConfig({
       include: ['src'],
       exclude: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
       rollupTypes: true,
+      insertTypesEntry: true,
+      copyDtsFiles: true,
+      aliasesExclude: [/@redux-ai\/.*/],
+      afterBuild: () => {
+        // Clean up any temporary files if needed
+      },
     }),
   ],
 });

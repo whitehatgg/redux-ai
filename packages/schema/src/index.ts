@@ -1,16 +1,11 @@
 import type { Action } from '@reduxjs/toolkit';
 import type { JSONSchemaType } from 'ajv';
 
-import { hasProperty, isObject, validateSchema } from './validation';
+import { hasProperty, isObject, validateSchema, type ValidationResult } from './validation';
 
 export interface SchemaConfig<T extends Action> {
   schema: JSONSchemaType<T>;
   validatePayload?: boolean;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  errors?: string[];
 }
 
 export interface ValidationResultWithValue<T> extends ValidationResult {
@@ -28,7 +23,6 @@ export class ReduxAISchema<T extends Action> {
 
   /**
    * Validates if the given value is a valid action according to the schema
-   * @returns A ValidationResult object containing validation status and any errors
    */
   validateAction(value: unknown): ValidationResultWithValue<T> {
     // Step 1: Basic structure validation
@@ -50,11 +44,11 @@ export class ReduxAISchema<T extends Action> {
     }
 
     // Step 3: Schema validation
-    const { valid, errors } = validateSchema(this.schema, value);
+    const result = validateSchema(this.schema, value);
+
     return {
-      valid,
-      errors,
-      value: valid ? (value as T) : null,
+      ...result,
+      value: result.valid ? (value as T) : null,
     };
   }
 

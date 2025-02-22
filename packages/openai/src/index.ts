@@ -16,7 +16,7 @@ export class OpenAIProvider implements LLMProvider {
 
   constructor(config: OpenAIConfig) {
     this.client = new OpenAI({ apiKey: config.apiKey });
-    this.model = config.model ?? 'gpt-4o'; // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    this.model = config.model ?? 'gpt-4o';
     this.temperature = config.temperature ?? 0.7;
     this.maxTokens = config.maxTokens ?? 200;
   }

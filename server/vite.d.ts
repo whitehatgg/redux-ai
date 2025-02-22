@@ -1,4 +1,4 @@
-import type { ServerOptions } from 'vite';
+import { ServerOptions } from 'vite';
 
 declare module 'vite' {
   interface ServerOptions {
