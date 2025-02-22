@@ -15,7 +15,8 @@
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "dependencies (non-major)",
-      "groupSlug": "dependencies"
+      "groupSlug": "dependencies",
+      "automerge": false
     },
     {
       "matchDepTypes": ["devDependencies"],
@@ -37,9 +38,8 @@
   "labels": ["dependencies"],
   "rebaseWhen": "auto",
   "dependencyDashboard": true,
-  "automerge": true,
-  "automergeType": "branch",
-  "platformAutomerge": true,
+  "automerge": false,
+  "platformAutoMerge": false,
   "major": {
     "automerge": false
   },

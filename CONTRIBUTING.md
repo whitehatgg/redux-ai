@@ -1,6 +1,10 @@
-pnpm install
+# Contributing to Redux AI
 
-````
+## Getting Started
+
+```bash
+pnpm install
+```
 
 ## Code Style & Formatting
 
@@ -12,7 +16,7 @@ pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .pre
 
 # Check formatting without making changes
 pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .prettierignore
-````
+```
 
 Our formatting rules include:
 
@@ -23,41 +27,57 @@ Our formatting rules include:
 - Trailing commas in objects and arrays
 - Organized imports using @ianvs/prettier-plugin-sort-imports
 
-### ESLint Configuration
+## Making Changes
 
-Our ESLint setup is optimized for the monorepo structure with specific rules for different file types:
-
-1. Regular TypeScript/React files:
-
-   - Strict type checking
-   - React hooks rules enforcement
-   - Import organization
-
-2. Test files and utilities:
-
-   - Relaxed rules for test files
-   - Allows test-specific patterns
-   - Disabled unused variable checks
-
-3. Declaration files (.d.ts):
-
-   - Specialized parsing for type definitions
-   - Disabled unnecessary checks
-
-4. Configuration files:
-   - Node.js environment globals
-   - Relaxed module requirements
-
-The pre-commit hook will run ESLint checks automatically. You can also run them manually:
+1. Create a new branch for your changes:
 
 ```bash
-# Check all files
-pnpm exec eslint .
-
-# Fix auto-fixable issues
-pnpm exec eslint . --fix
-
+git checkout -b feature/your-feature-name
 ```
+
+2. Make your changes and test them locally:
+
+```bash
+pnpm run lint
+pnpm run test
+```
+
+3. Create a changeset to document your changes:
+
+```bash
+pnpm changeset
+```
+
+Follow the prompts to:
+
+- Select the packages that have changed
+- Choose the type of change (major/minor/patch)
+- Write a description of your changes
+
+4. Commit your changes:
+
+```bash
+git add .
+git commit -m "feat: your feature description"
+```
+
+5. Push your changes:
+
+```bash
+git push origin feature/your-feature-name
+```
+
+## Release Process
+
+We use [Changesets](https://github.com/changesets/changesets) to manage versions and package publishing. The process is:
+
+1. Changes are documented using `pnpm changeset`
+2. When changes are merged to main:
+   - CI will automatically build and test the changes
+   - If tests pass, changes will be published using `pnpm run release`
+   - This process is handled by our CI/CD pipeline, no manual intervention needed
+
+Note: Pull requests are not automatically created by our CI. All version management and publishing is handled through Changesets.
 
 ## Package Dependencies
 
@@ -88,25 +108,6 @@ cd packages/<package-name>
 pnpm exec tsc
 ```
 
-The pre-commit hook runs type checking across all packages to ensure type safety.
-
-## Making Changes
-
-1. Create a new branch for your changes
-2. Format your code using Prettier (see above)
-3. Run tests and linting:
-
-```bash
-pnpm run lint
-pnpm run test
-```
-
-4. Create a changeset to document your changes:
-
-```bash
-pnpm changeset
-```
-
 ## Semantic Versioning
 
 We follow [Semantic Versioning](https://semver.org/). When making changes:
@@ -115,19 +116,15 @@ We follow [Semantic Versioning](https://semver.org/). When making changes:
 - MINOR version for added functionality in a backward compatible manner (0.1.0)
 - PATCH version for backward compatible bug fixes (0.0.1)
 
-Use changesets to document your changes and automate version management:
+Use changesets to document your changes:
 
 ```bash
 # Add a changeset
 pnpm changeset
 
-# Version packages based on changesets
+# Version packages based on changesets (maintainers only)
 pnpm changeset version
 
-# Publish packages (maintainers only)
+# Publish packages (handled by CI, maintainers only)
 pnpm changeset publish
-```
-
-```
-
 ```

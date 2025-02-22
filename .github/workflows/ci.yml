@@ -7,17 +7,15 @@ on:
     branches: [ main ]
 
 env:
-  PNPM_VERSION: 10.4.1  # Updated to match our local version from pnpm-lock.yaml
+  PNPM_VERSION: 10.4.1
   NODE_VERSION: 20.x
   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
   REGISTRY_URL: 'https://registry.npmjs.org'
   NPM_SCOPE: '@redux-ai'
 
-# Add permissions needed for changesets
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
+  contents: read # Minimal read permissions for checkout
+  id-token: write # Required for authentication
 
 jobs:
   setup:
@@ -25,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Required for Changesets to work properly
 
       - uses: actions/setup-node@v4
         with:
@@ -97,10 +95,13 @@ jobs:
         env:
           CI: true
 
-  release:
+  publish:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for publishing
+      id-token: write # Required for publishing
     steps:
       - uses: actions/checkout@v4
         with:
@@ -122,43 +123,10 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - name: Create Release Pull Request or Publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          title: "chore: version packages"
-          commit: "chore: version packages"
-          publish: pnpm run release
+      - name: Publish packages
+        run: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_ENV: production
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm run lint
-      - run: pnpm run test
