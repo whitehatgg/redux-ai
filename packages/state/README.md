@@ -1,0 +1,123 @@
+# @redux-ai/state
+
+Core state management functionality for Redux AI, providing intelligent state tracking and prediction capabilities.
+
+## Features
+
+- AI-powered state tracking with TypeScript
+- Automatic action suggestion based on state patterns
+- State prediction and optimization
+- Integration with vector storage for historical analysis
+- XState machine integration for complex state flows
+- Middleware for Redux store enhancement
+
+## Installation
+
+```bash
+pnpm add @redux-ai/state
+```
+
+## Usage
+
+```typescript
+import { createAIStore, type AIState } from '@redux-ai/state';
+import type { RootState } from './types';
+
+// Create an AI-powered store
+const store = createAIStore<RootState>({
+  reducer: rootReducer,
+  initialState: {},
+  vectorConfig: {
+    dimensions: 128,
+  },
+  predictorConfig: {
+    confidenceThreshold: 0.8,
+    maxPredictions: 5,
+  },
+});
+
+// The store automatically tracks state changes
+store.subscribe(() => {
+  const state = store.getState();
+  const suggestions = store.getSuggestions();
+  console.log('Suggested actions:', suggestions);
+});
+
+// Use the AI middleware
+const aiMiddleware = createAIMiddleware({
+  enablePrediction: true,
+  trackingConfig: {
+    includeMeta: true,
+    storeHistory: true,
+  },
+});
+
+// Add to your Redux store
+const store = configureStore({
+  reducer: rootReducer,
+  middleware: getDefault => getDefault().concat(aiMiddleware),
+});
+```
+
+## API Reference
+
+### `createAIStore(config)`
+
+Creates a new Redux store with AI capabilities.
+
+#### Parameters
+
+- `config` (object)
+  - `reducer` (Reducer) - Root reducer function
+  - `initialState` (State) - Initial state
+  - `vectorConfig` (VectorConfig) - Vector storage configuration
+  - `predictorConfig` (PredictorConfig, optional) - AI predictor settings
+
+#### Returns
+
+Returns an enhanced Redux store with additional AI methods.
+
+### Methods
+
+#### Standard Redux Store Methods
+
+All standard Redux store methods plus:
+
+#### AI-Specific Methods
+
+- `getSuggestions()`: Get AI-suggested actions
+- `predictStateChange(action)`: Predict state after an action
+- `getOptimizedActions()`: Get optimized action sequences
+- `getStateAnalytics()`: Get analytics about state changes
+
+### State Machine Integration
+
+```typescript
+import { createStateMachine } from '@redux-ai/state';
+
+const authMachine = createStateMachine({
+  id: 'auth',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { LOGIN: 'authenticating' },
+    },
+    authenticating: {
+      on: {
+        SUCCESS: 'authenticated',
+        ERROR: 'error',
+      },
+    },
+  },
+});
+
+// Integrate with Redux store
+store.attachStateMachine(authMachine);
+```
+
+## Performance Optimization
+
+- Efficient state diffing for change detection
+- Batched updates for prediction calculations
+- Cached suggestion results
+- Configurable tracking granularity

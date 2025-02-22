@@ -6,6 +6,10 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,7 +26,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepublishOnly": "echo 'Skipping build as it should already be built'"
+    "prepublishOnly": "echo 'Publishing package'"
   },
   "dependencies": {
     "@redux-ai/schema": "workspace:*",
