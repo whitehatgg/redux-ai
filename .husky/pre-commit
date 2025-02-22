@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# Unit Tests
+echo "Running unit tests..."
+pnpm exec vitest run || {
+  echo "❌ Unit tests failed. Please fix the failing tests before committing."
+  exit 1
+}
+
 # Type checking
 echo "Running TypeScript type checking..."
 pnpm exec tsc -b packages/*/tsconfig.json client/tsconfig.json || {
