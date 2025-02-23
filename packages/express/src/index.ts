@@ -1,9 +1,21 @@
 import type { HandlerConfig, RuntimeAdapter } from '@redux-ai/runtime';
 import type { NextFunction, Request, Response } from 'express';
 
-import { checkAIConfig, createAIQueryHandler, logAIRequest, validateQuery } from './middleware';
+import {
+  checkAIConfig,
+  createAIQueryHandler,
+  handleAIErrors,
+  logAIRequest,
+  validateQuery,
+} from './middleware';
 
-export { validateQuery, checkAIConfig, logAIRequest, createAIQueryHandler };
+export {
+  validateQuery,
+  checkAIConfig,
+  logAIRequest,
+  createAIQueryHandler,
+  handleAIErrors, // Added export for handleAIErrors
+};
 
 export function createHandler(config: HandlerConfig) {
   const path = config.endpoint ?? '/api/query';

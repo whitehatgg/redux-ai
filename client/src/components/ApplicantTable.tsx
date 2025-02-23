@@ -19,11 +19,14 @@ export function ApplicantTable() {
   const dispatch = useDispatch();
   const { applicants, tableConfig } = useSelector((state: RootState) => state.applicant);
 
+  // Ensure visibleColumns is always an array
+  const visibleColumns = tableConfig?.visibleColumns || [];
+
   const filteredApplicants = applicants.filter(applicant => {
-    if (!tableConfig.enableSearch || !tableConfig.searchTerm) return true;
+    if (!tableConfig?.enableSearch || !tableConfig?.searchTerm) return true;
     const searchLower = tableConfig.searchTerm.toLowerCase();
     return Object.entries(applicant).some(([key, value]) => {
-      if (!tableConfig.visibleColumns.includes(key as keyof Applicant)) return false;
+      if (!visibleColumns.includes(key as keyof Applicant)) return false;
       return String(value).toLowerCase().includes(searchLower);
     });
   });
@@ -37,9 +40,9 @@ export function ApplicantTable() {
   ];
 
   const toggleColumn = (column: keyof Applicant) => {
-    const newColumns = tableConfig.visibleColumns.includes(column)
-      ? tableConfig.visibleColumns.filter(col => col !== column)
-      : [...tableConfig.visibleColumns, column];
+    const newColumns = visibleColumns.includes(column)
+      ? visibleColumns.filter(col => col !== column)
+      : [...visibleColumns, column];
     dispatch(setVisibleColumns(newColumns));
   };
 
@@ -51,16 +54,16 @@ export function ApplicantTable() {
           <div className="flex items-center gap-2">
             <Checkbox
               id="enableSearch"
-              checked={tableConfig.enableSearch}
+              checked={tableConfig?.enableSearch || false}
               onCheckedChange={checked => dispatch(toggleSearch(checked))}
             />
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
-          {tableConfig.enableSearch && (
+          {tableConfig?.enableSearch && (
             <div className="flex-1">
               <Input
                 placeholder="Search applicants..."
-                value={tableConfig.searchTerm}
+                value={tableConfig?.searchTerm || ''}
                 onChange={e => dispatch(setSearchTerm(e.target.value))}
                 className="max-w-full md:max-w-sm"
               />
@@ -73,7 +76,7 @@ export function ApplicantTable() {
             <div key={key} className="flex items-center gap-2">
               <Checkbox
                 id={key}
-                checked={tableConfig.visibleColumns.includes(key)}
+                checked={visibleColumns.includes(key)}
                 onCheckedChange={() => toggleColumn(key)}
               />
               <Label htmlFor={key} className="text-sm">
@@ -92,7 +95,7 @@ export function ApplicantTable() {
               <TableRow>
                 {allColumns.map(
                   ({ key, label }) =>
-                    tableConfig.visibleColumns.includes(key) && (
+                    visibleColumns.includes(key) && (
                       <TableHead key={key} className="whitespace-nowrap px-4 py-3.5">
                         {label}
                       </TableHead>
@@ -104,7 +107,7 @@ export function ApplicantTable() {
               {filteredApplicants.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={tableConfig.visibleColumns.length}
+                    colSpan={visibleColumns.length}
                     className="py-4 text-center text-muted-foreground"
                   >
                     No applicants found
@@ -115,7 +118,7 @@ export function ApplicantTable() {
                   <TableRow key={applicant.id}>
                     {allColumns.map(
                       ({ key }) =>
-                        tableConfig.visibleColumns.includes(key) && (
+                        visibleColumns.includes(key) && (
                           <TableCell key={key} className="whitespace-nowrap px-4 py-3">
                             {applicant[key]}
                           </TableCell>
