@@ -153,10 +153,11 @@ When writing tests, always follow these guidelines to ensure consistent behavior
    - Avoid using top-level variables in mock definitions
 
 Example of proper mocking:
+
 ```typescript
 vi.mock('some-module', () => {
   const createMockInstance = () => ({
-    someMethod: vi.fn()
+    someMethod: vi.fn(),
   });
 
   return {
@@ -164,12 +165,13 @@ vi.mock('some-module', () => {
       constructor() {
         return createMockInstance();
       }
-    }
+    },
   };
 });
 ```
 
 2. **Test Isolation**
+
    - Reset all mocks before each test using `vi.clearAllMocks()`
    - Avoid shared state between tests
    - Create fresh instances of mocked dependencies for each test
@@ -184,11 +186,13 @@ vi.mock('some-module', () => {
 To ensure tests behave consistently across all environments:
 
 1. **Running Tests**
+
    - Always run tests in non-interactive mode locally using `vitest run` or `pnpm test`
    - Avoid tests that depend on user input or interactive prompts
    - Use the `--run` flag to simulate CI environment behavior
 
 2. **Environment Setup**
+
    - Clear module cache between test runs if needed
    - Don't rely on module hoisting behavior that might differ between environments
    - Use proper module mocking patterns as described above

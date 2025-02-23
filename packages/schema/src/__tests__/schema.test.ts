@@ -5,7 +5,7 @@ import { createReduxAISchema } from '../index';
 
 /**
  * Test suite for ReduxAISchema
- * 
+ *
  * Note: This test file focuses on synchronous validation functions
  * and doesn't require complex mocking patterns. However, we still
  * follow best practices for test isolation and setup.

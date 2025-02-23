@@ -36,7 +36,7 @@ export default function Home() {
           },
         } as any,
         {
-          status: (code: number) => ({ json: (data: any) => data }),
+          status: () => ({ json: (data: any) => data }),
           json: (data: any) => data,
         } as any
       );

@@ -1,4 +1,4 @@
-import type { HandlerConfig, Runtime, RuntimeAdapter } from '@redux-ai/runtime';
+import type { HandlerConfig, RuntimeAdapter } from '@redux-ai/runtime';
 import type { NextFunction, Request, Response } from 'express';
 
 import { checkAIConfig, createAIQueryHandler, logAIRequest, validateQuery } from './middleware';

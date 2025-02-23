@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
@@ -16,14 +15,18 @@ export default defineConfig({
       exclude: ['node_modules/**', 'src/types/**', '**/*.d.ts', 'test/**', 'dist/**'],
     },
     deps: {
-      inline: [
-        '@redux-ai/schema',
-        '@redux-ai/state',
-        '@redux-ai/vector',
-        'react',
-        'react-dom',
-        '@testing-library/jest-dom',
-      ],
+      optimizer: {
+        web: {
+          include: [
+            '@redux-ai/schema',
+            '@redux-ai/state',
+            '@redux-ai/vector',
+            'react',
+            'react-dom',
+            '@testing-library/jest-dom',
+          ],
+        },
+      },
     },
   },
   resolve: {

@@ -1,17 +1,19 @@
 import { createServer } from 'http';
-import type { Express } from 'express';
-import { 
-  validateQuery, 
-  handleAIErrors, 
-  checkAIConfig, 
-  logAIRequest, 
-  createAIQueryHandler 
+import {
+  checkAIConfig,
+  createAIQueryHandler,
+  handleAIErrors,
+  logAIRequest,
+  validateQuery,
 } from '@redux-ai/express';
+import type { Express } from 'express';
+
 import { runtime } from './config';
 
 export async function registerRoutes(app: Express) {
   // Apply middleware chain for /api/query endpoint
-  app.post('/api/query',
+  app.post(
+    '/api/query',
     checkAIConfig,
     validateQuery,
     logAIRequest,

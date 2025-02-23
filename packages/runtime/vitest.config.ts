@@ -11,9 +11,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      exclude: ['node_modules/**', 'src/types/**', '**/*.d.ts', 'test/**', 'dist/**'],
     },
     deps: {
-      inline: ['@testing-library/jest-dom'],
+      optimizer: {
+        web: {
+          include: ['@testing-library/jest-dom'],
+        },
+      },
     },
   },
   resolve: {

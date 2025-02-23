@@ -1,11 +1,12 @@
+import type { Message } from '@redux-ai/runtime';
 import { describe, expect, it, vi } from 'vitest';
+
 import type { OpenAIConfig } from '../index';
 import { OpenAIProvider } from '../index';
-import type { Message } from '@redux-ai/runtime';
 
 /**
  * Test suite for OpenAI package
- * 
+ *
  * Mocking Best Practices:
  * 1. Use factory pattern with vi.mock to ensure proper hoisting in all environments
  * 2. Define mock factory inside vi.mock to avoid initialization order issues
@@ -18,9 +19,9 @@ vi.mock('openai', () => {
   const createMockClient = () => ({
     chat: {
       completions: {
-        create: vi.fn()
-      }
-    }
+        create: vi.fn(),
+      },
+    },
   });
 
   return {
@@ -28,14 +29,14 @@ vi.mock('openai', () => {
       constructor() {
         return createMockClient();
       }
-    }
+    },
   };
 });
 
 describe('OpenAI Package', () => {
   const mockConfig: OpenAIConfig = {
     apiKey: 'test-key',
-    model: 'gpt-3.5-turbo'
+    model: 'gpt-3.5-turbo',
   };
 
   it('should properly initialize OpenAI client', () => {
@@ -46,11 +47,13 @@ describe('OpenAI Package', () => {
   it('should handle API calls correctly', async () => {
     const provider = new OpenAIProvider(mockConfig);
     const mockResponse = {
-      choices: [{
-        message: {
-          content: JSON.stringify({ message: 'Test response', action: null })
-        }
-      }]
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ message: 'Test response', action: null }),
+          },
+        },
+      ],
     };
 
     // @ts-ignore - Mocking private OpenAI instance

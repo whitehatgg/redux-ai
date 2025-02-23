@@ -1,5 +1,5 @@
-import type { NextFunction, Request, Response } from 'express';
 import type { Runtime } from '@redux-ai/runtime';
+import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 
 // Validation schema for AI query requests
@@ -11,6 +11,15 @@ const querySchema = z.object({
 });
 
 export type QueryRequest = z.infer<typeof querySchema>;
+
+// Create a logger utility
+const logger = {
+  info: (...args: unknown[]) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[AI API]', ...args);
+    }
+  },
+};
 
 // Middleware for validating AI query requests
 export function validateQuery(req: Request, res: Response, next: NextFunction) {
@@ -54,7 +63,8 @@ export function handleAIErrors(err: unknown, req: Request, res: Response, next: 
 export function checkAIConfig(req: Request, res: Response, next: NextFunction) {
   if (!process.env.OPENAI_API_KEY) {
     return res.status(503).json({
-      error: 'AI features are currently disabled. Please configure your OpenAI API key to enable the demo.',
+      error:
+        'AI features are currently disabled. Please configure your OpenAI API key to enable the demo.',
       isConfigured: false,
     });
   }
@@ -66,7 +76,7 @@ export function logAIRequest(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
   const { query, prompt, actions, currentState } = req.body;
 
-  console.info('[API Request - Full]:', {
+  logger.info('Request:', {
     rawQuery: query,
     promptLength: prompt?.length,
     actionsCount: actions?.length,
@@ -77,8 +87,8 @@ export function logAIRequest(req: Request, res: Response, next: NextFunction) {
 
   // Capture and log response
   const originalJson = res.json;
-  res.json = function(body) {
-    console.info('[API Response]:', {
+  res.json = function (body) {
+    logger.info('Response:', {
       message: body.message,
       hasAction: !!body.action,
       action: body.action,
@@ -88,7 +98,7 @@ export function logAIRequest(req: Request, res: Response, next: NextFunction) {
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`Request completed in ${duration}ms`);
+    logger.info(`Request completed in ${duration}ms`);
   });
 
   next();
