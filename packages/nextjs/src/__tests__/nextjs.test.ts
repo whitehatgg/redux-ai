@@ -21,7 +21,7 @@ describe('NextjsAdapter', () => {
       currentState: {},
       debug: false,
       query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
-    };
+    } as Runtime;
 
     // Mock Next.js request
     mockReq = {
@@ -34,10 +34,16 @@ describe('NextjsAdapter', () => {
       },
     };
 
-    // Mock Next.js response
+    // Mock Next.js response with proper spy functions
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
+      on: vi.fn((event, callback) => {
+        if (event === 'finish') {
+          callback();
+        }
+        return mockRes;
+      }),
     };
   });
 

@@ -4,37 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createHandler, ExpressAdapter } from '../index';
 
-/**
- * Test suite for ExpressAdapter
- * 
- * Mocking Best Practices:
- * 1. Use factory pattern with vi.mock to ensure proper hoisting in all environments
- * 2. Define mock factory inside vi.mock to avoid initialization order issues
- * 3. Return class constructor that creates fresh mock instances
- * 4. Avoid using top-level variables in mock definitions
- */
-
-// Configure mocks before tests
-vi.mock('@redux-ai/runtime', () => {
-  const createMockRuntime = () => ({
-    provider: {
-      complete: vi.fn().mockResolvedValue({ message: 'Success' }),
-    },
-    messages: [{ role: 'system', content: 'Test system message' }],
-    currentState: {},
-    debug: false,
-    query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
-  });
-
-  return {
-    Runtime: class MockRuntime {
-      constructor() {
-        return createMockRuntime();
-      }
-    },
-  };
-});
-
 describe('ExpressAdapter', () => {
   let mockRuntime: Runtime;
   let mockReq: Partial<Request>;
@@ -45,7 +14,15 @@ describe('ExpressAdapter', () => {
     vi.clearAllMocks();
 
     // Mock runtime with all required properties according to Runtime interface
-    mockRuntime = new Runtime(); //This line is changed to use the mocked Runtime
+    mockRuntime = {
+      provider: {
+        complete: vi.fn().mockResolvedValue({ message: 'Success' }),
+      },
+      messages: [{ role: 'system', content: 'Test system message' }],
+      currentState: {},
+      debug: false,
+      query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
+    } as Runtime;
 
     // Mock Express request
     mockReq = {
@@ -59,16 +36,24 @@ describe('ExpressAdapter', () => {
       },
     };
 
-    // Mock Express response
+    // Mock Express response with proper spy functions and event handling
+    const jsonSpy = vi.fn();
+    const statusSpy = vi.fn().mockReturnThis();
+    const onSpy = vi.fn((event, callback) => {
+      if (event === 'finish') {
+        callback();
+      }
+      return mockRes;
+    });
+
     mockRes = {
-      json: vi.fn(),
-      status: vi.fn().mockReturnThis(),
+      json: jsonSpy,
+      status: statusSpy,
+      on: onSpy,
     };
 
     // Properly typed NextFunction mock
-    mockNext = vi.fn((err?: any) => {
-      if (err) throw err;
-    }) as NextFunction;
+    mockNext = vi.fn() as NextFunction;
   });
 
   afterEach(() => {
@@ -107,8 +92,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should handle API key errors', async () => {
-    const error = new Error('Invalid API key');
-    mockRuntime.query = vi.fn().mockRejectedValue(error);
+    mockRuntime.query = vi.fn().mockRejectedValue(new Error('Invalid API key'));
 
     const handler = createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
@@ -121,8 +105,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should handle rate limit errors', async () => {
-    const error = new Error('rate limit exceeded');
-    mockRuntime.query = vi.fn().mockRejectedValue(error);
+    mockRuntime.query = vi.fn().mockRejectedValue(new Error('rate limit exceeded'));
 
     const handler = createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
@@ -134,8 +117,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should handle model access errors', async () => {
-    const error = new Error('does not have access to model');
-    mockRuntime.query = vi.fn().mockRejectedValue(error);
+    mockRuntime.query = vi.fn().mockRejectedValue(new Error('does not have access to model'));
 
     const handler = createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
@@ -148,8 +130,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should handle unknown errors', async () => {
-    const error = new Error('Unknown error');
-    mockRuntime.query = vi.fn().mockRejectedValue(error);
+    mockRuntime.query = vi.fn().mockRejectedValue(new Error('Unknown error'));
 
     const handler = createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);

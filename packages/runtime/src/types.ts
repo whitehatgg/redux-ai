@@ -5,7 +5,7 @@ export interface Message {
 
 export interface CompletionResponse {
   message: string;
-  action?: string | null;
+  action: Record<string, unknown> | null;
 }
 
 export interface LLMProvider {
@@ -20,6 +20,10 @@ export interface QueryParams {
   prompt?: string;
   actions?: unknown[];
   currentState?: Record<string, unknown>;
+}
+
+export interface RuntimeAdapter {
+  createHandler(config: { runtime: Runtime; endpoint?: string }): unknown;
 }
 
 export interface Runtime {

@@ -40,26 +40,26 @@ export class LangChainProvider implements LLMProvider {
       }
 
       // Invoke the model and get response
-      const response = await this.model.call(langchainMessages);
+      const response = await this.model.invoke(langchainMessages);
 
       // Parse the response content
       let content: unknown;
       try {
         // Handle string responses
-        if (typeof response.text === 'string') {
+        if (typeof response.content === 'string') {
           // Check if the response is already JSON
           try {
-            content = JSON.parse(response.text);
+            content = JSON.parse(response.content);
           } catch {
             // If not JSON, wrap the text in a message object
-            content = { message: response.text.trim(), action: null };
+            content = { message: response.content.trim(), action: null };
           }
         }
         // Handle object responses
-        else if (typeof response.text === 'object' && response.text !== null) {
-          content = response.text;
+        else if (typeof response.content === 'object' && response.content !== null) {
+          content = response.content;
         } else {
-          throw new Error(`Unexpected response format: ${typeof response.text}`);
+          throw new Error(`Unexpected response format: ${typeof response.content}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

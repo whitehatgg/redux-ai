@@ -1,34 +1,40 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HandlerConfig } from '../adapter';
-import type { Runtime, RuntimeAdapter } from '../types';
+import type { CompletionResponse, Message, Runtime, RuntimeAdapter } from '../types';
 
-/**
- * Test suite for RuntimeAdapter
- * 
- * Mocking Best Practices:
- * 1. Use class-based mocks for better type safety
- * 2. Follow consistent mocking patterns across test files
- * 3. Maintain proper typing for mock implementations
- * 4. Keep mocks simple and focused
- */
-
-// Create mock runtime class
 class MockRuntime implements Runtime {
-  provider: {
-    complete: ReturnType<typeof vi.fn>;
+  readonly provider: {
+    complete: (
+      messages: Message[],
+      currentState?: Record<string, unknown>
+    ) => Promise<CompletionResponse>;
   };
-  messages: [];
-  debug: boolean;
-  query: ReturnType<typeof vi.fn>;
+  readonly messages: Message[];
+  readonly debug: boolean;
+  readonly currentState?: Record<string, unknown>;
 
   constructor() {
     this.provider = {
-      complete: vi.fn().mockResolvedValue({ message: 'Test response' }),
+      complete: vi.fn().mockResolvedValue({
+        message: 'Test response',
+        action: { type: 'test_action' },
+      }),
     };
     this.messages = [];
     this.debug = false;
-    this.query = vi.fn().mockResolvedValue({ message: 'Test response' });
+  }
+
+  async query(params: {
+    query: string;
+    prompt?: string;
+    actions?: unknown[];
+    currentState?: Record<string, unknown>;
+  }): Promise<CompletionResponse> {
+    return {
+      message: 'Test response',
+      action: { type: 'test_action' },
+    };
   }
 }
 
@@ -59,11 +65,12 @@ describe('RuntimeAdapter', () => {
     it('should pass runtime configuration to handler', async () => {
       const adapter = new TestAdapter();
       const handler = adapter.createHandler({ runtime: mockRuntime });
+      const spy = vi.spyOn(mockRuntime, 'query');
 
       const request = { query: 'test query' };
       await handler(request);
 
-      expect(mockRuntime.query).toHaveBeenCalledWith(request);
+      expect(spy).toHaveBeenCalledWith(request);
     });
 
     it('should support custom endpoints', () => {
@@ -78,7 +85,7 @@ describe('RuntimeAdapter', () => {
 
     it('should handle runtime errors', async () => {
       const errorRuntime = new MockRuntime();
-      errorRuntime.query = vi.fn().mockRejectedValue(new Error('Runtime error'));
+      vi.spyOn(errorRuntime, 'query').mockRejectedValue(new Error('Runtime error'));
 
       const adapter = new TestAdapter();
       const handler = adapter.createHandler({ runtime: errorRuntime });

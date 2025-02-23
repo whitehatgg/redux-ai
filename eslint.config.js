@@ -88,6 +88,7 @@ export default [
         module: 'readonly',
         require: 'readonly',
         __dirname: 'readonly',
+        // Vitest globals
         describe: 'readonly',
         it: 'readonly',
         expect: 'readonly',
@@ -95,7 +96,7 @@ export default [
         afterEach: 'readonly',
         vi: 'readonly',
         test: 'readonly',
-        jest: 'readonly',
+        // Remove jest global
         Blob: 'readonly',
         FormData: 'readonly',
       },

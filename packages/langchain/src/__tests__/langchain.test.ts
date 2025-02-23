@@ -1,78 +1,85 @@
-import { describe, expect, it, vi } from 'vitest';
-import { LangChainProvider } from '../index';
-import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { Message } from '@redux-ai/runtime';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { describe, expect, it, vi } from 'vitest';
 
-/**
- * Test suite for LangChain package
- * 
- * Mocking Best Practices:
- * 1. Use factory pattern with vi.mock to ensure proper hoisting in all environments
- * 2. Define mock factory inside vi.mock to avoid initialization order issues
- * 3. Return class constructor that creates fresh mock instances
- * 4. Avoid using top-level variables in mock definitions
- */
+import { LangChainProvider } from '../index';
 
-// Configure the mock before tests
-vi.mock('@langchain/core/language_models/chat_models', () => {
-  const createMockModel = () => ({
-    call: vi.fn()
-  });
+// Mock implementation matching BaseChatModel interface
+class MockChatModel {
+  // Required BaseChatModel properties
+  lc_namespace = ['langchain', 'chat_models'];
+  lc_serializable = true;
 
-  return {
-    BaseChatModel: class MockChatModel {
-      constructor() {
-        return createMockModel();
-      }
-    }
-  };
-});
+  invoke = vi.fn().mockImplementation(async () => ({
+    content: JSON.stringify({ message: 'Test response', action: null }),
+  }));
+
+  _modelType() {
+    return 'chat_model' as const;
+  }
+}
 
 describe('LangChainProvider', () => {
   it('should properly initialize with a model', () => {
-    const provider = new LangChainProvider({ model: new BaseChatModel() });
+    const provider = new LangChainProvider({
+      model: new MockChatModel() as unknown as BaseChatModel,
+    });
     expect(provider).toBeInstanceOf(LangChainProvider);
   });
 
   it('should handle message conversion and completion', async () => {
-    const provider = new LangChainProvider({ model: new BaseChatModel() });
-    const mockResponse = { text: JSON.stringify({ message: 'Test response', action: null }) };
-    (provider.model.call as any).mockResolvedValue(mockResponse);
+    const mockModel = new MockChatModel();
+    const provider = new LangChainProvider({
+      model: mockModel as unknown as BaseChatModel,
+    });
+
+    const mockResponse = {
+      content: JSON.stringify({ message: 'Test response', action: null }),
+    };
+    mockModel.invoke.mockResolvedValue(mockResponse);
 
     const messages: Message[] = [
-      { role: 'system' as const, content: 'You are a test assistant' },
-      { role: 'user' as const, content: 'Hello' }
+      { role: 'system', content: 'You are a test assistant' },
+      { role: 'user', content: 'Hello' },
     ];
 
     const response = await provider.complete(messages);
     expect(response).toEqual({ message: 'Test response', action: null });
-    expect(provider.model.call).toHaveBeenCalledWith([
+
+    // Verify correct message conversion
+    expect(mockModel.invoke).toHaveBeenCalledWith([
       new SystemMessage('You are a test assistant'),
-      new HumanMessage('Hello')
+      new HumanMessage('Hello'),
     ]);
   });
 
   it('should handle non-JSON responses', async () => {
-    const provider = new LangChainProvider({ model: new BaseChatModel() });
-    const mockResponse = { text: 'Plain text response' };
-    (provider.model.call as any).mockResolvedValue(mockResponse);
+    const mockModel = new MockChatModel();
+    const provider = new LangChainProvider({
+      model: mockModel as unknown as BaseChatModel,
+    });
+    const mockResponse = { content: 'Plain text response' };
+    mockModel.invoke.mockResolvedValue(mockResponse);
 
-    const messages: Message[] = [{ role: 'user' as const, content: 'Hello' }];
+    const messages: Message[] = [{ role: 'user', content: 'Hello' }];
     const response = await provider.complete(messages);
 
     expect(response).toEqual({
       message: 'Plain text response',
-      action: null
+      action: null,
     });
   });
 
   it('should throw error for invalid response format', async () => {
-    const provider = new LangChainProvider({ model: new BaseChatModel() });
-    const mockResponse = { text: null };
-    (provider.model.call as any).mockResolvedValue(mockResponse);
+    const mockModel = new MockChatModel();
+    const provider = new LangChainProvider({
+      model: mockModel as unknown as BaseChatModel,
+    });
+    const mockResponse = { content: null };
+    mockModel.invoke.mockResolvedValue(mockResponse);
 
-    const messages: Message[] = [{ role: 'user' as const, content: 'Hello' }];
+    const messages: Message[] = [{ role: 'user', content: 'Hello' }];
     await expect(provider.complete(messages)).rejects.toThrow('Unexpected response format');
   });
 });

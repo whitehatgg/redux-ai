@@ -1,26 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { LLMProvider, Message } from '../types';
+import type { CompletionResponse, LLMProvider, Message } from '../types';
 
-/**
- * Test suite for LLMProvider
- * 
- * Mocking Best Practices:
- * 1. Use factory pattern with vi.mock to ensure proper hoisting in all environments
- * 2. Define mock factory inside vi.mock to avoid initialization order issues
- * 3. Return class constructor that creates fresh mock instances
- * 4. Avoid using top-level variables in mock definitions
- */
-
-// Create a mock provider class implementing the LLMProvider interface
 class MockProvider implements LLMProvider {
-  complete: ReturnType<typeof vi.fn>;
-
-  constructor() {
-    this.complete = vi.fn().mockImplementation(async (messages: Message[], currentState?: Record<string, unknown>) => ({
+  private mockComplete = vi.fn().mockImplementation(
+    async (
+      messages: Message[],
+      currentState?: Record<string, unknown>
+    ): Promise<CompletionResponse> => ({
       message: `Processed ${messages.length} messages with state: ${JSON.stringify(currentState)}`,
-      action: 'test_action',
-    }));
+      action: { type: 'test_action' },
+    })
+  );
+
+  async complete(
+    messages: Message[],
+    currentState?: Record<string, unknown>
+  ): Promise<CompletionResponse> {
+    return this.mockComplete(messages, currentState);
   }
 }
 
@@ -45,7 +42,7 @@ describe('LLMProvider', () => {
 
     expect(response).toEqual({
       message: `Processed ${mockMessages.length} messages with state: ${JSON.stringify(mockState)}`,
-      action: 'test_action',
+      action: { type: 'test_action' },
     });
   });
 
@@ -54,7 +51,7 @@ describe('LLMProvider', () => {
 
     expect(response).toEqual({
       message: `Processed ${mockMessages.length} messages with state: undefined`,
-      action: 'test_action',
+      action: { type: 'test_action' },
     });
   });
 
@@ -63,7 +60,7 @@ describe('LLMProvider', () => {
 
     expect(response).toEqual({
       message: `Processed 0 messages with state: ${JSON.stringify(mockState)}`,
-      action: 'test_action',
+      action: { type: 'test_action' },
     });
   });
 });

@@ -1,25 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { CompletionResponse, LLMProvider, Message } from '../types';
 import { Runtime } from '../index';
-
-/**
- * Test suite for Runtime
- * 
- * Following consistent mocking patterns:
- * 1. Use class-based mocks for better type safety
- * 2. Maintain proper typing for mock implementations
- * 3. Keep mocks simple and focused
- */
+import type { CompletionResponse, LLMProvider, Message } from '../types';
 
 class MockProvider implements LLMProvider {
-  complete: ReturnType<typeof vi.fn>;
-
-  constructor() {
-    this.complete = vi.fn().mockImplementation(async () => ({
+  async complete(
+    messages: Message[],
+    currentState?: Record<string, unknown>
+  ): Promise<CompletionResponse> {
+    return {
       message: 'Test response',
-      action: 'test_action',
-    }));
+      action: { type: 'test_action' },
+    };
   }
 }
 
@@ -38,6 +30,7 @@ describe('Runtime', () => {
 
   describe('query', () => {
     it('should call provider.complete with correct parameters', async () => {
+      const spy = vi.spyOn(provider, 'complete');
       const runtime = new Runtime({ provider });
       const params = {
         query: 'test query',
@@ -48,8 +41,8 @@ describe('Runtime', () => {
 
       await runtime.query(params);
 
-      expect(provider.complete).toHaveBeenCalled();
-      const [messages, state] = provider.complete.mock.calls[0];
+      expect(spy).toHaveBeenCalled();
+      const [messages, state] = spy.mock.calls[0];
       expect(messages).toHaveLength(2);
       expect(messages[0]).toEqual({ role: 'system', content: params.prompt });
       expect(messages[1]).toEqual({ role: 'user', content: params.query });
@@ -58,23 +51,22 @@ describe('Runtime', () => {
 
     it('should return provider response', async () => {
       const runtime = new Runtime({ provider });
-      const expectedResponse: CompletionResponse = {
-        message: 'Test response',
-        action: 'test_action',
-      };
-
       const response = await runtime.query({
         query: 'test',
         prompt: 'test prompt',
         actions: ['test_action'],
       });
 
-      expect(response).toEqual(expectedResponse);
+      expect(response).toEqual({
+        message: 'Test response',
+        action: { type: 'test_action' },
+      });
     });
 
     it('should handle errors from provider', async () => {
-      const errorProvider = new MockProvider();
-      errorProvider.complete = vi.fn().mockRejectedValue(new Error('Provider error'));
+      const errorProvider = {
+        complete: vi.fn().mockRejectedValue(new Error('Provider error')),
+      } as LLMProvider;
 
       const runtime = new Runtime({ provider: errorProvider });
 
@@ -99,7 +91,7 @@ describe('Runtime', () => {
 
       expect(response).toEqual({
         message: 'Test response',
-        action: 'test_action',
+        action: { type: 'test_action' },
       });
     });
   });
