@@ -1,5 +1,20 @@
 import type { HandlerConfig, Runtime, RuntimeAdapter } from '@redux-ai/runtime';
 import type { NextFunction, Request, Response } from 'express';
+import {
+  validateQuery,
+  handleAIErrors,
+  checkAIConfig,
+  logAIRequest,
+  createAIQueryHandler,
+} from './middleware';
+
+export {
+  validateQuery,
+  handleAIErrors,
+  checkAIConfig,
+  logAIRequest,
+  createAIQueryHandler,
+};
 
 export function createHandler(config: HandlerConfig) {
   const path = config.endpoint ?? '/api/query';
@@ -10,35 +25,15 @@ export function createHandler(config: HandlerConfig) {
       return next();
     }
 
-    try {
-      const { query, prompt, actions, currentState } = req.body;
-      const response = await runtime.query({ query, prompt, actions, currentState });
-      res.json(response);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        if (error.message.includes('API key')) {
-          return res.status(401).json({
-            error: 'Invalid or missing API key. Please check your configuration.',
-            isConfigured: false,
-          });
-        }
-        if (error.message.includes('does not have access to model')) {
-          return res.status(403).json({
-            error: 'Your API key does not have access to the required model.',
-            isConfigured: false,
-          });
-        }
-        if (error.message.includes('rate limit')) {
-          return res.status(429).json({
-            error: 'Rate limit exceeded. Please try again later.',
-          });
-        }
-      }
+    const handler = createAIQueryHandler(runtime);
 
-      res.status(500).json({
-        error: error instanceof Error ? error.message : 'An unknown error occurred',
-      });
-    }
+    // Apply middleware chain
+    return Promise.resolve()
+      .then(() => checkAIConfig(req, res, next))
+      .then(() => validateQuery(req, res, next))
+      .then(() => logAIRequest(req, res, next))
+      .then(() => handler(req, res, next))
+      .catch(error => handleAIErrors(error, req, res, next));
   };
 }
 

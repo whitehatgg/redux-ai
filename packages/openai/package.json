@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@redux-ai/runtime": "workspace:*",
-    "openai": "^4.0.0"
+    "openai": "^4.85.3"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

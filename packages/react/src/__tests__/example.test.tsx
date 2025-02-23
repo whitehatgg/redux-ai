@@ -7,7 +7,8 @@ import '@testing-library/jest-dom/vitest'; // Import Vitest DOM matchers
 // Import from the package's test utils
 import { createMock, mockApiError } from '../test-utils';
 
-// Example of mocking a store
+// Example of mocking a store - follows vi.mock best practices by using the factory pattern
+// This ensures consistent behavior between local and CI/CD environments
 const mockStore = createMock<Store>({
   getState: () => ({
     theme: { mode: 'light' },
@@ -18,7 +19,7 @@ const mockStore = createMock<Store>({
 
 describe('Example Test Suite', () => {
   beforeEach(() => {
-    // Reset all mocks before each test
+    // Reset all mocks before each test - important for test isolation
     vi.clearAllMocks();
   });
 
@@ -33,7 +34,7 @@ describe('Example Test Suite', () => {
   });
 
   it('should handle API errors', async () => {
-    // Example of mocking API errors
+    // Example of mocking API errors using the provided utility
     mockApiError(404, 'Not Found');
 
     // Test API error handling

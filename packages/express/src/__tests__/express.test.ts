@@ -4,6 +4,37 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createHandler, ExpressAdapter } from '../index';
 
+/**
+ * Test suite for ExpressAdapter
+ * 
+ * Mocking Best Practices:
+ * 1. Use factory pattern with vi.mock to ensure proper hoisting in all environments
+ * 2. Define mock factory inside vi.mock to avoid initialization order issues
+ * 3. Return class constructor that creates fresh mock instances
+ * 4. Avoid using top-level variables in mock definitions
+ */
+
+// Configure mocks before tests
+vi.mock('@redux-ai/runtime', () => {
+  const createMockRuntime = () => ({
+    provider: {
+      complete: vi.fn().mockResolvedValue({ message: 'Success' }),
+    },
+    messages: [{ role: 'system', content: 'Test system message' }],
+    currentState: {},
+    debug: false,
+    query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
+  });
+
+  return {
+    Runtime: class MockRuntime {
+      constructor() {
+        return createMockRuntime();
+      }
+    },
+  };
+});
+
 describe('ExpressAdapter', () => {
   let mockRuntime: Runtime;
   let mockReq: Partial<Request>;
@@ -14,15 +45,7 @@ describe('ExpressAdapter', () => {
     vi.clearAllMocks();
 
     // Mock runtime with all required properties according to Runtime interface
-    mockRuntime = {
-      provider: {
-        complete: vi.fn().mockResolvedValue({ message: 'Success' }),
-      },
-      messages: [{ role: 'system', content: 'Test system message' }],
-      currentState: {},
-      debug: false,
-      query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
-    };
+    mockRuntime = new Runtime(); //This line is changed to use the mocked Runtime
 
     // Mock Express request
     mockReq = {

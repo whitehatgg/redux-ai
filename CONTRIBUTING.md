@@ -128,3 +128,74 @@ pnpm changeset version
 # Publish packages (handled by CI, maintainers only)
 pnpm changeset publish
 ```
+
+## Tests
+
+### Running Tests
+
+```bash
+# Check single package
+cd packages/<package-name>
+pnpm test
+
+# Check all packages
+pnpm test
+```
+
+### Testing Best Practices
+
+When writing tests, always follow these guidelines to ensure consistent behavior between local and CI/CD environments:
+
+1. **Module Mocking**
+   - Use the factory pattern with `vi.mock` to ensure proper hoisting
+   - Define mock factories inside `vi.mock` to avoid initialization order issues
+   - Return class constructors that create fresh mock instances
+   - Avoid using top-level variables in mock definitions
+
+Example of proper mocking:
+```typescript
+vi.mock('some-module', () => {
+  const createMockInstance = () => ({
+    someMethod: vi.fn()
+  });
+
+  return {
+    default: class MockClass {
+      constructor() {
+        return createMockInstance();
+      }
+    }
+  };
+});
+```
+
+2. **Test Isolation**
+   - Reset all mocks before each test using `vi.clearAllMocks()`
+   - Avoid shared state between tests
+   - Create fresh instances of mocked dependencies for each test
+
+3. **Type Safety**
+   - Use the `createMock` utility from test-utils.ts for type-safe mocking
+   - Provide explicit type annotations for mock implementations
+   - Leverage TypeScript to catch mocking errors at compile time
+
+### Local vs CI/CD Environment Considerations
+
+To ensure tests behave consistently across all environments:
+
+1. **Running Tests**
+   - Always run tests in non-interactive mode locally using `vitest run` or `pnpm test`
+   - Avoid tests that depend on user input or interactive prompts
+   - Use the `--run` flag to simulate CI environment behavior
+
+2. **Environment Setup**
+   - Clear module cache between test runs if needed
+   - Don't rely on module hoisting behavior that might differ between environments
+   - Use proper module mocking patterns as described above
+
+3. **Common Issues & Solutions**
+   - If tests pass locally but fail in CI:
+     - Check for timing issues or race conditions
+     - Verify module mocking patterns follow the factory pattern
+     - Ensure all test dependencies are properly declared
+     - Run tests in CI-like conditions locally (clean environment, non-interactive)

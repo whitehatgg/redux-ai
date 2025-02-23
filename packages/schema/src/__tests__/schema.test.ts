@@ -1,7 +1,15 @@
 import type { Action } from '@reduxjs/toolkit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createReduxAISchema } from '../index';
+
+/**
+ * Test suite for ReduxAISchema
+ * 
+ * Note: This test file focuses on synchronous validation functions
+ * and doesn't require complex mocking patterns. However, we still
+ * follow best practices for test isolation and setup.
+ */
 
 interface TestAction extends Action {
   type: 'test/action';
@@ -11,6 +19,10 @@ interface TestAction extends Action {
 }
 
 describe('ReduxAISchema', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   const schema = createReduxAISchema<TestAction>({
     schema: {
       type: 'object',

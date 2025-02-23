@@ -34,6 +34,7 @@
       "@shared/*": ["./shared/*"],
       "@redux-ai/runtime": ["./packages/runtime/src"],
       "@redux-ai/openai": ["./packages/openai/src"],
+      "@redux-ai/express": ["./packages/express/src"],
       "@redux-ai/middleware": ["./packages/middleware/src"],
       "@redux-ai/schema": ["./packages/schema/src"],
       "@redux-ai/vector": ["./packages/vector/src"],
