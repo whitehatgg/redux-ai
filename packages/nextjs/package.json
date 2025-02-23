@@ -5,18 +5,18 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "vitest",
+    "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest watch"
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@redux-ai/runtime": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.17.19",
     "@vitest/coverage-v8": "^1.6.1",
     "next": "^14.2.24",
-    "typescript": "^5.0.0",
+    "typescript": "^5.7.3",
     "vitest": "^1.6.1"
   }
 }

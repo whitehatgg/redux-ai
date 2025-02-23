@@ -1,6 +1,6 @@
 # @redux-ai/schema
 
-Core schema definitions and type utilities for the Redux AI state management system.
+Core schema definitions and type utilities for the Redux AI state management system, providing comprehensive validation and type safety.
 
 ## Features
 
@@ -9,11 +9,18 @@ Core schema definitions and type utilities for the Redux AI state management sys
 - Type definitions for the entire system
 - Validation utilities using Ajv
 - Built-in TypeScript type inference
+- Comprehensive error reporting
+- Custom validation rules support
+- Performance optimizations for validation
 
 ## Installation
 
 ```bash
+# Using pnpm (recommended)
 pnpm add @redux-ai/schema
+
+# Or using npm
+npm install @redux-ai/schema
 ```
 
 ## Usage
@@ -47,38 +54,116 @@ const isValid = addUserSchema.validate({
 
 ## API Reference
 
-### `createActionSchema(config)`
+### Action Schemas
+
+#### `createActionSchema(config)`
 
 Creates a new action schema with validation rules.
 
-#### Parameters
+```typescript
+type ActionSchemaConfig = {
+  type: string;
+  payload: Record<string, any>;
+  meta?: Record<string, any>;
+};
 
-- `config` (object)
-  - `type` (string) - Action type identifier
-  - `payload` (object) - JSON Schema for the action payload
-  - `meta` (object, optional) - JSON Schema for action metadata
+const schema = createActionSchema({
+  type: 'example/action',
+  payload: {
+    id: { type: 'number' },
+    data: { type: 'object' },
+  },
+});
+```
 
-#### Returns
+### State Schemas
 
-Returns a schema object with:
-
-- `validate(action)` - Validates an action against the schema
-- `type` - The action type string
-- `schema` - The complete JSON schema object
-
-### `createStateSchema(config)`
+#### `createStateSchema(config)`
 
 Creates a schema for Redux state validation.
 
-#### Parameters
+```typescript
+type StateSchemaConfig = {
+  state: Record<string, any>;
+  validators?: Array<(state: any) => boolean>;
+};
 
-- `config` (object)
-  - `state` (object) - JSON Schema for the state structure
-  - `validators` (array, optional) - Custom validation functions
+const stateSchema = createStateSchema({
+  state: {
+    users: {
+      type: 'array',
+      items: { type: 'object' },
+    },
+  },
+});
+```
 
-#### Returns
+### Custom Validation
 
-Returns a state validator with:
+```typescript
+import { addCustomFormat, addCustomKeyword } from '@redux-ai/schema';
 
-- `validate(state)` - Validates state against schema
-- `addValidator(fn)` - Adds a custom validation function
+// Add custom string format
+addCustomFormat('uuid', str => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+});
+
+// Add custom validation keyword
+addCustomKeyword('range', {
+  type: 'number',
+  validate: (schema: any, data: number) => {
+    return data >= schema.min && data <= schema.max;
+  },
+});
+```
+
+## Error Handling
+
+The package provides detailed error information:
+
+```typescript
+import { ValidationError } from '@redux-ai/schema';
+
+try {
+  schema.validate(invalidData);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log('Validation errors:', error.errors);
+    // Access detailed error information
+    error.errors.forEach(err => {
+      console.log(`Field: ${err.path}, Message: ${err.message}`);
+    });
+  }
+}
+```
+
+## Testing
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+### Test Utilities
+
+```typescript
+import { createMockSchema } from '@redux-ai/schema/testing';
+
+const mockSchema = createMockSchema({
+  type: 'test/action',
+  validators: [
+    // Custom validation rules
+  ],
+});
+```
+
+## Contributing
+
+Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on our code of conduct and development process.
+
+## License
+
+MIT

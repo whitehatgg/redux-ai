@@ -10,11 +10,17 @@ Vector storage and similarity search functionality for Redux AI, providing effic
 - Subscription-based update notifications
 - Automatic garbage collection for old entries
 - TypeScript-first implementation
+- Performance-optimized similarity calculations
+- Batch operation support
 
 ## Installation
 
 ```bash
+# Using pnpm (recommended)
 pnpm add @redux-ai/vector
+
+# Or using npm
+npm install @redux-ai/vector
 ```
 
 ## Usage
@@ -25,6 +31,7 @@ import { VectorStorage, type VectorConfig } from '@redux-ai/vector';
 // Initialize storage with custom configuration
 const storage = await VectorStorage.create({
   dimensions: 128,
+  gcThreshold: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
 // Store an interaction with metadata
@@ -63,7 +70,7 @@ Creates a new vector storage instance.
 
 - `config` (VectorConfig)
   - `dimensions` (number) - Vector dimensions for text encoding
-  - `gcThreshold` (number, optional) - Age threshold for garbage collection
+  - `gcThreshold` (number, optional) - Age threshold for garbage collection in milliseconds
 
 #### Returns
 
@@ -71,9 +78,9 @@ Returns a Promise that resolves to a new VectorStorage instance.
 
 ### Methods
 
-#### `storeInteraction(query: string, response: string, state: unknown)`
+#### `storeInteraction(query: string, response: string, metadata: Record<string, unknown>)`
 
-Stores a new interaction with the given query, response, and state metadata.
+Stores a new interaction with the given query, response, and metadata.
 
 #### `retrieveSimilar(query: string, limit?: number)`
 
@@ -103,9 +110,75 @@ interface VectorConfig {
 }
 ```
 
-## Performance Considerations
+## Performance Optimization
 
-- The vector storage uses efficient array operations for similarity calculations
-- Automatic garbage collection prevents memory bloat
-- Batch operations are used for IndexedDB interactions
-- Memoized vector calculations improve search performance
+```typescript
+import { VectorStorage, optimizeStorage } from '@redux-ai/vector';
+
+// Create a storage instance with optimized settings
+const storage = await VectorStorage.create({
+  dimensions: 128,
+  optimizations: {
+    batchSize: 100,
+    cacheSize: 1000,
+    useWebWorker: true,
+  },
+});
+
+// Optimize existing storage
+await optimizeStorage(storage, {
+  deduplication: true,
+  compaction: true,
+});
+```
+
+## Error Handling
+
+```typescript
+import { VectorStorageError, DimensionMismatchError } from '@redux-ai/vector';
+
+try {
+  await storage.storeInteraction(query, response, metadata);
+} catch (error) {
+  if (error instanceof DimensionMismatchError) {
+    console.error('Vector dimensions do not match:', error.message);
+  } else if (error instanceof VectorStorageError) {
+    console.error('Storage error:', error.message);
+  }
+}
+```
+
+## Testing
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+### Test Utilities
+
+```typescript
+import { createMockStorage } from '@redux-ai/vector/testing';
+
+const mockStorage = createMockStorage({
+  dimensions: 128,
+  entries: [
+    {
+      id: 'test-1',
+      vector: new Array(128).fill(0),
+      metadata: { test: true },
+    },
+  ],
+});
+```
+
+## Contributing
+
+Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on our code of conduct and development process.
+
+## License
+
+MIT

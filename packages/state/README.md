@@ -1,20 +1,25 @@
 # @redux-ai/state
 
-Core state management functionality for Redux AI, providing intelligent state tracking and prediction capabilities.
+Core state management functionality for Redux AI, providing intelligent state tracking and prediction capabilities powered by vector storage and XState machines.
 
 ## Features
 
 - AI-powered state tracking with TypeScript
 - Automatic action suggestion based on state patterns
-- State prediction and optimization
-- Integration with vector storage for historical analysis
+- Vector storage integration for historical analysis
 - XState machine integration for complex state flows
-- Middleware for Redux store enhancement
+- Efficient state diffing and change tracking
+- Redux Toolkit middleware and enhancers
+- Type-safe state prediction and optimization
 
 ## Installation
 
 ```bash
+# Using pnpm (recommended)
 pnpm add @redux-ai/state
+
+# Or using npm
+npm install @redux-ai/state
 ```
 
 ## Usage
@@ -61,36 +66,67 @@ const store = configureStore({
 
 ## API Reference
 
-### `createAIStore(config)`
+### Store Configuration
+
+#### `createAIStore(config)`
 
 Creates a new Redux store with AI capabilities.
 
+```typescript
+type AIStoreConfig<S> = {
+  reducer: Reducer<S>;
+  initialState: S;
+  vectorConfig: VectorConfig;
+  predictorConfig?: PredictorConfig;
+};
+```
+
 #### Parameters
 
-- `config` (object)
-  - `reducer` (Reducer) - Root reducer function
-  - `initialState` (State) - Initial state
-  - `vectorConfig` (VectorConfig) - Vector storage configuration
-  - `predictorConfig` (PredictorConfig, optional) - AI predictor settings
-
-#### Returns
-
-Returns an enhanced Redux store with additional AI methods.
+- `reducer` (Reducer) - Root reducer function
+- `initialState` (State) - Initial state object
+- `vectorConfig` (VectorConfig) - Vector storage configuration
+- `predictorConfig` (PredictorConfig, optional) - AI predictor settings
 
 ### Methods
 
-#### Standard Redux Store Methods
+#### AI Store Methods
 
-All standard Redux store methods plus:
-
-#### AI-Specific Methods
-
-- `getSuggestions()`: Get AI-suggested actions
+- `getSuggestions()`: Get AI-suggested actions based on current state
 - `predictStateChange(action)`: Predict state after an action
 - `getOptimizedActions()`: Get optimized action sequences
 - `getStateAnalytics()`: Get analytics about state changes
 
-### State Machine Integration
+### Testing
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+### Type Safety
+
+The package is written in TypeScript and provides strong type safety:
+
+```typescript
+import type { AIState, AIAction } from '@redux-ai/state';
+
+// State types are properly inferred
+const state: AIState = store.getState();
+
+// Actions are type-checked
+store.dispatch<AIAction>({
+  type: 'AI_PREDICT',
+  payload: {
+    confidenceThreshold: 0.9,
+  },
+});
+```
+
+## State Machine Integration
 
 ```typescript
 import { createStateMachine } from '@redux-ai/state';
@@ -121,3 +157,11 @@ store.attachStateMachine(authMachine);
 - Batched updates for prediction calculations
 - Cached suggestion results
 - Configurable tracking granularity
+
+## Contributing
+
+Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on our code of conduct and development process.
+
+## License
+
+MIT

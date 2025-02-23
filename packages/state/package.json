@@ -23,8 +23,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
     "test": "vitest run",
-    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "check": "tsc --noEmit",
     "prepublishOnly": "echo 'Publishing package'"
   },
   "dependencies": {
@@ -32,6 +32,12 @@
     "@redux-ai/vector": "workspace:*",
     "@reduxjs/toolkit": "^2.5.1",
     "xstate": "^5.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "@vitest/coverage-v8": "^1.6.1",
+    "typescript": "^5.7.3",
+    "vitest": "^1.6.1"
   },
   "publishConfig": {
     "access": "public",

@@ -10,11 +10,17 @@ React components and hooks for the Redux AI state management system, providing d
 - Custom hooks for vector storage access
 - AI-powered state inspection tools
 - TypeScript-first component library
+- Theme-aware components
+- Accessibility-first design
 
 ## Installation
 
 ```bash
+# Using pnpm (recommended)
 pnpm add @redux-ai/react
+
+# Or using npm
+npm install @redux-ai/react
 ```
 
 ## Usage
@@ -98,6 +104,7 @@ Provides Redux AI context to your application.
 - `store` (Store) - Redux store instance
 - `actions` (Action[]) - List of available actions
 - `config` (ProviderConfig) - Optional configuration
+- `theme` (ThemeConfig) - Optional theme overrides
 
 ### `<VectorDebugger>`
 
@@ -108,6 +115,7 @@ Displays available actions and their metadata.
 - `onActionSelect` (function) - Callback for action selection
 - `filter` (object) - Filter settings for actions
 - `layout` ('list' | 'grid') - Display layout
+- `className` (string) - Optional CSS class
 
 ### `<ActivityLog>`
 
@@ -118,6 +126,7 @@ Shows real-time logging of vector operations.
 - `filter` ('all' | 'error' | 'warning') - Log level filter
 - `maxEntries` (number) - Maximum entries to display
 - `onClear` (function) - Callback for clearing logs
+- `className` (string) - Optional CSS class
 
 ### `<StateInspector>`
 
@@ -128,6 +137,7 @@ Visual inspector for Redux state.
 - `path` (string) - State path to inspect
 - `diff` (boolean) - Show state differences
 - `theme` (object) - Custom theme settings
+- `className` (string) - Optional CSS class
 
 ## Hooks
 
@@ -137,9 +147,9 @@ Hook for accessing vector storage data.
 
 #### Returns
 
-- `entries` - Vector entries
-- `isLoading` - Loading state
-- `error` - Error state
+- `entries` - Vector entries array
+- `isLoading` - Loading state boolean
+- `error` - Error state object
 - `search` - Search function
 - `clear` - Clear entries function
 
@@ -180,3 +190,58 @@ All components and hooks are fully typed, providing:
 - Generic type parameters
 - Type inference
 - Autocomplete support
+
+## Testing
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+### Test Utilities
+
+```typescript
+import {
+  createMockStore,
+  renderWithProvider
+} from '@redux-ai/react/testing';
+
+// Create a mock store
+const store = createMockStore({
+  initialState: {
+    users: []
+  }
+});
+
+// Render components with provider
+const { getByText } = renderWithProvider(
+  <YourComponent />,
+  { store }
+);
+```
+
+## Error Handling
+
+```typescript
+import { AIComponentError } from '@redux-ai/react';
+
+try {
+  // Component logic
+} catch (error) {
+  if (error instanceof AIComponentError) {
+    console.error('AI Component Error:', error.message);
+    // Handle component-specific errors
+  }
+}
+```
+
+## Contributing
+
+Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on our code of conduct and development process.
+
+## License
+
+MIT
