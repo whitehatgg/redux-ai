@@ -1,4 +1,4 @@
-import type { ReduxAISchema } from '@redux-ai/schema';
+import type { ReduxAISchema, ValidationResult } from '@redux-ai/schema';
 import type { ReduxAIVector, VectorEntry } from '@redux-ai/vector';
 import type { Action, Store } from '@reduxjs/toolkit';
 
@@ -35,7 +35,7 @@ export class ReduxAIState {
 
   async processQuery(query: string) {
     if (!query || typeof query !== 'string') {
-      this.handleError(new Error('Query must be a non-empty string'));
+      throw this.handleError(new Error('Query must be a non-empty string'));
     }
 
     try {
@@ -70,42 +70,42 @@ export class ReduxAIState {
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
-        this.handleError(new Error(`API request failed: ${apiResponse.status} - ${errorText}`));
+        throw this.handleError(
+          new Error(`API request failed: ${apiResponse.status} - ${errorText}`)
+        );
       }
 
       const result = await apiResponse.json();
       const { message, action } = result;
 
       if (!message) {
-        this.handleError(new Error('Invalid response format from API'));
+        throw this.handleError(new Error('Invalid response format from API'));
       }
 
       // Handle the action if provided
-      if (action) {
-        if (this.schema) {
-          const validationResult = this.schema.validateAction(action);
-          if (!validationResult.valid) {
-            const errors = validationResult.errors?.join(', ') || 'Unknown validation error';
-            this.handleError(new Error(`Invalid action format: ${errors}`));
-          }
+      if (action && this.schema) {
+        const validationResult: ValidationResult = this.schema.validateAction(action);
+        if (!validationResult.valid) {
+          const errorMessage = validationResult.errors?.join(', ') || 'Unknown validation error';
+          throw this.handleError(new Error(`Invalid action format: ${errorMessage}`));
         }
         this.store.dispatch(action);
       }
 
       return { message, action };
     } catch (error) {
-      this.handleError(error, 'Failed to process query');
+      throw this.handleError(error, 'Failed to process query');
     }
   }
 
-  private handleError(error: unknown, message?: string): never {
+  private handleError(error: unknown, message?: string): Error {
     const wrappedError =
       error instanceof Error ? error : new Error(message || 'Unknown error occurred');
 
     if (this.onError) {
       this.onError(wrappedError);
     }
-    throw wrappedError;
+    return wrappedError;
   }
 }
 

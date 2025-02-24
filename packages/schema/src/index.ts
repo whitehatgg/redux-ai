@@ -1,6 +1,7 @@
 import type { Action } from '@reduxjs/toolkit';
 import type { JSONSchemaType } from 'ajv';
 
+import type { ActionPayload } from './types';
 import { hasProperty, isObject, validateSchema, type ValidationResult } from './validation';
 
 export interface SchemaConfig<T extends Action> {
@@ -64,5 +65,6 @@ export function createReduxAISchema<T extends Action>(config: SchemaConfig<T>): 
   return new ReduxAISchema<T>(config);
 }
 
-// Helper type to extract payload type from an action
-export type ActionPayload<T extends Action> = T extends { payload: infer P } ? P : never;
+// Re-export types and interfaces
+export type { ValidationResult } from './validation';
+export type { ActionPayload } from './types';
