@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextjsAdapter } from '@redux-ai/nextjs';
 import { createRuntime } from '@redux-ai/runtime';
 import { LangChainProvider } from '@redux-ai/langchain';

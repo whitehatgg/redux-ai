@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
 import { configureStore } from '@reduxjs/toolkit';
-import type { s } from 'ajv-ts';
+import { s } from 'ajv-ts';
 import { storeSchema } from './schema';
 import applicantReducer from './slices/applicantSlice';
 
