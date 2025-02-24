@@ -1,70 +1,54 @@
-import type { Action } from '@reduxjs/toolkit';
-import type { JSONSchemaType } from 'ajv';
+import type { s } from 'ajv-ts';
 
-import type { ActionPayload } from './types';
-import { hasProperty, isObject, validateSchema, type ValidationResult } from './validation';
-
-export interface SchemaConfig<T extends Action> {
-  schema: JSONSchemaType<T>;
-  validatePayload?: boolean;
-}
-
-export interface ValidationResultWithValue<T> extends ValidationResult {
+export type ValidationResult<T> = {
+  valid: boolean;
   value: T | null;
+  errors?: string[];
+};
+
+export interface StateValidator<T> {
+  schema: ReturnType<typeof s.object>;
+  validate: (value: unknown) => ValidationResult<T>;
 }
 
-export class ReduxAISchema<T extends Action> {
-  private schema: JSONSchemaType<T>;
-  private validatePayload: boolean;
-
-  constructor(config: SchemaConfig<T>) {
-    this.schema = config.schema;
-    this.validatePayload = config.validatePayload ?? true;
-  }
-
-  /**
-   * Validates if the given value is a valid action according to the schema
-   */
-  validateAction(value: unknown): ValidationResultWithValue<T> {
-    // Step 1: Basic structure validation
-    if (!isObject(value)) {
-      return {
-        valid: false,
-        errors: ['Value must be an object'],
-        value: null,
-      };
-    }
-
-    // Step 2: Type property validation
-    if (!hasProperty(value, 'type') || typeof value.type !== 'string') {
-      return {
-        valid: false,
-        errors: ['Action must have a string "type" property'],
-        value: null,
-      };
-    }
-
-    // Step 3: Schema validation
-    const result = validateSchema(this.schema, value);
-
+export function validateState<T>(value: unknown, schema: ReturnType<typeof s.object>): ValidationResult<T> {
+  // Basic type check first 
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {
-      ...result,
-      value: result.valid ? (value as T) : null,
+      valid: false,
+      value: null,
+      errors: ['State must be an object'],
     };
   }
 
-  /**
-   * Get the JSON schema for documentation or external use
-   */
-  getSchema(): JSONSchemaType<T> {
-    return this.schema;
+  try {
+    // Use validate directly - it will check against the schema
+    const validationResult = schema.validate(value);
+    if (!validationResult) {
+      const errorMessages = (schema as any).error?.map((err: { message: string }) => err.message);
+      return {
+        valid: false,
+        value: null,
+        errors: errorMessages || ['Invalid state format'],
+      };
+    }
+
+    return {
+      valid: true,
+      value: value as T,
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      value: null,
+      errors: [(error as Error).message],
+    };
   }
 }
 
-export function createReduxAISchema<T extends Action>(config: SchemaConfig<T>): ReduxAISchema<T> {
-  return new ReduxAISchema<T>(config);
+export function createStateValidator<T>(schema: ReturnType<typeof s.object>): StateValidator<T> {
+  return {
+    schema,
+    validate: (value: unknown): ValidationResult<T> => validateState(value, schema),
+  };
 }
-
-// Re-export types and interfaces
-export type { ValidationResult } from './validation';
-export type { ActionPayload } from './types';

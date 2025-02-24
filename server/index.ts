@@ -8,6 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
@@ -38,24 +39,20 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+
 (async () => {
   try {
     log('Starting server initialization...');
     const server = await registerRoutes(app);
     log('Routes registered successfully');
 
+    // Global error handler - now just logs and passes error response from adapter
     app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', err);
-      const status =
-        err instanceof Error
-          ? (err as { status?: number; statusCode?: number }).status ||
-            (err as { status?: number; statusCode?: number }).statusCode ||
-            500
-          : 500;
-      const message = err instanceof Error ? err.message : 'Internal Server Error';
-
-      res.status(status).json({ message });
-      throw err;
+      if (!res.headersSent) {
+        const message = err instanceof Error ? err.message : 'Internal Server Error';
+        res.status(500).json({ error: message });
+      }
     });
 
     if (app.get('env') === 'development') {

@@ -2,9 +2,10 @@ import type { Runtime } from '@redux-ai/runtime';
 import type { NextFunction, Request, Response } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createHandler, ExpressAdapter } from '../index';
+import { ExpressAdapter } from '../index';
 
 describe('ExpressAdapter', () => {
+  let adapter: ExpressAdapter;
   let mockRuntime: Runtime;
   let mockReq: Partial<Request>;
   let mockRes: Partial<Response>;
@@ -12,6 +13,8 @@ describe('ExpressAdapter', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    adapter = new ExpressAdapter();
 
     // Mock runtime with all required properties according to Runtime interface
     mockRuntime = {
@@ -36,23 +39,14 @@ describe('ExpressAdapter', () => {
       },
     };
 
-    // Mock Express response with proper spy functions and event handling
-    const jsonSpy = vi.fn();
-    const statusSpy = vi.fn().mockReturnThis();
-    const onSpy = vi.fn((event, callback) => {
-      if (event === 'finish') {
-        callback();
-      }
-      return mockRes;
-    });
-
+    // Mock Express response with proper spy functions
     mockRes = {
-      json: jsonSpy,
-      status: statusSpy,
-      on: onSpy,
+      json: vi.fn(),
+      status: vi.fn().mockReturnThis(),
+      on: vi.fn(),
     };
 
-    // Properly typed NextFunction mock
+    // Mock next function
     mockNext = vi.fn() as NextFunction;
   });
 
@@ -61,7 +55,6 @@ describe('ExpressAdapter', () => {
   });
 
   it('should create an express handler', () => {
-    const adapter = new ExpressAdapter();
     const handler = adapter.createHandler({ runtime: mockRuntime });
     expect(handler).toBeDefined();
     expect(typeof handler).toBe('function');
@@ -71,7 +64,7 @@ describe('ExpressAdapter', () => {
     const expectedResponse = { message: 'Success', data: {} };
     mockRuntime.query = vi.fn().mockResolvedValue(expectedResponse);
 
-    const handler = createHandler({ runtime: mockRuntime });
+    const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRuntime.query).toHaveBeenCalledWith(mockReq.body);
@@ -79,7 +72,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should pass through non-matching requests', async () => {
-    const handler = createHandler({ runtime: mockRuntime });
+    const handler = adapter.createHandler({ runtime: mockRuntime });
 
     const nonMatchingReq = {
       ...mockReq,
@@ -94,7 +87,7 @@ describe('ExpressAdapter', () => {
   it('should handle API key errors', async () => {
     mockRuntime.query = vi.fn().mockRejectedValue(new Error('Invalid API key'));
 
-    const handler = createHandler({ runtime: mockRuntime });
+    const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
@@ -107,7 +100,7 @@ describe('ExpressAdapter', () => {
   it('should handle rate limit errors', async () => {
     mockRuntime.query = vi.fn().mockRejectedValue(new Error('rate limit exceeded'));
 
-    const handler = createHandler({ runtime: mockRuntime });
+    const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(429);
@@ -119,7 +112,7 @@ describe('ExpressAdapter', () => {
   it('should handle model access errors', async () => {
     mockRuntime.query = vi.fn().mockRejectedValue(new Error('does not have access to model'));
 
-    const handler = createHandler({ runtime: mockRuntime });
+    const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
@@ -132,7 +125,7 @@ describe('ExpressAdapter', () => {
   it('should handle unknown errors', async () => {
     mockRuntime.query = vi.fn().mockRejectedValue(new Error('Unknown error'));
 
-    const handler = createHandler({ runtime: mockRuntime });
+    const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(500);

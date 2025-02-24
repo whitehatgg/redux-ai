@@ -1,85 +1,112 @@
-import { useState } from 'react';
-import { LangChainProvider } from '@redux-ai/langchain';
-import { NextjsAdapter } from '@redux-ai/nextjs';
-import { ChatOpenAI } from '@langchain/openai';
+import { useRouter } from 'next/router';
+import { useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { personalInfoSchema, type PersonalInfo } from '@/shared/schema';
+import { setPersonalInfo } from '@/store/slices/applicantSlice';
 
-export default function Home() {
-  const [input, setInput] = useState('');
-  const [response, setResponse] = useState('');
-  const [loading, setLoading] = useState(false);
+// Import shadcn components
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
-  // Initialize the LangChain provider with ChatOpenAI
-  const model = new ChatOpenAI({
-    modelName: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-    temperature: 0.7,
-    maxTokens: 200,
+export default function PersonalInfoPage() {
+  const dispatch = useDispatch();
+  const router = useRouter();
+
+  const form = useForm<PersonalInfo>({
+    resolver: zodResolver(personalInfoSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+    },
   });
 
-  const provider = new LangChainProvider({ model });
-  const adapter = new NextjsAdapter();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const handler = adapter.createHandler({
-        runtime: provider.runtime,
-      });
-
-      const response = await handler(
-        {
-          method: 'POST',
-          body: {
-            query: input,
-            actions: [],
-          },
-        } as any,
-        {
-          status: () => ({ json: (data: any) => data }),
-          json: (data: any) => data,
-        } as any
-      );
-
-      setResponse(response.message);
-    } catch (error) {
-      console.error('Error:', error);
-      setResponse('An error occurred while processing your request.');
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = (data: PersonalInfo) => {
+    // Save to Redux store and move to next step
+    dispatch(setPersonalInfo(data));
+    router.push('/work-experience');
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="mb-4 text-2xl font-bold">Redux AI + LangChain Example</h1>
+      <h1 className="mb-4 text-2xl font-bold">Personal Information</h1>
+      <div className="max-w-2xl">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your first name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="mb-4">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Enter your message..."
-            className="w-full rounded border p-2"
-            rows={4}
-          />
-        </div>
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your last name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-blue-500 px-4 py-2 text-white disabled:bg-gray-400"
-        >
-          {loading ? 'Processing...' : 'Send'}
-        </button>
-      </form>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="Enter your email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      {response && (
-        <div className="mt-4 rounded bg-gray-100 p-4">
-          <h2 className="mb-2 font-bold">Response:</h2>
-          <p>{response}</p>
-        </div>
-      )}
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your phone number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <button
+              type="submit"
+              className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+            >
+              Next Step
+            </button>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }

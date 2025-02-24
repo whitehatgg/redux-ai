@@ -12,26 +12,36 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { RootState } from '@/store';
+import type { Applicant } from '@/store/schema';
 import { setSearchTerm, setVisibleColumns, toggleSearch } from '@/store/slices/applicantSlice';
-import type { Applicant } from '@/store/slices/applicantSlice';
+
+type VisibleColumnKey = Exclude<keyof Applicant, 'id'>;
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
-  const { applicants, tableConfig } = useSelector((state: RootState) => state.applicant);
+  const applicantState = useSelector((state: RootState) => state.applicant) as { 
+    applicants: Applicant[];
+    tableConfig: {
+      visibleColumns: VisibleColumnKey[];
+      enableSearch: boolean;
+      searchTerm: string;
+    };
+  };
+  const { applicants, tableConfig } = applicantState;
 
   // Ensure visibleColumns is always an array
-  const visibleColumns = tableConfig?.visibleColumns || [];
+  const visibleColumns = (tableConfig?.visibleColumns || []) as VisibleColumnKey[];
 
-  const filteredApplicants = applicants.filter(applicant => {
+  const filteredApplicants = applicants.filter((applicant: Applicant) => {
     if (!tableConfig?.enableSearch || !tableConfig?.searchTerm) return true;
-    const searchLower = tableConfig.searchTerm.toLowerCase();
+    const searchTerm = String(tableConfig.searchTerm).toLowerCase();
     return Object.entries(applicant).some(([key, value]) => {
-      if (!visibleColumns.includes(key as keyof Applicant)) return false;
-      return String(value).toLowerCase().includes(searchLower);
+      if (!visibleColumns.includes(key as VisibleColumnKey)) return false;
+      return String(value).toLowerCase().includes(searchTerm);
     });
   });
 
-  const allColumns: Array<{ key: keyof Applicant; label: string }> = [
+  const allColumns: Array<{ key: VisibleColumnKey; label: string }> = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
     { key: 'status', label: 'Status' },
@@ -39,31 +49,30 @@ export function ApplicantTable() {
     { key: 'appliedDate', label: 'Applied Date' },
   ];
 
-  const toggleColumn = (column: keyof Applicant) => {
+  const toggleColumn = (column: VisibleColumnKey) => {
     const newColumns = visibleColumns.includes(column)
-      ? visibleColumns.filter(col => col !== column)
+      ? visibleColumns.filter((col: VisibleColumnKey) => col !== column)
       : [...visibleColumns, column];
     dispatch(setVisibleColumns(newColumns));
   };
 
   return (
     <div className="space-y-4">
-      {/* Controls Section */}
       <div className="flex flex-col gap-4 rounded-lg bg-muted p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Checkbox
               id="enableSearch"
-              checked={tableConfig?.enableSearch || false}
-              onCheckedChange={checked => dispatch(toggleSearch(checked))}
+              checked={Boolean(tableConfig?.enableSearch)}
+              onCheckedChange={() => dispatch(toggleSearch())}
             />
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
-          {tableConfig?.enableSearch && (
+          {Boolean(tableConfig?.enableSearch) && (
             <div className="flex-1">
               <Input
                 placeholder="Search applicants..."
-                value={tableConfig?.searchTerm || ''}
+                value={String(tableConfig?.searchTerm || '')}
                 onChange={e => dispatch(setSearchTerm(e.target.value))}
                 className="max-w-full md:max-w-sm"
               />
@@ -75,11 +84,11 @@ export function ApplicantTable() {
           {allColumns.map(({ key, label }) => (
             <div key={key} className="flex items-center gap-2">
               <Checkbox
-                id={key}
+                id={String(key)}
                 checked={visibleColumns.includes(key)}
                 onCheckedChange={() => toggleColumn(key)}
               />
-              <Label htmlFor={key} className="text-sm">
+              <Label htmlFor={String(key)} className="text-sm">
                 {label}
               </Label>
             </div>
@@ -87,7 +96,6 @@ export function ApplicantTable() {
         </div>
       </div>
 
-      {/* Table Section */}
       <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-lg sm:border">
         <div className="min-w-full align-middle">
           <Table>
@@ -114,13 +122,13 @@ export function ApplicantTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredApplicants.map(applicant => (
-                  <TableRow key={applicant.id}>
+                filteredApplicants.map((applicant: Applicant) => (
+                  <TableRow key={String(applicant.id)}>
                     {allColumns.map(
                       ({ key }) =>
                         visibleColumns.includes(key) && (
                           <TableCell key={key} className="whitespace-nowrap px-4 py-3">
-                            {applicant[key]}
+                            {String(applicant[key])}
                           </TableCell>
                         )
                     )}

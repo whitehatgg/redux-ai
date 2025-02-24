@@ -1,8 +1,0 @@
-docs: comprehensive documentation updates for schema, vector, and react packages
-
-- Added detailed installation instructions with pnpm/npm options
-- Enhanced API reference sections with TypeScript examples
-- Added comprehensive error handling documentation
-- Improved testing documentation with examples
-- Added performance optimization guidelines
-- Standardized documentation format across packages

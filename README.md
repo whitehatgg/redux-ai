@@ -1,6 +1,6 @@
 # Redux AI State Management Library
 
-An advanced AI-powered Redux state management library that provides intelligent, context-aware state tracking with enhanced debugging capabilities.
+An advanced AI-powered Redux toolkit that provides intelligent state management with retrieval-augmented generation (RAG) capabilities, focusing on dynamic runtime middleware and intelligent state rehydration.
 
 ## Features
 
@@ -9,44 +9,63 @@ An advanced AI-powered Redux state management library that provides intelligent,
 - 📊 Dynamic state visualization and debugging tools
 - ⚡ Optimized performance monitoring
 - 📦 Robust vector storage and indexing
+- 🔄 Standardized framework adapters (Express.js, Next.js)
+- 🤖 OpenAI and LangChain integrations
+- 🔍 Vector-based state retrieval and similarity search
 
 ## Architecture
 
 The project is structured as a monorepo with the following packages:
 
+### @redux-ai/runtime
+
+Core runtime engine providing base functionality:
+- Base adapter interface for framework integration
+- Provider system for LLM integrations
+- Standardized error handling
+- Type-safe runtime configuration
+
+### @redux-ai/express
+
+Express.js adapter implementation:
+- Minimal adapter for Express.js integration
+- Core request handling and error management
+- Runtime configuration support
+- Framework-agnostic AI query processing
+
+Note: Application-specific middleware (validation, logging, API key checks) should be implemented at the application level. See the server demo for reference implementations.
+
+### @redux-ai/nextjs
+
+Next.js adapter implementation:
+- Server-side rendering support
+- API route handlers
+- Edge runtime compatibility
+- Streaming SSR support
+
 ### @redux-ai/vector
 
-Handles vector storage and similarity search functionality using IndexedDB for persistent storage. Features include:
-
+Vector storage and similarity search functionality:
 - Efficient vector storage and retrieval
 - Cosine similarity-based search
 - Real-time state tracking
 - Subscription-based updates
 
-### @redux-ai/react
-
-React components and hooks for debugging and visualizing Redux state:
-
-- `VectorDebugger`: Displays available actions and their metadata
-- `RAGResults`: Visualizes vector similarity search results
-- `ActivityLog`: Real-time logging of vector operations
-- Custom hooks for accessing vector storage
-
 ### @redux-ai/state
 
 Core state management functionality:
-
 - AI-powered state tracking
 - Automatic action suggestion
-- State prediction and optimization
+- Vector storage integration
+- XState machine integration
 
-### @redux-ai/schema
+### @redux-ai/react
 
-Schema definitions and type utilities:
-
-- Redux action schemas
-- State validation rules
-- Type definitions for the entire system
+React components and hooks:
+- Debug components for Redux state inspection
+- Vector similarity search visualization
+- Real-time activity logging
+- AI-powered state inspection tools
 
 ## Installation
 
@@ -63,65 +82,57 @@ pnpm build
 ### Basic Setup
 
 ```typescript
-import { ReduxAIProvider } from '@redux-ai/react';
-import { createReduxAIVector } from '@redux-ai/vector';
-import { configureStore } from '@reduxjs/toolkit';
+import { createRuntime } from '@redux-ai/runtime';
+import { ExpressAdapter } from '@redux-ai/express';
+import { OpenAIProvider } from '@redux-ai/openai';
 
-const store = configureStore({
-  reducer: rootReducer
+// Create runtime with OpenAI provider
+const runtime = createRuntime({
+  provider: new OpenAIProvider({
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
 });
 
-const App = () => {
-  return (
-    <ReduxAIProvider
-      store={store}
-      actions={[
-        {
-          type: 'users/add',
-          description: 'Add a new user to the system',
-          keywords: ['user', 'create', 'add']
-        }
-      ]}
-    >
-      <YourApp />
-    </ReduxAIProvider>
-  );
-};
+// Create Express adapter
+const adapter = new ExpressAdapter();
+const handler = adapter.createHandler({ runtime });
+
+// Set up Express routes
+app.post('/api/query', 
+  validateQuery,
+  checkAIConfig,
+  logAIRequest,
+  handler
+);
+```
+
+### Next.js Integration
+
+```typescript
+import { createRuntime } from '@redux-ai/runtime';
+import { NextjsAdapter } from '@redux-ai/nextjs';
+
+export default function handler(req, res) {
+  const adapter = new NextjsAdapter();
+  const handler = adapter.createHandler({ 
+    runtime,
+    endpoint: '/api/query'
+  });
+
+  return handler(req, res);
+}
 ```
 
 ### Debug Components
 
 ```typescript
-import { ActivityLog } from '@redux-ai/react';
+import { VectorDebugger, ActivityLog } from '@redux-ai/react';
 
 const DebugPanel = () => {
   return (
-    <div>
+    <div className="debug-panel">
+      <VectorDebugger />
       <ActivityLog />
-    </div>
-  );
-};
-```
-
-### Vector Storage
-
-```typescript
-import { useVectorDebug } from '@redux-ai/react';
-
-const VectorViewer = () => {
-  const { entries, isLoading, error } = useVectorDebug();
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  return (
-    <div>
-      {entries.map(entry => (
-        <div key={entry.timestamp}>
-          <p>Query: {entry.query}</p>
-          <p>Response: {entry.response}</p>
-        </div>
-      ))}
     </div>
   );
 };
@@ -136,7 +147,7 @@ const VectorViewer = () => {
 pnpm build
 
 # Build specific package
-cd packages/vector && pnpm build
+cd packages/<package-name> && pnpm build
 ```
 
 ### Running Tests
@@ -153,36 +164,33 @@ pnpm typecheck
 
 ## Technical Details
 
+### Framework Adapters
+
+The adapter system provides a standardized way to integrate with different frameworks:
+
+- Common error handling through `BaseAdapter`
+- Consistent runtime configuration
+- Framework-specific optimizations
+- Type-safe request/response handling
+
 ### Vector Storage
 
-The vector storage system uses IndexedDB for persistent storage and implements:
-
-- Simple but effective text-to-vector encoding
-- Cosine similarity for vector matching
-- Real-time subscription system for updates
-- Automatic garbage collection for old entries
-
-### Debugging Tools
-
-The debugging interface provides:
-
-- Real-time state visualization
-- Activity logging with timestamps
+The vector storage system implements:
+- Efficient text-to-vector encoding
+- Cosine similarity matching
+- Real-time subscription system
+- Automatic garbage collection
 
 ### Performance Optimization
 
 - Efficient vector calculations
-- Batch updates for IndexedDB operations
+- Batch updates for storage operations
 - Memoized React components
-- Optimized re-rendering patterns
+- Framework-specific optimizations
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and development process.
 
 ## License
 

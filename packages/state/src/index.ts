@@ -1,15 +1,15 @@
-import type { ReduxAISchema, ValidationResult } from '@redux-ai/schema';
 import type { ReduxAIVector, VectorEntry } from '@redux-ai/vector';
-import type { Action, Store } from '@reduxjs/toolkit';
-
+import type { Store } from '@reduxjs/toolkit';
 import { generateSystemPrompt } from './prompts';
 import type { ReduxAIAction } from './types';
+import { s } from 'ajv-ts';
 
-export { generateSystemPrompt } from './prompts';
+// Use ReturnType from ajv-ts
+type StateSchema = ReturnType<typeof s.object>;
 
 export interface AIStateConfig {
   store: Store;
-  schema?: ReduxAISchema<Action>;
+  schema?: StateSchema;
   vectorStorage: ReduxAIVector;
   actions: ReduxAIAction[];
   onError?: (error: Error) => void;
@@ -18,7 +18,7 @@ export interface AIStateConfig {
 
 export class ReduxAIState {
   private store: Store;
-  private schema?: ReduxAISchema<Action>;
+  private schema?: StateSchema;
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private actions: ReduxAIAction[];
@@ -50,7 +50,8 @@ export class ReduxAIState {
       const systemPrompt = generateSystemPrompt(
         this.store.getState(),
         this.actions,
-        conversationHistory
+        conversationHistory,
+        this.schema
       );
 
       const requestBody = {
@@ -82,13 +83,13 @@ export class ReduxAIState {
         throw this.handleError(new Error('Invalid response format from API'));
       }
 
-      // Handle the action if provided
-      if (action && this.schema) {
-        const validationResult: ValidationResult = this.schema.validateAction(action);
-        if (!validationResult.valid) {
-          const errorMessage = validationResult.errors?.join(', ') || 'Unknown validation error';
-          throw this.handleError(new Error(`Invalid action format: ${errorMessage}`));
-        }
+      // Validate action if present
+      if (action && (!action.type || typeof action.type !== 'string')) {
+        throw this.handleError(new Error('Invalid action format: missing or invalid type'));
+      }
+
+      // If action is present and valid, dispatch it
+      if (action && action.type) {
         this.store.dispatch(action);
       }
 
@@ -113,4 +114,6 @@ export const createReduxAIState = (config: AIStateConfig): ReduxAIState => {
   return new ReduxAIState(config);
 };
 
+// Export types and functions
 export type { ReduxAIAction } from './types';
+export { generateSystemPrompt } from './prompts';

@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { ReduxAISchema } from '@redux-ai/schema';
-import type { ReduxAIAction } from '@redux-ai/state';
 import type { ReduxAIVector } from '@redux-ai/vector';
 import { createReduxAIVector } from '@redux-ai/vector';
-import type { Action, Store } from '@reduxjs/toolkit';
+import type { Store } from '@reduxjs/toolkit';
+import type { s } from 'ajv-ts';
+import type { ReduxAIAction } from '@redux-ai/state';
+
+type StateSchema = ReturnType<typeof s.object>;
 
 interface ReduxAIContextType {
   actions: ReduxAIAction[];
   store: Store;
-  schema?: ReduxAISchema<Action>;
+  schema?: StateSchema;
   vectorStorage?: ReduxAIVector;
   apiEndpoint: string;
 }
@@ -18,7 +20,7 @@ const ReduxAIContext = createContext<ReduxAIContextType | null>(null);
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema?: ReduxAISchema<Action>;
+  schema?: StateSchema;
   actions: ReduxAIAction[];
   apiEndpoint: string;
 }

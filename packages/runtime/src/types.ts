@@ -1,3 +1,5 @@
+import type { LLMProvider } from './provider';
+
 export interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -6,13 +8,6 @@ export interface Message {
 export interface CompletionResponse {
   message: string;
   action: Record<string, unknown> | null;
-}
-
-export interface LLMProvider {
-  complete(
-    messages: Message[],
-    currentState?: Record<string, unknown>
-  ): Promise<CompletionResponse>;
 }
 
 export interface QueryParams {

@@ -1,11 +1,13 @@
 # Next.js + LangChain Example
 
-This example demonstrates how to use Redux AI with LangChain in a Next.js application.
+This example demonstrates how to use Redux AI with LangChain in a Next.js application, using the official @redux-ai/react components.
 
 ## Features
 
-- Integration with OpenAI's GPT-4o model through LangChain
-- Real-time chat interface
+- Pre-built components from @redux-ai/react:
+  - ChatBubble for chat interface
+  - VectorDebugger for state inspection
+- Integration with OpenAI's GPT-4 model through LangChain
 - TypeScript support
 - Tailwind CSS styling
 
@@ -32,15 +34,21 @@ pnpm dev
 
 4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## How it Works
+## Project Structure
 
-This example demonstrates:
-
-- Setting up LangChainProvider with ChatOpenAI
-- Making chat completions with proper error handling
-- Managing chat state with React hooks
-- Proper TypeScript integration
-- Responsive UI with Tailwind CSS
+```
+├── src/
+│   ├── pages/
+│   │   ├── api/
+│   │   │   └── chat.ts      # Backend API endpoint
+│   │   ├── _app.tsx         # App setup
+│   │   └── index.tsx        # Main page using @redux-ai/react components
+│   └── styles/
+│       └── globals.css      # Global styles
+├── next.config.js           # Next.js configuration
+├── package.json
+└── tsconfig.json
+```
 
 ## Learn More
 

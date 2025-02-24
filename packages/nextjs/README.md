@@ -1,17 +1,15 @@
 # @redux-ai/nextjs
 
-Next.js integration for Redux AI toolkit, providing server-side rendering support and Next.js-specific optimizations.
+Next.js adapter for Redux AI toolkit, providing server-side rendering support and optimized integration.
 
 ## Features
 
-- Next.js server-side rendering (SSR) support
-- Optimized state hydration
-- Next.js API route helpers
+- Next.js adapter implementation
+- Server-side rendering (SSR) support
+- API route handlers
 - Edge runtime compatibility
-- Middleware integrations
-- Type-safe page props
-- Automatic revalidation
 - Streaming SSR support
+- Type-safe page props
 
 ## Installation
 
@@ -25,116 +23,75 @@ npm install @redux-ai/nextjs
 
 ## Usage
 
-### Page Wrapper
-
-```typescript
-import { withReduxAI } from '@redux-ai/nextjs';
-import type { GetServerSideProps } from 'next';
-
-// Wrap your Next.js pages
-const YourPage = ({ data }) => {
-  // Your page component
-  return <div>{/* Your content */}</div>;
-};
-
-export const getServerSideProps: GetServerSideProps = withReduxAI(async (ctx) => {
-  // Your getServerSideProps logic
-  return {
-    props: {
-      // Your props
-    }
-  };
-});
-
-export default withReduxAI(YourPage);
-```
-
 ### API Routes
 
-Create AI-powered API routes:
-
 ```typescript
-import { createAIHandler } from '@redux-ai/nextjs';
+import { NextjsAdapter } from '@redux-ai/nextjs';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default createAIHandler({
-  handler: async (req: NextApiRequest, res: NextApiResponse) => {
-    const response = await runtime.process([{ role: 'user', content: req.body.message }]);
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  const adapter = new NextjsAdapter();
+  const handler = adapter.createHandler({ 
+    runtime,
+    endpoint: '/api/query'
+  });
 
-    res.json(response);
-  },
-  config: {
-    runtime: 'edge', // Optional: Use edge runtime
-    revalidate: 60, // Optional: Enable ISR
-  },
-});
-```
-
-### Middleware Integration
-
-```typescript
-import { createAIMiddleware } from '@redux-ai/nextjs';
-
-export default createAIMiddleware({
-  matcher: '/api/ai/:path*',
-  config: {
-    // Middleware configuration
-  },
-});
-```
-
-### State Hydration
-
-```typescript
-import { hydrateAIState } from '@redux-ai/nextjs';
-
-export default function App({ Component, pageProps }) {
-  // Hydrate AI state on client
-  useEffect(() => {
-    hydrateAIState(pageProps.initialAIState);
-  }, [pageProps.initialAIState]);
-
-  return <Component {...pageProps} />;
+  return handler(req, res);
 }
 ```
 
-## Edge Runtime Support
-
-Enable edge runtime for better performance:
+### Edge Runtime
 
 ```typescript
-import { createEdgeAIHandler } from '@redux-ai/nextjs/edge';
+import { NextjsAdapter } from '@redux-ai/nextjs';
 
-export default createEdgeAIHandler({
-  handler: async req => {
-    // Your edge runtime handler
-  },
-  config: {
-    regions: ['iad1', 'sfo1'], // Optional: Deploy to specific regions
-    cache: 'force-cache', // Optional: Control caching behavior
-  },
-});
+export const config = {
+  runtime: 'edge'
+};
+
+export default function handler(req) {
+  const adapter = new NextjsAdapter();
+  const handler = adapter.createHandler({ runtime });
+
+  return handler(req);
+}
 ```
 
-## Streaming SSR
+## API Reference
 
-Support streaming responses in SSR:
+### `NextjsAdapter`
+
+Extends the base adapter from `@redux-ai/runtime`:
 
 ```typescript
-import { withStreamingAI } from '@redux-ai/nextjs';
+class NextjsAdapter extends BaseAdapter {
+  createHandler(config: RuntimeAdapterConfig): NextApiHandler;
+}
+```
 
-const StreamingPage = withStreamingAI(({ stream }) => {
-  return (
-    <Suspense fallback={<Loading />}>
-      <AIResponse stream={stream} />
-    </Suspense>
-  );
-});
+### Configuration
+
+```typescript
+interface RuntimeAdapterConfig {
+  runtime: Runtime;
+  endpoint?: string;
+}
+```
+
+## Error Handling
+
+The adapter provides standardized error handling:
+
+```typescript
+try {
+  await handler(req, res);
+} catch (error) {
+  // Error response will be handled by the adapter
+  console.error('Error:', error);
+}
 ```
 
 ## Testing
-
-The package includes comprehensive tests:
 
 ```bash
 # Run tests
@@ -142,37 +99,6 @@ pnpm test
 
 # Run tests with coverage
 pnpm test:coverage
-```
-
-### Test Utilities
-
-```typescript
-import { createMockAIContext } from '@redux-ai/nextjs/testing';
-
-const mockContext = createMockAIContext({
-  req: {
-    method: 'POST',
-    body: { message: 'Test' },
-  },
-});
-```
-
-## Error Handling
-
-Handle Next.js-specific errors:
-
-```typescript
-import { NextAIError, HydrationError } from '@redux-ai/nextjs';
-
-try {
-  await handler(req, res);
-} catch (error) {
-  if (error instanceof HydrationError) {
-    // Handle hydration errors
-  } else if (error instanceof NextAIError) {
-    // Handle other Next.js-specific errors
-  }
-}
 ```
 
 ## Contributing

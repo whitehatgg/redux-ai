@@ -1,8 +1,17 @@
-import type { ReduxAIAction } from './index';
+import type { ReduxAIAction } from './types';
+import { s } from 'ajv-ts';
+
+// Use ReturnType from ajv-ts
+type StateSchema = ReturnType<typeof s.object>;
+
+interface SchemaProperty {
+  type?: string;
+  description?: string;
+}
 
 // Helper function to generate action examples based on available actions
-export function generateActionExamples(actions: ReduxAIAction[]): string {
-  const categorizedActions = actions.reduce(
+export function generateActionExamples(availableActions: ReduxAIAction[]): string {
+  const categorizedActions = availableActions.reduce(
     (acc, action) => {
       const category = action.type.split('/')[0];
       if (!acc[category]) {
@@ -15,69 +24,78 @@ export function generateActionExamples(actions: ReduxAIAction[]): string {
   );
 
   return Object.entries(categorizedActions)
-    .map(([category, categoryActions]) => {
-      const example = categoryActions[0];
+    .map(([category, actions]) => {
+      const example = actions[0];
       return `${category} related queries:
 - When user mentions "${example.keywords.join('" or "')}"
-- Use action type "${example.type}"
-- Example: "${example.description}"`;
+- For example: "${example.description}"
+- Respond with action: { type: "${example.type}", payload: /* direct value, not an object */ }`;
     })
     .join('\n\n');
 }
 
-// Generate dynamic system prompt based on available actions
+// Generate documentation from the store schema
+function generateSchemaDoc(schema: StateSchema): string {
+  try {
+    // Safe access to schema properties with type assertion
+    const schemaObj = schema as unknown as { properties?: Record<string, SchemaProperty> };
+    if (!schemaObj || !schemaObj.properties) {
+      return 'No schema description available';
+    }
+
+    return Object.entries(schemaObj.properties)
+      .map(([key, value]) => {
+        if (!value || typeof value !== 'object') {
+          return `${key}: unknown`;
+        }
+        return `${key}: ${value.type || 'unknown'}${value.description ? ` (${value.description})` : ''}`;
+      })
+      .join('\n');
+  } catch {
+    return 'Error generating schema documentation';
+  }
+}
+
+// Generate dynamic system prompt based on actions and schema
 export function generateSystemPrompt(
   state: unknown,
   availableActions: ReduxAIAction[],
-  conversationHistory: string
+  conversationHistory: string,
+  schema?: StateSchema
 ): string {
   const actionExamples = generateActionExamples(availableActions);
 
-  // Base prompt that doesn't depend on conversation history
-  const basePrompt = `You are an AI assistant that helps users interact with a Redux store through natural language.
+  // Base prompt
+  let basePrompt = `You are an AI assistant that helps users interact with a Redux store through natural language.
 
 Available Actions (IMPORTANT - use exactly these action types):
 ${JSON.stringify(availableActions, null, 2)}
 
 Current State:
-${JSON.stringify(state, null, 2)}
+${JSON.stringify(state, null, 2)}`;
 
-Your task is to:
+  // Add schema documentation if available
+  if (schema) {
+    basePrompt += `\n\nStore Schema:
+${generateSchemaDoc(schema)}`;
+  }
+
+  basePrompt += `\n\nYour task is to:
 1. For state queries:
    - Respond with natural language focused on what was specifically asked
    - For general state queries (e.g. "what's in the state"), give an overview of key data
    - For specific queries (e.g. "how many pending applicants"), focus only on the relevant information
    - Always explain the meaning of the data, don't just list values
-   - Examples:
-     Query: "What's in the state?"
-     Response: "The store contains 3 pending job applications and 2 approved applications. The latest application was submitted by John Doe."
-
-     Query: "How many pending applications?"
-     Response: "There are currently 3 pending applications awaiting review."
 
 2. For action requests:
-   - Use one of the following action mappings:
+   - Use the exact action types from the available actions list
+   - When action requires search terms or text input, pass the value directly as payload (not as an object)
+   - Match user intent to appropriate action
 ${actionExamples}
 
 IMPORTANT: Return a JSON response with:
 1. "message": For state queries, provide a focused natural language response about the requested information. For actions, explain what will be done.
-2. "action": Must be exactly one of the action types listed above, or null for state queries.
-
-Response format examples:
-For state query:
-{
-  "message": "There are 3 pending applications waiting for review, and 2 that have been approved.",
-  "action": null
-}
-
-For action:
-{
-  "message": "I'll add the new application for John Doe to the system",
-  "action": {
-    "type": "applications/add",
-    "payload": { "name": "John Doe", "status": "pending" }
-  }
-}`;
+2. "action": Must be an action object with type and payload fields, or null for state queries.`;
 
   // Only include conversation history if it exists
   return conversationHistory.trim()

@@ -1,11 +1,16 @@
-import type { HandlerConfig, RuntimeAdapter } from './adapter';
-import type { CompletionResponse, LLMProvider } from './provider';
-import type { Message } from './types';
+import type { LLMProvider } from './provider';
 
-export interface RuntimeConfig {
-  provider: LLMProvider;
-  debug?: boolean;
-}
+// Re-export adapter types and classes
+export {
+  BaseAdapter,
+  type RuntimeAdapter,
+  type RuntimeAdapterConfig,
+  type AdapterRequest,
+  type AdapterResponse
+} from './adapter';
+
+// Re-export provider types
+export type { CompletionResponse, LLMProvider } from './provider';
 
 export class Runtime {
   private provider: LLMProvider;
@@ -54,5 +59,10 @@ export class Runtime {
   }
 }
 
-export type { Message, LLMProvider, CompletionResponse, RuntimeAdapter, HandlerConfig };
-export * from './types';
+export interface RuntimeConfig {
+  provider: LLMProvider;
+  debug?: boolean;
+}
+
+// Re-export all types except Runtime
+export type { Message } from './types';

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { HandlerConfig } from '../adapter';
-import type { CompletionResponse, Message, Runtime, RuntimeAdapter } from '../types';
+import { BaseAdapter, type RuntimeAdapterConfig } from '../adapter';
+import type { CompletionResponse, Message, Runtime } from '../types';
 
 class MockRuntime implements Runtime {
   readonly provider: {
@@ -46,14 +46,72 @@ describe('RuntimeAdapter', () => {
     mockRuntime = new MockRuntime();
   });
 
-  class TestAdapter implements RuntimeAdapter {
-    createHandler(config: HandlerConfig) {
-      return async (request: any) => {
-        const response = await config.runtime.query(request);
-        return response;
-      };
+  class TestAdapter extends BaseAdapter {
+    createHandler(config: RuntimeAdapterConfig) {
+      const runtime = config.runtime;
+
+      return async function handler(request: any) {
+        try {
+          const response = await runtime.query(request);
+          return response;
+        } catch (error) {
+          const errorResponse = this.handleError(error);
+          return {
+            status: errorResponse.status,
+            body: errorResponse.body,
+          };
+        }
+      }.bind(this);
     }
   }
+
+  describe('BaseAdapter', () => {
+    it('should handle API key errors correctly', () => {
+      const adapter = new TestAdapter();
+      const error = new Error('Invalid API key');
+      const response = adapter.handleError(error);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toContain('Invalid or missing API key');
+      expect(response.body.isConfigured).toBe(false);
+    });
+
+    it('should handle rate limit errors correctly', () => {
+      const adapter = new TestAdapter();
+      const error = new Error('rate limit exceeded');
+      const response = adapter.handleError(error);
+
+      expect(response.status).toBe(429);
+      expect(response.body.error).toContain('Rate limit exceeded');
+    });
+
+    it('should handle model access errors correctly', () => {
+      const adapter = new TestAdapter();
+      const error = new Error('does not have access to model');
+      const response = adapter.handleError(error);
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toContain('does not have access');
+      expect(response.body.isConfigured).toBe(false);
+    });
+
+    it('should handle unknown errors correctly', () => {
+      const adapter = new TestAdapter();
+      const error = new Error('Unknown error');
+      const response = adapter.handleError(error);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Unknown error');
+    });
+
+    it('should handle non-Error objects correctly', () => {
+      const adapter = new TestAdapter();
+      const response = adapter.handleError('string error');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('An unknown error occurred');
+    });
+  });
 
   describe('createHandler', () => {
     it('should create a handler function', () => {
@@ -83,14 +141,16 @@ describe('RuntimeAdapter', () => {
       expect(handler).toBeDefined();
     });
 
-    it('should handle runtime errors', async () => {
+    it('should handle runtime errors correctly', async () => {
       const errorRuntime = new MockRuntime();
       vi.spyOn(errorRuntime, 'query').mockRejectedValue(new Error('Runtime error'));
 
       const adapter = new TestAdapter();
       const handler = adapter.createHandler({ runtime: errorRuntime });
 
-      await expect(handler({ query: 'test' })).rejects.toThrow('Runtime error');
+      const response = await handler({ query: 'test' });
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Runtime error');
     });
   });
 });

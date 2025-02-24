@@ -51,7 +51,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-80 border-r bg-background shadow-lg">
       <div className="flex items-center justify-between border-b p-4">
-        <h3 className="font-semibold">Vector Activity Log</h3>
+        <h3 className="font-semibold">Activity Log</h3>
         <button
           onClick={onClose}
           className="rounded-md p-1 hover:bg-muted"
@@ -96,7 +96,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               ))
             ) : (
               <div className="py-8 text-center text-muted-foreground">
-                No vector operations logged yet.
+                No operations logged yet.
               </div>
             )}
           </div>

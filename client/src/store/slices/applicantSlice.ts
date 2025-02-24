@@ -1,25 +1,12 @@
-import type { PayloadAction, Slice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
+import type { Applicant, TableConfig } from '../schema';
 
-export interface Applicant {
-  id: string;
-  name: string;
-  email: string;
-  status: 'pending' | 'approved' | 'rejected';
-  position: string;
-  appliedDate: string;
-}
-
-export interface TableConfig {
-  visibleColumns: (keyof Applicant)[];
-  enableSearch: boolean;
-  searchTerm: string;
-}
-
-interface ApplicantState {
+// Export the state type for use in other files
+export type ApplicantState = {
   applicants: Applicant[];
   tableConfig: TableConfig;
-}
+};
 
 const initialState: ApplicantState = {
   applicants: [
@@ -55,15 +42,18 @@ const initialState: ApplicantState = {
   },
 };
 
-export const applicantSlice: Slice<ApplicantState> = createSlice({
+export const applicantSlice = createSlice({
   name: 'applicant',
   initialState,
   reducers: {
-    setVisibleColumns: (state, action: PayloadAction<(keyof Applicant)[]>) => {
+    setVisibleColumns: (state, action: PayloadAction<TableConfig['visibleColumns']>) => {
       state.tableConfig.visibleColumns = action.payload;
     },
-    toggleSearch: state => {
+    toggleSearch: (state) => {
       state.tableConfig.enableSearch = !state.tableConfig.enableSearch;
+      if (!state.tableConfig.enableSearch) {
+        state.tableConfig.searchTerm = '';
+      }
     },
     setSearchTerm: (state, action: PayloadAction<string>) => {
       state.tableConfig.searchTerm = action.payload;
@@ -78,8 +68,5 @@ export const applicantSlice: Slice<ApplicantState> = createSlice({
   },
 });
 
-export const { setVisibleColumns, toggleSearch, setSearchTerm, addApplicant } =
-  applicantSlice.actions;
-
+export const { setVisibleColumns, toggleSearch, setSearchTerm, addApplicant } = applicantSlice.actions;
 export default applicantSlice.reducer;
-export type { ApplicantState };

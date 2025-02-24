@@ -33,13 +33,13 @@ describe('ActivityLog', () => {
 
   it('should not render when closed', () => {
     render(<ActivityLog open={false} />);
-    expect(screen.queryByText('Vector Activity Log')).toBeNull();
+    expect(screen.queryByText('Activity Log')).toBeNull();
   });
 
   it('should render when open', () => {
     render(<ActivityLog open={true} />);
-    expect(screen.getByText('Vector Activity Log')).toBeDefined();
-    expect(screen.getByText('No vector operations logged yet.')).toBeDefined();
+    expect(screen.getByText('Activity Log')).toBeDefined();
+    expect(screen.getByText('No operations logged yet.')).toBeDefined();
   });
 
   it('should setup subscription on mount', () => {

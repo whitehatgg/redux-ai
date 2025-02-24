@@ -14,9 +14,20 @@ import {
   setVisibleColumns as _setVisibleColumns,
   toggleSearch as _toggleSearch,
 } from './store/slices/applicantSlice';
+import { storeSchema } from './store/schema';
 
 // Generate actions from slice's action creators
 const actions: ReduxAIAction[] = [
+  {
+    type: 'applicant/setSearchTerm',
+    description: 'Set search filter value to find specific applicants',
+    keywords: ['search', 'find', 'filter', 'query', 'look', 'for'],
+  },
+  {
+    type: 'applicant/toggleSearch',
+    description: 'Toggle search functionality on/off',
+    keywords: ['enable', 'disable', 'search', 'toggle', 'switch'],
+  },
   {
     type: 'applicant/setVisibleColumns',
     description: 'Control which columns are visible in the applicant table',
@@ -33,19 +44,7 @@ const actions: ReduxAIAction[] = [
       'status',
       'position',
       'appliedDate',
-      'disable',
-      'enable',
     ],
-  },
-  {
-    type: 'applicant/toggleSearch',
-    description: 'Toggle search functionality on/off',
-    keywords: ['enable', 'disable', 'search', 'toggle', 'switch'],
-  },
-  {
-    type: 'applicant/setSearchTerm',
-    description: 'Set search filter value to find specific applicants',
-    keywords: ['search', 'find', 'filter', 'query', 'look', 'for'],
   },
 ];
 
@@ -141,7 +140,7 @@ function App() {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ReduxAIProvider store={store} actions={actions} apiEndpoint="/api/query">
+        <ReduxAIProvider store={store} schema={storeSchema} actions={actions} apiEndpoint="/api/query">
           <AppContent />
         </ReduxAIProvider>
       </QueryClientProvider>
