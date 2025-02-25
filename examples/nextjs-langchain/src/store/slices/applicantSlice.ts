@@ -1,22 +1,16 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { HYDRATE } from 'next-redux-wrapper';
-import type { PersonalInfo, WorkExperience, Education, Skills } from '../schema';
-
-interface ApplicantState {
-  personalInfo: PersonalInfo | null;
-  workExperience: WorkExperience[];
-  education: Education[];
-  skills: Skills | null;
-  currentStep: 'personal' | 'work' | 'education' | 'skills';
-}
+import type { 
+  ApplicantState,
+  PersonalInfo,
+  WorkExperience,
+  CurrentStep
+} from '../schema';
 
 const initialState: ApplicantState = {
   personalInfo: null,
   workExperience: [],
-  education: [],
-  skills: null,
-  currentStep: 'personal',
+  currentStep: 'personal'
 };
 
 export const applicantSlice = createSlice({
@@ -30,32 +24,24 @@ export const applicantSlice = createSlice({
     addWorkExperience: (state, action: PayloadAction<WorkExperience>) => {
       state.workExperience.push(action.payload);
     },
-    addEducation: (state, action: PayloadAction<Education>) => {
-      state.education.push(action.payload);
-    },
-    setSkills: (state, action: PayloadAction<Skills>) => {
-      state.skills = action.payload;
-    },
-    setCurrentStep: (state, action: PayloadAction<ApplicantState['currentStep']>) => {
+    setCurrentStep: (state, action: PayloadAction<CurrentStep>) => {
       state.currentStep = action.payload;
-    },
+    }
   },
-  extraReducers: {
-    [HYDRATE]: (state, action) => {
+  extraReducers: (builder) => {
+    builder.addCase(HYDRATE, (state, action: any) => {
       return {
         ...state,
         ...action.payload.applicant,
       };
-    },
+    });
   },
 });
 
 export const { 
-  setPersonalInfo, 
-  addWorkExperience, 
-  addEducation, 
-  setSkills,
-  setCurrentStep 
+  setPersonalInfo,
+  addWorkExperience,
+  setCurrentStep
 } = applicantSlice.actions;
 
 export default applicantSlice.reducer;

@@ -1,13 +1,8 @@
-import type { PayloadAction } from '@reduxjs/toolkit';
+import type { PayloadAction, SliceCaseReducers } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
-import type { Applicant, TableConfig } from '../schema';
+import type { ApplicantState } from '../schema';
 
-// Export the state type for use in other files
-export type ApplicantState = {
-  applicants: Applicant[];
-  tableConfig: TableConfig;
-};
-
+// Define initial state that matches ApplicantState type
 const initialState: ApplicantState = {
   applicants: [
     {
@@ -39,34 +34,38 @@ const initialState: ApplicantState = {
     visibleColumns: ['name', 'email', 'status', 'position', 'appliedDate'],
     enableSearch: true,
     searchTerm: '',
+    sortBy: null,
+    sortOrder: null
   },
 };
 
-export const applicantSlice = createSlice({
+// Create the slice with proper typing
+const applicantSlice = createSlice<
+  ApplicantState,
+  SliceCaseReducers<ApplicantState>,
+  'applicant'
+>({
   name: 'applicant',
   initialState,
   reducers: {
-    setVisibleColumns: (state, action: PayloadAction<TableConfig['visibleColumns']>) => {
-      state.tableConfig.visibleColumns = action.payload;
+    setSearchTerm(state, action: PayloadAction<string>) {
+      state.tableConfig.searchTerm = action.payload;
     },
-    toggleSearch: (state) => {
+    toggleSearch(state) {
       state.tableConfig.enableSearch = !state.tableConfig.enableSearch;
       if (!state.tableConfig.enableSearch) {
         state.tableConfig.searchTerm = '';
       }
     },
-    setSearchTerm: (state, action: PayloadAction<string>) => {
-      state.tableConfig.searchTerm = action.payload;
+    setVisibleColumns(state, action: PayloadAction<string[]>) {
+      state.tableConfig.visibleColumns = action.payload;
     },
-    addApplicant: (state, action: PayloadAction<Omit<Applicant, 'id'>>) => {
-      const newApplicant = {
-        ...action.payload,
-        id: Math.random().toString(36).substring(7),
-      };
-      state.applicants.push(newApplicant);
-    },
-  },
+    setSortOrder(state, action: PayloadAction<{ column: string; direction: 'asc' | 'desc' }>) {
+      state.tableConfig.sortBy = action.payload.column;
+      state.tableConfig.sortOrder = action.payload.direction;
+    }
+  }
 });
 
-export const { setVisibleColumns, toggleSearch, setSearchTerm, addApplicant } = applicantSlice.actions;
+export const { setSearchTerm, toggleSearch, setVisibleColumns, setSortOrder } = applicantSlice.actions;
 export default applicantSlice.reducer;

@@ -1,16 +1,10 @@
-import type { LLMProvider } from './provider';
+import type { CompletionResponse, LLMProvider } from './provider';
+import type { Message } from './types';
 
-// Re-export adapter types and classes
-export {
-  BaseAdapter,
-  type RuntimeAdapter,
-  type RuntimeAdapterConfig,
-  type AdapterRequest,
-  type AdapterResponse
-} from './adapter';
-
-// Re-export provider types
-export type { CompletionResponse, LLMProvider } from './provider';
+export interface RuntimeConfig {
+  provider: LLMProvider;
+  debug?: boolean;
+}
 
 export class Runtime {
   private provider: LLMProvider;
@@ -24,11 +18,10 @@ export class Runtime {
   async query(params: {
     query: string;
     prompt: string;
-    actions: string[];
     currentState?: Record<string, unknown>;
   }) {
     try {
-      const { query, prompt, actions, currentState } = params;
+      const { query, prompt, currentState } = params;
 
       if (!query) {
         throw new Error('Query is required');
@@ -36,10 +29,6 @@ export class Runtime {
 
       if (!prompt) {
         throw new Error('Prompt is required');
-      }
-
-      if (!Array.isArray(actions) || !actions.length) {
-        throw new Error('Actions must be a non-empty array');
       }
 
       const messages = [
@@ -59,10 +48,11 @@ export class Runtime {
   }
 }
 
-export interface RuntimeConfig {
-  provider: LLMProvider;
-  debug?: boolean;
+// Add factory function to create Runtime instances
+export function createRuntime(config: RuntimeConfig): Runtime {
+  return new Runtime(config);
 }
 
-// Re-export all types except Runtime
-export type { Message } from './types';
+// Re-export all types
+export type { CompletionResponse, LLMProvider, Message };
+export { BaseAdapter, type RuntimeAdapter, type RuntimeAdapterConfig, type AdapterRequest, type AdapterResponse } from './adapter';

@@ -1,27 +1,23 @@
-import type { ReduxAIVector, VectorEntry } from '@redux-ai/vector';
+import { BaseAction, validateSchema, s } from '@redux-ai/schema';
+import type { ReduxAIVector } from '@redux-ai/vector';
 import type { Store } from '@reduxjs/toolkit';
 import { generateSystemPrompt } from './prompts';
-import type { ReduxAIAction } from './types';
-import { s } from 'ajv-ts';
-
-// Use ReturnType from ajv-ts
-type StateSchema = ReturnType<typeof s.object>;
+import type { StateUpdateEvent } from './types';
+import { safeStringify } from './utils';
 
 export interface AIStateConfig {
   store: Store;
-  schema?: StateSchema;
+  schema: ReturnType<typeof s.object>;
   vectorStorage: ReduxAIVector;
-  actions: ReduxAIAction[];
-  onError?: (error: Error) => void;
   apiEndpoint: string;
+  onError?: (error: Error) => void;
 }
 
 export class ReduxAIState {
   private store: Store;
-  private schema?: StateSchema;
+  private schema: ReturnType<typeof s.object>;
   private vectorStorage: ReduxAIVector;
   private onError?: (error: Error) => void;
-  private actions: ReduxAIAction[];
   private apiEndpoint: string;
 
   constructor(config: AIStateConfig) {
@@ -29,44 +25,29 @@ export class ReduxAIState {
     this.schema = config.schema;
     this.vectorStorage = config.vectorStorage;
     this.onError = config.onError;
-    this.actions = config.actions;
     this.apiEndpoint = config.apiEndpoint;
   }
 
   async processQuery(query: string) {
-    if (!query || typeof query !== 'string') {
-      throw this.handleError(new Error('Query must be a non-empty string'));
+    if (!query) {
+      throw this.handleError(new Error('Query is required'));
     }
 
     try {
       const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
       const conversationHistory = similarEntries
-        .map(
-          (entry: VectorEntry) =>
-            `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`
-        )
+        .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
         .join('\n\n');
 
-      const systemPrompt = generateSystemPrompt(
-        this.store.getState(),
-        this.actions,
-        conversationHistory,
-        this.schema
-      );
-
-      const requestBody = {
-        query,
-        prompt: systemPrompt,
-        actions: this.actions,
-        currentState: this.store.getState(),
-      };
+      const state = this.store.getState();
+      const prompt = generateSystemPrompt(state, this.schema, conversationHistory);
 
       const apiResponse = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ query, prompt }),
       });
 
       if (!apiResponse.ok) {
@@ -83,15 +64,12 @@ export class ReduxAIState {
         throw this.handleError(new Error('Invalid response format from API'));
       }
 
-      // Validate action if present
-      if (action && (!action.type || typeof action.type !== 'string')) {
-        throw this.handleError(new Error('Invalid action format: missing or invalid type'));
+      // Directly dispatch action without validation
+      if (action) {
+        this.store.dispatch(action as BaseAction);
       }
 
-      // If action is present and valid, dispatch it
-      if (action && action.type) {
-        this.store.dispatch(action);
-      }
+      await this.vectorStorage.storeInteraction(query, message, state);
 
       return { message, action };
     } catch (error) {
@@ -114,6 +92,5 @@ export const createReduxAIState = (config: AIStateConfig): ReduxAIState => {
   return new ReduxAIState(config);
 };
 
-// Export types and functions
-export type { ReduxAIAction } from './types';
+export type { BaseAction, StateUpdateEvent };
 export { generateSystemPrompt } from './prompts';

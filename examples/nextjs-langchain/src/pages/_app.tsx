@@ -1,7 +1,7 @@
 import '@/styles/globals.css';
+import { ReduxAIProvider } from '@redux-ai/react';
 import type { AppProps } from 'next/app';
 import { Provider } from 'react-redux';
-import { ReduxAIProvider } from '@redux-ai/react';
 import { wrapper } from '@/store';
 import { storeSchema } from '@/store/schema';
 
@@ -10,22 +10,7 @@ function App({ Component, pageProps }: AppProps) {
 
   return (
     <Provider store={store}>
-      <ReduxAIProvider
-        store={store}
-        apiEndpoint="/api/chat"
-        schema={storeSchema}
-        actions={[
-          {
-            type: 'form/submit',
-            description: 'Submit form data',
-            keywords: ['form', 'submit', 'save'],
-            metadata: {
-              category: 'Form',
-              importance: 'high'
-            }
-          }
-        ]}
-      >
+      <ReduxAIProvider store={store} schema={storeSchema} apiEndpoint="/api/chat">
         <Component {...props} />
       </ReduxAIProvider>
     </Provider>

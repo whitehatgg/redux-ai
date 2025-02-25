@@ -15,7 +15,14 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@redux-ai/runtime": ["../../packages/runtime/src"],
+      "@redux-ai/schema": ["../../packages/schema/src"],
+      "@redux-ai/state": ["../../packages/state/src"],
+      "@redux-ai/vector": ["../../packages/vector/src"],
+      "@redux-ai/react": ["../../packages/react/src"],
+      "@redux-ai/nextjs": ["../../packages/nextjs/src"],
+      "@redux-ai/langchain": ["../../packages/langchain/src"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],

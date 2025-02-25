@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { s } from 'ajv-ts';
 
 import { ReduxAIProvider } from '../components/ReduxAIProvider';
 
@@ -29,6 +30,17 @@ const mockStore = configureStore({
   },
 });
 
+// Create a mock schema
+const mockSchema = s.object({
+  state: s.object({
+    test: s.object({}).optional()
+  }),
+  actions: s.array(s.object({
+    type: s.string(),
+    payload: s.any()
+  }))
+});
+
 describe('ReduxAIProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,7 +54,11 @@ describe('ReduxAIProvider', () => {
 
   it('renders loading state initially', () => {
     render(
-      <ReduxAIProvider store={mockStore} actions={[]} apiEndpoint="http://localhost:3000/api">
+      <ReduxAIProvider 
+        store={mockStore} 
+        schema={mockSchema}
+        apiEndpoint="http://localhost:3000/api"
+      >
         <div>Child content</div>
       </ReduxAIProvider>
     );
@@ -52,7 +68,11 @@ describe('ReduxAIProvider', () => {
 
   it('renders children when initialized', async () => {
     render(
-      <ReduxAIProvider store={mockStore} actions={[]} apiEndpoint="http://localhost:3000/api">
+      <ReduxAIProvider 
+        store={mockStore}
+        schema={mockSchema}
+        apiEndpoint="http://localhost:3000/api"
+      >
         <div data-testid="child">Child content</div>
       </ReduxAIProvider>
     );
@@ -68,7 +88,11 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider store={mockStore} actions={[]} apiEndpoint="http://localhost:3000/api">
+      <ReduxAIProvider 
+        store={mockStore}
+        schema={mockSchema}
+        apiEndpoint="http://localhost:3000/api"
+      >
         <div>Child content</div>
       </ReduxAIProvider>
     );

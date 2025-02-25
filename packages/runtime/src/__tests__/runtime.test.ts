@@ -30,19 +30,18 @@ describe('Runtime', () => {
 
   describe('query', () => {
     it('should call provider.complete with correct parameters', async () => {
-      const spy = vi.spyOn(provider, 'complete');
+      const completeSpy = vi.spyOn(provider, 'complete');
       const runtime = new Runtime({ provider });
       const params = {
         query: 'test query',
         prompt: 'test prompt',
-        actions: ['test_action'],
         currentState: { key: 'value' },
       };
 
       await runtime.query(params);
 
-      expect(spy).toHaveBeenCalled();
-      const [messages, state] = spy.mock.calls[0];
+      expect(completeSpy).toHaveBeenCalled();
+      const [messages, state] = completeSpy.mock.calls[0];
       expect(messages).toHaveLength(2);
       expect(messages[0]).toEqual({ role: 'system', content: params.prompt });
       expect(messages[1]).toEqual({ role: 'user', content: params.query });
@@ -54,7 +53,6 @@ describe('Runtime', () => {
       const response = await runtime.query({
         query: 'test',
         prompt: 'test prompt',
-        actions: ['test_action'],
       });
 
       expect(response).toEqual({
@@ -74,7 +72,6 @@ describe('Runtime', () => {
         runtime.query({
           query: 'test',
           prompt: 'test prompt',
-          actions: ['test_action'],
         })
       ).rejects.toThrow('Provider error');
     });
@@ -86,7 +83,6 @@ describe('Runtime', () => {
       const response = await runtime.query({
         query: 'test',
         prompt: 'test prompt',
-        actions: ['test_action'],
       });
 
       expect(response).toEqual({

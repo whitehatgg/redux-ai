@@ -45,7 +45,6 @@ export class VectorStorage implements ReduxAIVector {
     try {
       await this.storage.initialize();
     } catch (error) {
-      console.error('Failed to initialize vector storage:', error);
       throw new Error('Vector storage initialization failed');
     }
   }
@@ -68,24 +67,23 @@ export class VectorStorage implements ReduxAIVector {
       await this.storage.addEntry(entry);
       this.notifyListeners(entry);
     } catch (error) {
-      console.error('Failed to add vector entry:', error);
       throw new Error('Failed to add vector entry');
     }
   }
 
   async storeInteraction(query: string, response: string, state: unknown): Promise<void> {
     try {
-      const stateString = typeof state === 'string' ? state : JSON.stringify(state);
+      const stateString = JSON.stringify(state);
+
       await this.addEntry({
         vector: textToVector(`${query} ${response}`, this.dimensions),
         metadata: {
           query,
           response,
-          state: stateString,
+          state: stateString
         },
       });
     } catch (error) {
-      console.error('Failed to store interaction:', error);
       throw new Error('Failed to store interaction');
     }
   }
@@ -104,7 +102,6 @@ export class VectorStorage implements ReduxAIVector {
         .slice(0, limit)
         .map(({ entry }) => entry);
     } catch (error) {
-      console.error('Error retrieving similar entries:', error);
       return [];
     }
   }
@@ -113,7 +110,6 @@ export class VectorStorage implements ReduxAIVector {
     try {
       return await this.storage.getAllEntries();
     } catch (error) {
-      console.error('Error getting all entries:', error);
       return [];
     }
   }

@@ -13,35 +13,23 @@ import {
 } from '@/components/ui/table';
 import type { RootState } from '@/store';
 import type { Applicant } from '@/store/schema';
-import { setSearchTerm, setVisibleColumns, toggleSearch } from '@/store/slices/applicantSlice';
+import { setSearchTerm, toggleSearch, setVisibleColumns, setSortOrder } from '@/store/slices/applicantSlice';
 
-type VisibleColumnKey = Exclude<keyof Applicant, 'id'>;
+type VisibleColumnKey = keyof Omit<Applicant, 'id'>;
+type SortDirection = 'asc' | 'desc';
+
+interface ColumnDef {
+  key: VisibleColumnKey;
+  label: string;
+}
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
-  const applicantState = useSelector((state: RootState) => state.applicant) as { 
-    applicants: Applicant[];
-    tableConfig: {
-      visibleColumns: VisibleColumnKey[];
-      enableSearch: boolean;
-      searchTerm: string;
-    };
-  };
+  const applicantState = useSelector((state: RootState) => state.applicant);
   const { applicants, tableConfig } = applicantState;
 
-  // Ensure visibleColumns is always an array
-  const visibleColumns = (tableConfig?.visibleColumns || []) as VisibleColumnKey[];
-
-  const filteredApplicants = applicants.filter((applicant: Applicant) => {
-    if (!tableConfig?.enableSearch || !tableConfig?.searchTerm) return true;
-    const searchTerm = String(tableConfig.searchTerm).toLowerCase();
-    return Object.entries(applicant).some(([key, value]) => {
-      if (!visibleColumns.includes(key as VisibleColumnKey)) return false;
-      return String(value).toLowerCase().includes(searchTerm);
-    });
-  });
-
-  const allColumns: Array<{ key: VisibleColumnKey; label: string }> = [
+  // Type-safe column definitions
+  const allColumns: ColumnDef[] = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
     { key: 'status', label: 'Status' },
@@ -49,12 +37,40 @@ export function ApplicantTable() {
     { key: 'appliedDate', label: 'Applied Date' },
   ];
 
+  const filteredApplicants = applicants.filter((applicant: Applicant) => {
+    if (!tableConfig.enableSearch || !tableConfig.searchTerm) return true;
+    const searchTerm = tableConfig.searchTerm.toLowerCase();
+    return Object.entries(applicant).some(([key, value]) => {
+      if (!tableConfig.visibleColumns.includes(key as VisibleColumnKey)) return false;
+      return String(value).toLowerCase().includes(searchTerm);
+    });
+  });
+
   const toggleColumn = (column: VisibleColumnKey) => {
-    const newColumns = visibleColumns.includes(column)
-      ? visibleColumns.filter((col: VisibleColumnKey) => col !== column)
-      : [...visibleColumns, column];
+    const newColumns = tableConfig.visibleColumns.includes(column)
+      ? tableConfig.visibleColumns.filter((col: string) => col !== column)
+      : [...tableConfig.visibleColumns, column];
     dispatch(setVisibleColumns(newColumns));
   };
+
+  const handleSearchChange = (value: string) => {
+    dispatch(setSearchTerm(value));
+  };
+
+  const handleSort = (column: VisibleColumnKey) => {
+    const direction = column === tableConfig.sortBy && tableConfig.sortOrder === 'asc' ? 'desc' : 'asc';
+    dispatch(setSortOrder({ column, direction }));
+  };
+
+  const sortedApplicants = [...filteredApplicants].sort((a: Applicant, b: Applicant) => {
+    if (!tableConfig.sortBy || !tableConfig.sortOrder) return 0;
+    const column = tableConfig.sortBy as VisibleColumnKey;
+    const aValue = String(a[column]);
+    const bValue = String(b[column]);
+    return tableConfig.sortOrder === 'asc' ? 
+      aValue.localeCompare(bValue) : 
+      bValue.localeCompare(aValue);
+  });
 
   return (
     <div className="space-y-4">
@@ -63,17 +79,17 @@ export function ApplicantTable() {
           <div className="flex items-center gap-2">
             <Checkbox
               id="enableSearch"
-              checked={Boolean(tableConfig?.enableSearch)}
+              checked={tableConfig.enableSearch}
               onCheckedChange={() => dispatch(toggleSearch())}
             />
             <Label htmlFor="enableSearch">Enable Search</Label>
           </div>
-          {Boolean(tableConfig?.enableSearch) && (
+          {tableConfig.enableSearch && (
             <div className="flex-1">
               <Input
                 placeholder="Search applicants..."
-                value={String(tableConfig?.searchTerm || '')}
-                onChange={e => dispatch(setSearchTerm(e.target.value))}
+                value={tableConfig.searchTerm}
+                onChange={e => handleSearchChange(e.target.value)}
                 className="max-w-full md:max-w-sm"
               />
             </div>
@@ -82,10 +98,10 @@ export function ApplicantTable() {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {allColumns.map(({ key, label }) => (
-            <div key={key} className="flex items-center gap-2">
+            <div key={String(key)} className="flex items-center gap-2">
               <Checkbox
                 id={String(key)}
-                checked={visibleColumns.includes(key)}
+                checked={tableConfig.visibleColumns.includes(key)}
                 onCheckedChange={() => toggleColumn(key)}
               />
               <Label htmlFor={String(key)} className="text-sm">
@@ -103,8 +119,12 @@ export function ApplicantTable() {
               <TableRow>
                 {allColumns.map(
                   ({ key, label }) =>
-                    visibleColumns.includes(key) && (
-                      <TableHead key={key} className="whitespace-nowrap px-4 py-3.5">
+                    tableConfig.visibleColumns.includes(key) && (
+                      <TableHead 
+                        key={String(key)}
+                        className="whitespace-nowrap px-4 py-3.5 cursor-pointer"
+                        onClick={() => handleSort(key)}
+                      >
                         {label}
                       </TableHead>
                     )
@@ -112,22 +132,22 @@ export function ApplicantTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredApplicants.length === 0 ? (
+              {sortedApplicants.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={visibleColumns.length}
+                    colSpan={tableConfig.visibleColumns.length}
                     className="py-4 text-center text-muted-foreground"
                   >
                     No applicants found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredApplicants.map((applicant: Applicant) => (
-                  <TableRow key={String(applicant.id)}>
+                sortedApplicants.map((applicant: Applicant) => (
+                  <TableRow key={applicant.id}>
                     {allColumns.map(
                       ({ key }) =>
-                        visibleColumns.includes(key) && (
-                          <TableCell key={key} className="whitespace-nowrap px-4 py-3">
+                        tableConfig.visibleColumns.includes(key) && (
+                          <TableCell key={`${applicant.id}-${String(key)}`} className="whitespace-nowrap px-4 py-3">
                             {String(applicant[key])}
                           </TableCell>
                         )

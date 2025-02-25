@@ -1,54 +1,43 @@
-import type { s } from 'ajv-ts';
+import type { AnyAction } from '@reduxjs/toolkit';
+import { s } from 'ajv-ts';
+import { safeStringify } from './utils';
 
+// Core validation types
 export type ValidationResult<T> = {
   valid: boolean;
   value: T | null;
   errors?: string[];
 };
 
-export interface StateValidator<T> {
-  schema: ReturnType<typeof s.object>;
-  validate: (value: unknown) => ValidationResult<T>;
+// Base action type
+export interface BaseAction extends AnyAction {
+  type: string;
+  payload?: unknown;
 }
 
-export function validateState<T>(value: unknown, schema: ReturnType<typeof s.object>): ValidationResult<T> {
-  // Basic type check first 
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {
-      valid: false,
-      value: null,
-      errors: ['State must be an object'],
-    };
+// Schema validator function
+export function validateSchema(data: unknown, schema: ReturnType<typeof s.object>): boolean {
+  if (!schema) {
+    console.error('Invalid schema: schema is null or undefined');
+    return false;
   }
+
+  // Debug logs using safeStringify to handle circular references
+  console.log('Validating data:', safeStringify(data));
+  console.log('Against schema:', safeStringify(schema));
 
   try {
-    // Use validate directly - it will check against the schema
-    const validationResult = schema.validate(value);
-    if (!validationResult) {
-      const errorMessages = (schema as any).error?.map((err: { message: string }) => err.message);
-      return {
-        valid: false,
-        value: null,
-        errors: errorMessages || ['Invalid state format'],
-      };
-    }
-
-    return {
-      valid: true,
-      value: value as T,
-    };
+    const result = schema.parse(data);
+    console.log('Validation result:', safeStringify(result));
+    return true;
   } catch (error) {
-    return {
-      valid: false,
-      value: null,
-      errors: [(error as Error).message],
-    };
+    console.error('Schema validation failed:', error);
+    if (error instanceof Error) {
+      console.error('Validation error details:', error.message);
+    }
+    return false;
   }
 }
 
-export function createStateValidator<T>(schema: ReturnType<typeof s.object>): StateValidator<T> {
-  return {
-    schema,
-    validate: (value: unknown): ValidationResult<T> => validateState(value, schema),
-  };
-}
+// Re-export schema utilities
+export { s };

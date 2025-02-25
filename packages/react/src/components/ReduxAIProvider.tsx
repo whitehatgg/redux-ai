@@ -2,15 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReduxAIVector } from '@redux-ai/vector';
 import { createReduxAIVector } from '@redux-ai/vector';
 import type { Store } from '@reduxjs/toolkit';
-import type { s } from 'ajv-ts';
-import type { ReduxAIAction } from '@redux-ai/state';
-
-type StateSchema = ReturnType<typeof s.object>;
 
 interface ReduxAIContextType {
-  actions: ReduxAIAction[];
   store: Store;
-  schema?: StateSchema;
+  schema: any;
   vectorStorage?: ReduxAIVector;
   apiEndpoint: string;
 }
@@ -20,8 +15,7 @@ const ReduxAIContext = createContext<ReduxAIContextType | null>(null);
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema?: StateSchema;
-  actions: ReduxAIAction[];
+  schema: any;
   apiEndpoint: string;
 }
 
@@ -29,7 +23,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   children,
   store,
   schema,
-  actions,
   apiEndpoint,
 }) => {
   const [vectorStorage, setVectorStorage] = useState<ReduxAIVector | undefined>();
@@ -37,20 +30,21 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    const initializeVector = async () => {
+    const initializeAI = async () => {
       try {
+        // Initialize vector storage
         const vector = await createReduxAIVector({
           dimensions: 128,
         });
         setVectorStorage(vector);
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to initialize vector storage'));
+        setError(err instanceof Error ? err : new Error('Failed to initialize ReduxAI system'));
       } finally {
         setIsInitializing(false);
       }
     };
 
-    initializeVector();
+    initializeAI();
   }, []);
 
   if (isInitializing) {
@@ -75,7 +69,6 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   return (
     <ReduxAIContext.Provider
       value={{
-        actions,
         store,
         schema,
         vectorStorage,

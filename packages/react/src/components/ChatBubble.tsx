@@ -163,7 +163,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 {isProcessing || isSubmitting ? 'Sending...' : 'Send'}
               </button>
             </div>
-            {error && <div className="mt-2 text-sm text-destructive">{error}</div>}
           </form>
         </div>
       </div>
