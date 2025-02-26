@@ -1,44 +1,12 @@
-import type { BaseAction } from '@redux-ai/schema';
 import { s } from '@redux-ai/schema';
-import { safeStringify } from './utils';
-
-function generateExampleValue(schema: any): any {
-  if (!schema) return undefined;
-
-  switch (schema.type) {
-    case 'string':
-      return 'example';
-    case 'number':
-      return 42;
-    case 'boolean':
-      return true;
-    case 'array':
-      return [generateExampleValue(schema.items)];
-    case 'object':
-      if (!schema.properties) return {};
-      const example: Record<string, any> = {};
-      for (const [key, value] of Object.entries(schema.properties)) {
-        example[key] = generateExampleValue(value);
-      }
-      return example;
-    default:
-      return undefined;
-  }
-}
 
 function getActionInstructions(schema: ReturnType<typeof s.object>): string {
-  let instructions = `
-IMPORTANT: Use ONLY these exact action types and formats:
-
-For applicant/setSearchTerm:
+  return `
+IMPORTANT: Use only valid Redux action formats:
 {
-  "type": "applicant/setSearchTerm",
-  "payload": "search term"
-}
-
-DO NOT create or modify any other action types. Use exactly these formats with the EXACT same type strings.`;
-
-  return instructions;
+  "type": "action/type",
+  "payload": value
+}`;
 }
 
 export function generateSystemPrompt(
@@ -50,27 +18,41 @@ export function generateSystemPrompt(
     throw new Error('Schema must be provided');
   }
 
-  const state = currentState as any;
-  const currentColumns = state?.applicant?.tableConfig?.visibleColumns || [];
-  const isSearchEnabled = state?.applicant?.tableConfig?.enableSearch;
-
   const basePrompt = `You are an AI assistant that helps users interact with a Redux store through natural language.
 
-Current Application State:
-${safeStringify(currentState)}
+Current State:
+${JSON.stringify(currentState, null, 2)}
 
-Current Search Status: ${isSearchEnabled ? 'Enabled' : 'Disabled'}
-Current Visible Columns: ${safeStringify(currentColumns)}
+Your task is to:
+1. For state queries:
+   - Answer in natural language, like a conversation
+   - Keep responses very short, 1-2 sentences maximum
+   - If you can't find specific information, say "I don't see that information in the current state"
+   - Never expose raw state data or technical details
+
+2. For action requests:
+   - Use only valid Redux action formats
+   - Keep action payloads simple and direct
+   - If you can't perform an action, say "Sorry, I can't perform that action"
 
 ${getActionInstructions(schema)}
 
-CRITICAL: Your response must be valid JSON with:
-1. "message": A clear description of what action you're taking
-2. "action": Must exactly match one of the action formats shown above`;
+Your response must be JSON with:
+{
+  "message": "A brief, natural response",
+  "action": null
+}
 
-  const finalPrompt = conversationHistory.trim()
+Or for actions:
+{
+  "message": "What this action will do",
+  "action": {
+    "type": "action/type",
+    "payload": value
+  }
+}`;
+
+  return conversationHistory.trim()
     ? `${basePrompt}\n\nPrevious Conversation:\n${conversationHistory}`
     : basePrompt;
-
-  return finalPrompt;
 }

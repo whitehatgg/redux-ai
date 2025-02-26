@@ -16,36 +16,51 @@ export class OpenAIProvider implements LLMProvider {
 
   constructor(config: OpenAIConfig) {
     this.client = new OpenAI({ apiKey: config.apiKey });
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     this.model = config.model ?? 'gpt-4o';
     this.temperature = config.temperature ?? 0.7;
-    this.maxTokens = config.maxTokens ?? 200;
+    this.maxTokens = config.maxTokens ?? 1000;
   }
 
   async complete(
     messages: Message[],
-    _currentState?: Record<string, unknown>
+    currentState?: Record<string, unknown>
   ): Promise<CompletionResponse> {
-    const response = await this.client.chat.completions.create({
-      model: this.model,
-      messages,
-      temperature: this.temperature,
-      max_tokens: this.maxTokens,
-      response_format: { type: 'json_object' },
-    });
+    // Format system message with current state if available
+    const systemMessages = currentState
+      ? [{
+          role: 'system',
+          content: `Current state: ${JSON.stringify(currentState, null, 2)}`
+        }]
+      : [];
 
-    if (!response.choices[0].message.content) {
-      throw new Error('Invalid response format from AI');
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [...systemMessages, ...messages],
+        temperature: this.temperature,
+        max_tokens: this.maxTokens,
+        response_format: { type: 'json_object' }
+      });
+
+      const content = response.choices[0].message.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      const parsed = JSON.parse(content);
+      if (!parsed.message) {
+        throw new Error('Response missing message property');
+      }
+
+      return {
+        message: String(parsed.message),
+        action: parsed.action || null
+      };
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`OpenAI API error: ${message}`);
     }
-
-    const content = JSON.parse(response.choices[0].message.content);
-
-    if (!content.message) {
-      throw new Error('Invalid response format: missing message');
-    }
-
-    return {
-      message: content.message,
-      action: content.action || null,
-    };
   }
 }

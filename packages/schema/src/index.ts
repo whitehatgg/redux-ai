@@ -1,6 +1,4 @@
-import type { AnyAction } from '@reduxjs/toolkit';
 import { s } from 'ajv-ts';
-import { safeStringify } from './utils';
 
 // Core validation types
 export type ValidationResult<T> = {
@@ -9,33 +7,24 @@ export type ValidationResult<T> = {
   errors?: string[];
 };
 
-// Base action type
-export interface BaseAction extends AnyAction {
+// Core action type that matches Redux's requirements
+export interface BaseAction {
   type: string;
   payload?: unknown;
 }
 
 // Schema validator function
-export function validateSchema(data: unknown, schema: ReturnType<typeof s.object>): boolean {
+export function validateSchema<T>(data: unknown, schema: ReturnType<typeof s.object>): ValidationResult<T> {
   if (!schema) {
-    console.error('Invalid schema: schema is null or undefined');
-    return false;
+    return { valid: false, value: null, errors: ['Invalid schema'] };
   }
 
-  // Debug logs using safeStringify to handle circular references
-  console.log('Validating data:', safeStringify(data));
-  console.log('Against schema:', safeStringify(schema));
-
   try {
-    const result = schema.parse(data);
-    console.log('Validation result:', safeStringify(result));
-    return true;
+    const result = schema.parse(data) as T;
+    return { valid: true, value: result };
   } catch (error) {
-    console.error('Schema validation failed:', error);
-    if (error instanceof Error) {
-      console.error('Validation error details:', error.message);
-    }
-    return false;
+    const errors = error instanceof Error ? [error.message] : ['Unknown validation error'];
+    return { valid: false, value: null, errors };
   }
 }
 

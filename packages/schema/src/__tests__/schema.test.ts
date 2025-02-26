@@ -20,7 +20,9 @@ describe('Schema Validation', () => {
       },
     };
 
-    expect(validateSchema(state, schema)).toBe(true);
+    const result = validateSchema(state, schema);
+    expect(result.valid).toBe(true);
+    expect(result.value).toEqual(state);
   });
 
   it('should reject an invalid state type', () => {
@@ -32,7 +34,10 @@ describe('Schema Validation', () => {
       },
     };
 
-    expect(validateSchema(state, schema)).toBe(false);
+    const result = validateSchema(state, schema);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.length).toBeGreaterThan(0);
   });
 
   it('should reject missing required fields', () => {
@@ -43,10 +48,14 @@ describe('Schema Validation', () => {
       },
     };
 
-    expect(validateSchema(state, schema)).toBe(false);
+    const result = validateSchema(state, schema);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('must have required property \'text\'');
   });
 
   it('should reject non-object values', () => {
-    expect(validateSchema('not an object', schema)).toBe(false);
+    const result = validateSchema('not an object', schema);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('must be object');
   });
 });

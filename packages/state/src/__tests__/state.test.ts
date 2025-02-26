@@ -58,8 +58,7 @@ describe('ReduxAIState', () => {
     expect(reduxAI).toBeDefined();
   });
 
-  // Skip this test temporarily until schema structure is fixed
-  it.skip('should process query and dispatch action', async () => {
+  it('should process query and dispatch action', async () => {
     const mockResponse = {
       ok: true,
       json: () =>
@@ -98,7 +97,11 @@ describe('ReduxAIState', () => {
       onError: mockErrorHandler,
     });
 
-    await expect(reduxAI.processQuery('test query')).rejects.toThrow('API request failed: 500');
+    const result = await reduxAI.processQuery('test query');
+    expect(result).toEqual({
+      message: "I encountered an issue processing your request. Please try again.",
+      action: null
+    });
     expect(mockErrorHandler).toHaveBeenCalled();
   });
 
@@ -117,7 +120,11 @@ describe('ReduxAIState', () => {
       onError: mockErrorHandler,
     });
 
-    await expect(reduxAI.processQuery('test query')).rejects.toThrow('Vector storage error');
+    const result = await reduxAI.processQuery('test query');
+    expect(result).toEqual({
+      message: "I encountered an issue processing your request. Please try again.",
+      action: null
+    });
     expect(mockErrorHandler).toHaveBeenCalledWith(mockError);
   });
 });

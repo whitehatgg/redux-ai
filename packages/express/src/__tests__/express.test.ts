@@ -16,16 +16,10 @@ describe('ExpressAdapter', () => {
 
     adapter = new ExpressAdapter();
 
-    // Mock runtime with all required properties according to Runtime interface
+    // Mock runtime with all required properties
     mockRuntime = {
-      provider: {
-        complete: vi.fn().mockResolvedValue({ message: 'Success' }),
-      },
-      messages: [{ role: 'system', content: 'Test system message' }],
-      currentState: {},
-      debug: false,
-      query: vi.fn().mockImplementation(async () => ({ message: 'Success' })),
-    } as Runtime;
+      query: vi.fn().mockResolvedValue({ message: 'Success' }),
+    } as unknown as Runtime;
 
     // Mock Express request
     mockReq = {
@@ -33,13 +27,11 @@ describe('ExpressAdapter', () => {
       method: 'POST',
       body: {
         query: 'test query',
-        prompt: 'test prompt',
-        actions: [],
-        currentState: {},
+        prompt: 'test prompt'
       },
     };
 
-    // Mock Express response with proper spy functions
+    // Mock Express response
     mockRes = {
       json: vi.fn(),
       status: vi.fn().mockReturnThis(),
@@ -47,7 +39,7 @@ describe('ExpressAdapter', () => {
     };
 
     // Mock next function
-    mockNext = vi.fn() as NextFunction;
+    mockNext = vi.fn();
   });
 
   afterEach(() => {
@@ -61,7 +53,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should handle successful queries', async () => {
-    const expectedResponse = { message: 'Success', data: {} };
+    const expectedResponse = { message: 'Success', action: null };
     mockRuntime.query = vi.fn().mockResolvedValue(expectedResponse);
 
     const handler = adapter.createHandler({ runtime: mockRuntime });

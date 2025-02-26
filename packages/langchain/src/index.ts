@@ -47,16 +47,12 @@ export class LangChainProvider implements LLMProvider {
       try {
         // Handle string responses
         if (typeof response.content === 'string') {
-          // Check if the response is already JSON
           try {
             content = JSON.parse(response.content);
           } catch {
-            // If not JSON, wrap the text in a message object
             content = { message: response.content.trim(), action: null };
           }
-        }
-        // Handle object responses
-        else if (typeof response.content === 'object' && response.content !== null) {
+        } else if (typeof response.content === 'object' && response.content !== null) {
           content = response.content;
         } else {
           throw new Error(`Unexpected response format: ${typeof response.content}`);
@@ -76,16 +72,9 @@ export class LangChainProvider implements LLMProvider {
         throw new Error('Invalid response: missing or invalid message field');
       }
 
-      // Ensure action is either a non-empty object or null
-      const action = typedContent.action;
-      const validatedAction =
-        action && typeof action === 'object' && Object.keys(action).length > 0
-          ? (action as Record<string, unknown>)
-          : null;
-
       return {
         message: typedContent.message,
-        action: validatedAction,
+        action: typedContent.action as Record<string, unknown> | null,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

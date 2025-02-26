@@ -15,18 +15,9 @@ export async function registerRoutes(app: Express) {
       method: req.method
     });
 
-    // Create a wrapper to capture the response
-    const wrappedRes = {
-      ...res,
-      json: (data: any) => {
-        console.log('[API Response Data]:', JSON.stringify(data, null, 2));
-        return res.json(data);
-      }
-    };
-
     try {
-      // Forward to handler with enhanced logging
-      await handler(req, wrappedRes, () => {
+      // Pass the original response object directly
+      await handler(req, res, () => {
         console.log('[API Handler Complete]');
       });
     } catch (error) {

@@ -1,9 +1,8 @@
 import { BaseAction, validateSchema, s } from '@redux-ai/schema';
 import type { ReduxAIVector } from '@redux-ai/vector';
-import type { Store } from '@reduxjs/toolkit';
+import type { Store, UnknownAction } from '@reduxjs/toolkit';
 import { generateSystemPrompt } from './prompts';
 import type { StateUpdateEvent } from './types';
-import { safeStringify } from './utils';
 
 export interface AIStateConfig {
   store: Store;
@@ -29,62 +28,63 @@ export class ReduxAIState {
   }
 
   async processQuery(query: string) {
-    if (!query) {
-      throw this.handleError(new Error('Query is required'));
-    }
-
     try {
+      if (!query?.trim()) {
+        return this.handleError('Query is required');
+      }
+
+      const state = this.store.getState();
       const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
       const conversationHistory = similarEntries
         .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
         .join('\n\n');
 
-      const state = this.store.getState();
       const prompt = generateSystemPrompt(state, this.schema, conversationHistory);
 
       const apiResponse = await fetch(this.apiEndpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query, prompt }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, prompt, currentState: state })
       });
 
       if (!apiResponse.ok) {
-        const errorText = await apiResponse.text();
-        throw this.handleError(
-          new Error(`API request failed: ${apiResponse.status} - ${errorText}`)
-        );
+        return this.handleError('Failed to process request. Please try again.');
       }
 
       const result = await apiResponse.json();
-      const { message, action } = result;
 
-      if (!message) {
-        throw this.handleError(new Error('Invalid response format from API'));
+      if (!result?.message) {
+        return {
+          message: "I couldn't understand that request. Could you rephrase it?",
+          action: null
+        };
       }
 
-      // Directly dispatch action without validation
-      if (action) {
-        this.store.dispatch(action as BaseAction);
+      if (result.action) {
+        // Cast to UnknownAction to satisfy Redux dispatch type
+        this.store.dispatch(result.action as UnknownAction);
       }
 
-      await this.vectorStorage.storeInteraction(query, message, state);
+      await this.vectorStorage.storeInteraction(query, result.message, state);
 
-      return { message, action };
+      return result;
+
     } catch (error) {
-      throw this.handleError(error, 'Failed to process query');
+      return this.handleError(error);
     }
   }
 
-  private handleError(error: unknown, message?: string): Error {
-    const wrappedError =
-      error instanceof Error ? error : new Error(message || 'Unknown error occurred');
+  private handleError(error: unknown): { message: string; action: null } {
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (this.onError) {
-      this.onError(wrappedError);
+      this.onError(new Error(errorMessage));
     }
-    return wrappedError;
+
+    return {
+      message: "I encountered an issue processing your request. Please try again.",
+      action: null
+    };
   }
 }
 

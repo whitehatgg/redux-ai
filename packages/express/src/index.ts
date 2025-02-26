@@ -15,12 +15,12 @@ export class ExpressAdapter extends BaseAdapter {
       }
 
       try {
-        const { query, prompt, actions, currentState } = req.body;
-        const response = await runtime.query({ query, prompt, actions, currentState });
-        res.json(response);
+        const { query, prompt } = req.body;
+        const response = await runtime.query({ query, prompt });
+        return res.json(response);
       } catch (error) {
         const errorResponse = this.handleError(error);
-        res.status(errorResponse.status).json(errorResponse.body);
+        return res.status(errorResponse.status).json(errorResponse.body);
       }
     };
 

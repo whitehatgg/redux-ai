@@ -1,8 +1,8 @@
-/* global HTMLDivElement */
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Minimize2, Sidebar } from 'lucide-react';
-
+import { validateSchema } from '@redux-ai/schema';
 import { useReduxAI } from '../hooks/useReduxAI';
+import type { AIResponse } from '../hooks/useReduxAI';
 
 export interface ChatMessage {
   id: string;
@@ -30,13 +30,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const generateMessageId = () => {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -50,6 +50,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       return;
     }
 
+    // Add user message immediately
     const userMessage: ChatMessage = {
       id: generateMessageId(),
       role: 'user',
@@ -62,17 +63,23 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      console.debug('[ChatBubble] Processing query:', trimmedInput);
+      console.debug('[ChatBubble] Sending query:', trimmedInput);
       const response = await sendQuery(trimmedInput);
-      console.debug('[ChatBubble] Received response:', response);
+      console.debug('[ChatBubble] Raw response:', response);
 
-      const assistantMessage: ChatMessage = {
-        id: generateMessageId(),
-        role: 'assistant',
-        content: response,
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      if (response && response.message) {
+        console.debug('[ChatBubble] Creating assistant message with:', response.message);
+        const assistantMessage: ChatMessage = {
+          id: generateMessageId(),
+          role: 'assistant',
+          content: response.message,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        console.error('[ChatBubble] Invalid response format:', response);
+        throw new Error('Invalid response format received');
+      }
     } catch (error) {
       console.error('[ChatBubble] Error processing query:', error);
       const errorMessage: ChatMessage = {
