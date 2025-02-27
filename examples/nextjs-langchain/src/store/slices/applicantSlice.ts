@@ -1,16 +1,12 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { HYDRATE } from 'next-redux-wrapper';
-import type { 
-  ApplicantState,
-  PersonalInfo,
-  WorkExperience,
-  CurrentStep
-} from '../schema';
+
+import type { ApplicantState, CurrentStep, PersonalInfo, WorkExperience } from '../schema';
 
 const initialState: ApplicantState = {
   personalInfo: null,
   workExperience: [],
-  currentStep: 'personal'
+  currentStep: 'personal',
 };
 
 export const applicantSlice = createSlice({
@@ -26,9 +22,9 @@ export const applicantSlice = createSlice({
     },
     setCurrentStep: (state, action: PayloadAction<CurrentStep>) => {
       state.currentStep = action.payload;
-    }
+    },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder.addCase(HYDRATE, (state, action: any) => {
       return {
         ...state,
@@ -38,10 +34,6 @@ export const applicantSlice = createSlice({
   },
 });
 
-export const { 
-  setPersonalInfo,
-  addWorkExperience,
-  setCurrentStep
-} = applicantSlice.actions;
+export const { setPersonalInfo, addWorkExperience, setCurrentStep } = applicantSlice.actions;
 
 export default applicantSlice.reducer;

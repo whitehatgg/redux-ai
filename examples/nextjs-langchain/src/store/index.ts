@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { createWrapper } from 'next-redux-wrapper';
+
 import applicantReducer from './slices/applicantSlice';
 
 const makeStore = () =>

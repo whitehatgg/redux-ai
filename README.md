@@ -20,6 +20,7 @@ The project is structured as a monorepo with the following packages:
 ### @redux-ai/runtime
 
 Core runtime engine providing base functionality:
+
 - Base adapter interface for framework integration
 - Provider system for LLM integrations
 - Standardized error handling
@@ -28,6 +29,7 @@ Core runtime engine providing base functionality:
 ### @redux-ai/express
 
 Express.js adapter implementation:
+
 - Minimal adapter for Express.js integration
 - Core request handling and error management
 - Runtime configuration support
@@ -38,6 +40,7 @@ Note: Application-specific middleware (validation, logging, API key checks) shou
 ### @redux-ai/nextjs
 
 Next.js adapter implementation:
+
 - Server-side rendering support
 - API route handlers
 - Edge runtime compatibility
@@ -46,6 +49,7 @@ Next.js adapter implementation:
 ### @redux-ai/vector
 
 Vector storage and similarity search functionality:
+
 - Efficient vector storage and retrieval
 - Cosine similarity-based search
 - Real-time state tracking
@@ -54,6 +58,7 @@ Vector storage and similarity search functionality:
 ### @redux-ai/state
 
 Core state management functionality:
+
 - AI-powered state tracking
 - Automatic action suggestion
 - Vector storage integration
@@ -62,6 +67,7 @@ Core state management functionality:
 ### @redux-ai/react
 
 React components and hooks:
+
 - Debug components for Redux state inspection
 - Vector similarity search visualization
 - Real-time activity logging
@@ -98,12 +104,7 @@ const adapter = new ExpressAdapter();
 const handler = adapter.createHandler({ runtime });
 
 // Set up Express routes
-app.post('/api/query', 
-  validateQuery,
-  checkAIConfig,
-  logAIRequest,
-  handler
-);
+app.post('/api/query', validateQuery, checkAIConfig, logAIRequest, handler);
 ```
 
 ### Next.js Integration
@@ -114,9 +115,9 @@ import { NextjsAdapter } from '@redux-ai/nextjs';
 
 export default function handler(req, res) {
   const adapter = new NextjsAdapter();
-  const handler = adapter.createHandler({ 
+  const handler = adapter.createHandler({
     runtime,
-    endpoint: '/api/query'
+    endpoint: '/api/query',
   });
 
   return handler(req, res);
@@ -176,6 +177,7 @@ The adapter system provides a standardized way to integrate with different frame
 ### Vector Storage
 
 The vector storage system implements:
+
 - Efficient text-to-vector encoding
 - Cosine similarity matching
 - Real-time subscription system

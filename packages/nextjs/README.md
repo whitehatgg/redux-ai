@@ -31,9 +31,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const adapter = new NextjsAdapter();
-  const handler = adapter.createHandler({ 
+  const handler = adapter.createHandler({
     runtime,
-    endpoint: '/api/query'
+    endpoint: '/api/query',
   });
 
   return handler(req, res);
@@ -46,7 +46,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 import { NextjsAdapter } from '@redux-ai/nextjs';
 
 export const config = {
-  runtime: 'edge'
+  runtime: 'edge',
 };
 
 export default function handler(req) {

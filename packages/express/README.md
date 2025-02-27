@@ -56,6 +56,7 @@ try {
 ## Application-level Concerns
 
 The adapter focuses solely on request handling. For application-specific concerns like:
+
 - Request validation
 - API key verification
 - Request/response logging

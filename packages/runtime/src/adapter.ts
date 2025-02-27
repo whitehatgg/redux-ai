@@ -40,7 +40,10 @@ export interface RuntimeAdapter {
 }
 
 export abstract class BaseAdapter implements RuntimeAdapter {
-  public handleError(error: unknown): { status: number; body: { error: string; isConfigured?: boolean } } {
+  public handleError(error: unknown): {
+    status: number;
+    body: { error: string; isConfigured?: boolean };
+  } {
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
         return {
