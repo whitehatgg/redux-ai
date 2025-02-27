@@ -17,15 +17,14 @@
     "@redux-ai/react": "workspace:*",
     "@redux-ai/schema": "workspace:*",
     "@reduxjs/toolkit": "^2.5.1",
-    "ajv-ts": "^0.4.0",
+    "@sinclair/typebox": "^0.34.28",
     "langchain": "0.3.19",
     "next": "^14.2.24",
     "next-redux-wrapper": "^8.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
-    "react-redux": "^9.2.0",
-    "zod": "^3.22.4"
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.19",

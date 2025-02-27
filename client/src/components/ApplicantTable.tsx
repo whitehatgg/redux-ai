@@ -13,15 +13,14 @@ import {
 } from '@/components/ui/table';
 import type { RootState } from '@/store';
 import type { Applicant } from '@/store/schema';
-import { setSearchTerm, toggleSearch, setVisibleColumns, setSortOrder } from '@/store/slices/applicantSlice';
+import {
+  setSearchTerm,
+  setSortOrder,
+  setVisibleColumns,
+  toggleSearch,
+} from '@/store/slices/applicantSlice';
 
 type VisibleColumnKey = keyof Omit<Applicant, 'id'>;
-type SortDirection = 'asc' | 'desc';
-
-interface ColumnDef {
-  key: VisibleColumnKey;
-  label: string;
-}
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
@@ -29,7 +28,7 @@ export function ApplicantTable() {
   const { applicants, tableConfig } = applicantState;
 
   // Type-safe column definitions
-  const allColumns: ColumnDef[] = [
+  const allColumns: Array<{ key: VisibleColumnKey; label: string }> = [
     { key: 'name', label: 'Name' },
     { key: 'email', label: 'Email' },
     { key: 'status', label: 'Status' },
@@ -41,14 +40,14 @@ export function ApplicantTable() {
     if (!tableConfig.enableSearch || !tableConfig.searchTerm) return true;
     const searchTerm = tableConfig.searchTerm.toLowerCase();
     return Object.entries(applicant).some(([key, value]) => {
-      if (!tableConfig.visibleColumns.includes(key as VisibleColumnKey)) return false;
+      if (key === 'id' || !tableConfig.visibleColumns.includes(key)) return false;
       return String(value).toLowerCase().includes(searchTerm);
     });
   });
 
   const toggleColumn = (column: VisibleColumnKey) => {
     const newColumns = tableConfig.visibleColumns.includes(column)
-      ? tableConfig.visibleColumns.filter((col: string) => col !== column)
+      ? tableConfig.visibleColumns.filter((col: VisibleColumnKey) => col !== column)
       : [...tableConfig.visibleColumns, column];
     dispatch(setVisibleColumns(newColumns));
   };
@@ -58,8 +57,9 @@ export function ApplicantTable() {
   };
 
   const handleSort = (column: VisibleColumnKey) => {
-    const direction = column === tableConfig.sortBy && tableConfig.sortOrder === 'asc' ? 'desc' : 'asc';
-    dispatch(setSortOrder({ column, direction }));
+    const direction =
+      column === tableConfig.sortBy && tableConfig.sortOrder === 'asc' ? 'desc' : 'asc';
+    dispatch(setSortOrder({ column: column as string, direction }));
   };
 
   const sortedApplicants = [...filteredApplicants].sort((a: Applicant, b: Applicant) => {
@@ -67,9 +67,9 @@ export function ApplicantTable() {
     const column = tableConfig.sortBy as VisibleColumnKey;
     const aValue = String(a[column]);
     const bValue = String(b[column]);
-    return tableConfig.sortOrder === 'asc' ? 
-      aValue.localeCompare(bValue) : 
-      bValue.localeCompare(aValue);
+    return tableConfig.sortOrder === 'asc'
+      ? aValue.localeCompare(bValue)
+      : bValue.localeCompare(aValue);
   });
 
   return (
@@ -120,9 +120,9 @@ export function ApplicantTable() {
                 {allColumns.map(
                   ({ key, label }) =>
                     tableConfig.visibleColumns.includes(key) && (
-                      <TableHead 
+                      <TableHead
                         key={String(key)}
-                        className="whitespace-nowrap px-4 py-3.5 cursor-pointer"
+                        className="cursor-pointer whitespace-nowrap px-4 py-3.5"
                         onClick={() => handleSort(key)}
                       >
                         {label}
@@ -147,7 +147,10 @@ export function ApplicantTable() {
                     {allColumns.map(
                       ({ key }) =>
                         tableConfig.visibleColumns.includes(key) && (
-                          <TableCell key={`${applicant.id}-${String(key)}`} className="whitespace-nowrap px-4 py-3">
+                          <TableCell
+                            key={`${applicant.id}-${String(key)}`}
+                            className="whitespace-nowrap px-4 py-3"
+                          >
                             {String(applicant[key])}
                           </TableCell>
                         )

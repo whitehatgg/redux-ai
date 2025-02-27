@@ -1,18 +1,16 @@
 import '@/styles/globals.css';
+
+import { ReduxAIProvider } from '@redux-ai/react';
 import type { AppProps } from 'next/app';
 import { Provider } from 'react-redux';
-import { ReduxAIProvider } from '@redux-ai/react';
+
 import { store } from '@/store';
-import { storeSchema } from '@/store/schema';
+import { actionSchema } from '@/store/schema';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <Provider store={store}>
-      <ReduxAIProvider
-        store={store}
-        apiEndpoint="/api/chat"
-        schema={storeSchema}
-      >
+      <ReduxAIProvider store={store} endpoint="/api/chat" actions={actionSchema}>
         <Component {...pageProps} />
       </ReduxAIProvider>
     </Provider>

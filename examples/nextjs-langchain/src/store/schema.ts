@@ -1,47 +1,76 @@
-import { s } from 'ajv-ts';
+import { Type } from '@sinclair/typebox';
 
-// Schema for applicant personal information
-const personalInfoSchema = s.object({
-  firstName: s.string(),
-  lastName: s.string(),
-  email: s.string().format('email'),
-  phone: s.string()
+// Define applicant personal information schema
+const PersonalInfoSchema = Type.Object({
+  firstName: Type.String(),
+  lastName: Type.String(),
+  email: Type.String(),
+  phone: Type.String(),
 });
 
-// Schema for work experience
-const workExperienceSchema = s.object({
-  company: s.string(),
-  position: s.string(),
-  startDate: s.string(),
-  endDate: s.string().optional(),
-  current: s.boolean()
+// Define work experience schema
+const WorkExperienceSchema = Type.Object({
+  company: Type.String(),
+  position: Type.String(),
+  startDate: Type.String(),
+  endDate: Type.Optional(Type.String()),
+  current: Type.Boolean(),
 });
 
-// Enum for steps
-const StepType = s.enum(['personal', 'work', 'education', 'skills']);
+// Define action schema for form handling
+export const actionSchema = Type.Union([
+  Type.Object(
+    {
+      type: Type.Literal('applicant/setPersonalInfo'),
+      payload: PersonalInfoSchema,
+    },
+    {
+      description: "Update applicant's personal information",
+      keywords: ['personal', 'info', 'contact', 'details'],
+    }
+  ),
+  Type.Object(
+    {
+      type: Type.Literal('applicant/addWorkExperience'),
+      payload: WorkExperienceSchema,
+    },
+    {
+      description: 'Add work experience entry',
+      keywords: ['work', 'experience', 'job', 'career'],
+    }
+  ),
+  Type.Object(
+    {
+      type: Type.Literal('applicant/setCurrentStep'),
+      payload: Type.Union([
+        Type.Literal('personal'),
+        Type.Literal('work'),
+        Type.Literal('education'),
+        Type.Literal('skills'),
+      ]),
+    },
+    {
+      description: 'Set current form step',
+      keywords: ['step', 'navigation', 'form', 'progress'],
+    }
+  ),
+]);
 
-// State schema
-const applicantStateSchema = s.object({
-  personalInfo: s.union([personalInfoSchema, s.null()]),
-  workExperience: s.array(workExperienceSchema),
-  currentStep: StepType
+// State schema for the applicant slice
+export const applicantStateSchema = Type.Object({
+  personalInfo: Type.Union([PersonalInfoSchema, Type.Null()]),
+  workExperience: Type.Array(WorkExperienceSchema),
+  currentStep: Type.Union([
+    Type.Literal('personal'),
+    Type.Literal('work'),
+    Type.Literal('education'),
+    Type.Literal('skills'),
+  ]),
 });
 
-// Store schema
-export const storeSchema = s.object({
-  applicant: applicantStateSchema
-});
-
-// Export types and schemas
-export type PersonalInfo = s.infer<typeof personalInfoSchema>;
-export type WorkExperience = s.infer<typeof workExperienceSchema>;
-export type ApplicantState = s.infer<typeof applicantStateSchema>;
-export type CurrentStep = s.infer<typeof StepType>;
-
-// Export schemas
-export {
-  personalInfoSchema,
-  workExperienceSchema,
-  applicantStateSchema,
-  StepType as stepSchema
-};
+// Export inferred types for use in slices
+export type Action = ReturnType<typeof actionSchema>;
+export type ApplicantState = ReturnType<typeof applicantStateSchema>;
+export type PersonalInfo = ReturnType<typeof PersonalInfoSchema>;
+export type WorkExperience = ReturnType<typeof WorkExperienceSchema>;
+export type CurrentStep = 'personal' | 'work' | 'education' | 'skills';

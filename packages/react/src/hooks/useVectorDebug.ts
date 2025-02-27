@@ -7,18 +7,18 @@ export function useVectorDebug() {
   const [entries, setEntries] = useState<VectorEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { vectorStorage } = useReduxAIContext();
+  const { storage } = useReduxAIContext();
 
   useEffect(() => {
     async function fetchEntries() {
-      if (!vectorStorage) {
-        setError('Vector storage not initialized');
+      if (!storage) {
+        setError('Storage not initialized');
         setIsLoading(false);
         return;
       }
 
       try {
-        const vectorEntries = await vectorStorage.getAllEntries();
+        const vectorEntries = await storage.getAllEntries();
         setEntries(vectorEntries);
         setError(null);
       } catch (err) {
@@ -29,7 +29,7 @@ export function useVectorDebug() {
     }
 
     fetchEntries();
-  }, [vectorStorage]);
+  }, [storage]);
 
   return { entries, isLoading, error };
 }

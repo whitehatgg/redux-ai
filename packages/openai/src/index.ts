@@ -1,20 +1,22 @@
-import type { CompletionResponse, LLMProvider, Message } from '@redux-ai/runtime';
+import { BaseLLMProvider, type Message, type ProviderConfig } from '@redux-ai/runtime/src/provider';
 import OpenAI from 'openai';
+import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 
-export interface OpenAIConfig {
+export interface OpenAIConfig extends ProviderConfig {
   apiKey: string;
   model?: string;
   temperature?: number;
   maxTokens?: number;
 }
 
-export class OpenAIProvider implements LLMProvider {
+export class OpenAIProvider extends BaseLLMProvider {
   private client: OpenAI;
   private model: string;
   private temperature: number;
   private maxTokens: number;
 
   constructor(config: OpenAIConfig) {
+    super(config);
     this.client = new OpenAI({ apiKey: config.apiKey });
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     this.model = config.model ?? 'gpt-4o';
@@ -22,45 +24,42 @@ export class OpenAIProvider implements LLMProvider {
     this.maxTokens = config.maxTokens ?? 1000;
   }
 
-  async complete(
-    messages: Message[],
-    currentState?: Record<string, unknown>
-  ): Promise<CompletionResponse> {
-    // Format system message with current state if available
-    const systemMessages = currentState
-      ? [{
-          role: 'system',
-          content: `Current state: ${JSON.stringify(currentState, null, 2)}`
-        }]
-      : [];
+  protected convertMessage(message: Message): ChatCompletionMessage {
+    return {
+      role: 'assistant',
+      content: message.content,
+      refusal: null,
+    };
+  }
 
-    try {
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [...systemMessages, ...messages],
-        temperature: this.temperature,
-        max_tokens: this.maxTokens,
-        response_format: { type: 'json_object' }
-      });
-
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error('Empty response from OpenAI');
-      }
-
-      const parsed = JSON.parse(content);
-      if (!parsed.message) {
-        throw new Error('Response missing message property');
-      }
-
-      return {
-        message: String(parsed.message),
-        action: parsed.action || null
-      };
-
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`OpenAI API error: ${message}`);
+  protected async completeRaw(messages: Message[]): Promise<unknown> {
+    if (this.debug) {
+      console.debug('[OpenAI] Converting messages:', messages);
     }
+
+    const openAIMessages = messages.map(msg => this.convertMessage(msg));
+
+    if (this.debug) {
+      console.debug('[OpenAI] Sending request with messages:', openAIMessages);
+    }
+
+    const response = await this.client.chat.completions.create({
+      model: this.model,
+      messages: openAIMessages,
+      temperature: this.temperature,
+      max_tokens: this.maxTokens,
+      response_format: { type: 'json_object' },
+    });
+
+    if (!response.choices[0].message.content) {
+      throw new Error('Empty response from OpenAI');
+    }
+
+    const content = response.choices[0].message.content;
+    if (this.debug) {
+      console.debug('[OpenAI] Received response:', content);
+    }
+
+    return content;
   }
 }

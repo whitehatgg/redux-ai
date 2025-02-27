@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Minimize2, Sidebar } from 'lucide-react';
-import { validateSchema } from '@redux-ai/schema';
+
 import { useReduxAI } from '../hooks/useReduxAI';
-import type { AIResponse } from '../hooks/useReduxAI';
 
 export interface ChatMessage {
   id: string;
@@ -26,7 +25,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const { sendQuery, isProcessing, error } = useReduxAI();
+  const { sendQuery, isProcessing } = useReduxAI();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,7 +49,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       return;
     }
 
-    // Add user message immediately
     const userMessage: ChatMessage = {
       id: generateMessageId(),
       role: 'user',
@@ -67,8 +65,18 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       const response = await sendQuery(trimmedInput);
       console.debug('[ChatBubble] Raw response:', response);
 
-      if (response && response.message) {
-        console.debug('[ChatBubble] Creating assistant message with:', response.message);
+      if (response.error) {
+        const errorMessage: ChatMessage = {
+          id: generateMessageId(),
+          role: 'error',
+          content: response.error,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        return;
+      }
+
+      if (response.message) {
         const assistantMessage: ChatMessage = {
           id: generateMessageId(),
           role: 'assistant',
@@ -76,16 +84,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMessage]);
-      } else {
-        console.error('[ChatBubble] Invalid response format:', response);
-        throw new Error('Invalid response format received');
       }
     } catch (error) {
       console.error('[ChatBubble] Error processing query:', error);
       const errorMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'error',
-        content: error instanceof Error ? error.message : 'Failed to get response',
+        content: error instanceof Error ? error.message : String(error),
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);

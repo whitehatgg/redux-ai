@@ -1,5 +1,6 @@
-import type { PayloadAction, SliceCaseReducers } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
+
 import type { ApplicantState } from '../schema';
 
 // Define initial state that matches ApplicantState type
@@ -35,16 +36,12 @@ const initialState: ApplicantState = {
     enableSearch: true,
     searchTerm: '',
     sortBy: null,
-    sortOrder: null
+    sortOrder: null,
   },
 };
 
-// Create the slice with proper typing
-const applicantSlice = createSlice<
-  ApplicantState,
-  SliceCaseReducers<ApplicantState>,
-  'applicant'
->({
+// Create the slice without explicit generic parameters to let TypeScript infer them
+const applicantSlice = createSlice({
   name: 'applicant',
   initialState,
   reducers: {
@@ -63,9 +60,10 @@ const applicantSlice = createSlice<
     setSortOrder(state, action: PayloadAction<{ column: string; direction: 'asc' | 'desc' }>) {
       state.tableConfig.sortBy = action.payload.column;
       state.tableConfig.sortOrder = action.payload.direction;
-    }
-  }
+    },
+  },
 });
 
-export const { setSearchTerm, toggleSearch, setVisibleColumns, setSortOrder } = applicantSlice.actions;
+export const { setSearchTerm, toggleSearch, setVisibleColumns, setSortOrder } =
+  applicantSlice.actions;
 export default applicantSlice.reducer;

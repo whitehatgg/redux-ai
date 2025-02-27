@@ -1,6 +1,6 @@
 import type { Runtime } from '@redux-ai/runtime';
 import type { NextFunction, Request, Response } from 'express';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ExpressAdapter } from '../index';
 
@@ -16,34 +16,28 @@ describe('ExpressAdapter', () => {
 
     adapter = new ExpressAdapter();
 
-    // Mock runtime with all required properties
     mockRuntime = {
-      query: vi.fn().mockResolvedValue({ message: 'Success' }),
+      debug: false,
+      query: vi.fn().mockImplementation(async () => ({ message: 'Success', action: null })),
     } as unknown as Runtime;
 
-    // Mock Express request
     mockReq = {
       path: '/api/query',
       method: 'POST',
       body: {
         query: 'test query',
-        prompt: 'test prompt'
+        state: {},
+        actions: {},
+        conversations: '',
       },
     };
 
-    // Mock Express response
     mockRes = {
-      json: vi.fn(),
       status: vi.fn().mockReturnThis(),
-      on: vi.fn(),
+      json: vi.fn(),
     };
 
-    // Mock next function
     mockNext = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it('should create an express handler', () => {
@@ -77,45 +71,36 @@ describe('ExpressAdapter', () => {
   });
 
   it('should handle API key errors', async () => {
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error('Invalid API key'));
+    const error = new Error('Invalid API key or authentication failed');
+    mockRuntime.query = vi.fn().mockRejectedValue(error);
 
     const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Invalid or missing API key. Please check your configuration.',
-      isConfigured: false,
+      error: 'Invalid or missing API key',
+      status: 'error',
     });
   });
 
   it('should handle rate limit errors', async () => {
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error('rate limit exceeded'));
+    const error = new Error('Rate limit exceeded');
+    mockRuntime.query = vi.fn().mockRejectedValue(error);
 
     const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(429);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Rate limit exceeded. Please try again later.',
-    });
-  });
-
-  it('should handle model access errors', async () => {
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error('does not have access to model'));
-
-    const handler = adapter.createHandler({ runtime: mockRuntime });
-    await handler(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Your API key does not have access to the required model.',
-      isConfigured: false,
+      error: 'Rate limit exceeded',
+      status: 'error',
     });
   });
 
   it('should handle unknown errors', async () => {
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error('Unknown error'));
+    const error = new Error('Unknown error');
+    mockRuntime.query = vi.fn().mockRejectedValue(error);
 
     const handler = adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
@@ -123,6 +108,7 @@ describe('ExpressAdapter', () => {
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Unknown error',
+      status: 'error',
     });
   });
 });

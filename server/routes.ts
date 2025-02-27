@@ -1,31 +1,19 @@
-import { createServer } from 'http';
 import { ExpressAdapter } from '@redux-ai/express';
 import type { Express } from 'express';
+
 import { runtime } from './config';
 
 export async function registerRoutes(app: Express) {
   const adapter = new ExpressAdapter();
   const handler = adapter.createHandler({ runtime });
 
-  // Register API endpoint with detailed logging
-  app.post('/api/query', async (req, res) => {
-    console.log('[API Request]:', {
-      body: req.body,
-      url: req.url,
-      method: req.method
-    });
-
+  app.post('/api/query', async (req, res, next) => {
     try {
-      // Pass the original response object directly
-      await handler(req, res, () => {
-        console.log('[API Handler Complete]');
-      });
+      await handler(req, res, next);
     } catch (error) {
-      console.error('[API Error]:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      next(error);
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return app;
 }

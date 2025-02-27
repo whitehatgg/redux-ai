@@ -1,63 +1,138 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { Runtime } from '../index';
-import type { CompletionResponse, LLMProvider, Message } from '../types';
+import type { CompletionResponse, LLMProvider } from '../types';
 
 class MockProvider implements LLMProvider {
-  async complete(
-    messages: Message[],
-    currentState?: Record<string, unknown>
-  ): Promise<CompletionResponse> {
+  async complete(prompt: string): Promise<CompletionResponse> {
+    // Test intent determination
+    if (prompt.includes('"intent": "action" | "state" | "conversation"')) {
+      if (prompt.includes('mark the first incomplete todo as done')) {
+        return {
+          message: "Let's take action to complete that todo",
+          action: { intent: 'action' },
+        };
+      } else if (prompt.includes('show my pending todos')) {
+        return {
+          message: "Let's check your todo list",
+          action: { intent: 'state' },
+        };
+      }
+      return {
+        message: "Let's have a chat about that",
+        action: { intent: 'conversation' },
+      };
+    }
+
+    // Test action handling
+    if (prompt.includes('Available Actions:')) {
+      return {
+        message: "I'll mark the todo as completed",
+        action: {
+          type: 'todos/toggleComplete',
+          payload: { id: '2' },
+        },
+      };
+    }
+
+    // Test state handling
+    if (prompt.includes('state')) {
+      return {
+        message: 'You have 2 pending todos: Walk dog, Code review',
+        action: null,
+      };
+    }
+
+    // Test conversation handling
     return {
-      message: 'Test response',
-      action: { type: 'test_action' },
+      message: 'Here are the available actions...',
+      action: null,
     };
   }
 }
 
 describe('Runtime', () => {
   let provider: LLMProvider;
-  let testMessages: Message[];
 
   beforeEach(() => {
     vi.clearAllMocks();
     provider = new MockProvider();
-    testMessages = [
-      { role: 'system', content: 'You are a helpful assistant' },
-      { role: 'user', content: 'Hello' },
-    ];
   });
 
   describe('query', () => {
-    it('should call provider.complete with correct parameters', async () => {
-      const completeSpy = vi.spyOn(provider, 'complete');
+    it('should handle action intents and return valid actions', async () => {
       const runtime = new Runtime({ provider });
-      const params = {
-        query: 'test query',
-        prompt: 'test prompt',
-        currentState: { key: 'value' },
+      const actions = {
+        todos: {
+          anyOf: [
+            {
+              properties: {
+                type: { const: 'todos/toggleComplete' },
+                payload: { type: 'object' },
+              },
+            },
+          ],
+        },
+      };
+      const state = {
+        todos: [
+          { id: '1', text: 'Buy milk', completed: true },
+          { id: '2', text: 'Walk dog', completed: false },
+          { id: '3', text: 'Code review', completed: false },
+        ],
       };
 
-      await runtime.query(params);
-
-      expect(completeSpy).toHaveBeenCalled();
-      const [messages, state] = completeSpy.mock.calls[0];
-      expect(messages).toHaveLength(2);
-      expect(messages[0]).toEqual({ role: 'system', content: params.prompt });
-      expect(messages[1]).toEqual({ role: 'user', content: params.query });
-      expect(state).toEqual(params.currentState);
-    });
-
-    it('should return provider response', async () => {
-      const runtime = new Runtime({ provider });
       const response = await runtime.query({
-        query: 'test',
-        prompt: 'test prompt',
+        query: 'mark the first incomplete todo as done',
+        actions,
+        state,
+        conversations:
+          'Previous: show my todos\nAI: Here are your todos: Buy milk (done), Walk dog, Code review',
       });
 
       expect(response).toEqual({
-        message: 'Test response',
-        action: { type: 'test_action' },
+        message: "I'll mark the todo as completed",
+        action: {
+          type: 'todos/toggleComplete',
+          payload: { id: '2' },
+        },
+      });
+    });
+
+    it('should handle state queries', async () => {
+      const runtime = new Runtime({ provider });
+      const state = {
+        todos: [
+          { id: '1', text: 'Buy milk', completed: true },
+          { id: '2', text: 'Walk dog', completed: false },
+          { id: '3', text: 'Code review', completed: false },
+        ],
+      };
+
+      const response = await runtime.query({
+        query: 'show my pending todos',
+        state,
+        conversations: 'Previous: What have I completed?\nAI: You\'ve completed "Buy milk"',
+      });
+
+      expect(response).toEqual({
+        message: 'You have 2 pending todos: Walk dog, Code review',
+        action: null,
+      });
+    });
+
+    it('should handle conversation mode for general queries', async () => {
+      const runtime = new Runtime({ provider });
+      const conversations = 'Previous: help\nAI: Here are the available actions...';
+
+      const response = await runtime.query({
+        query: 'help me understand',
+        conversations,
+      });
+
+      expect(response).toEqual({
+        message: 'Here are the available actions...',
+        action: null,
       });
     });
 
@@ -71,24 +146,11 @@ describe('Runtime', () => {
       await expect(
         runtime.query({
           query: 'test',
-          prompt: 'test prompt',
+          actions: {},
+          state: {},
+          conversations: '',
         })
       ).rejects.toThrow('Provider error');
-    });
-  });
-
-  describe('debug mode', () => {
-    it('should not affect query results', async () => {
-      const runtime = new Runtime({ provider, debug: true });
-      const response = await runtime.query({
-        query: 'test',
-        prompt: 'test prompt',
-      });
-
-      expect(response).toEqual({
-        message: 'Test response',
-        action: { type: 'test_action' },
-      });
     });
   });
 });

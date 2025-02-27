@@ -1,49 +1,86 @@
 import { render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActivityLog } from '../components/ActivityLog';
-import { useReduxAIContext } from '../components/ReduxAIProvider';
+import * as useActivityLogModule from '../hooks/useActivityLog';
 
-// Mock the ReduxAIContext hook
-vi.mock('../components/ReduxAIProvider', () => ({
-  useReduxAIContext: vi.fn(),
+// Mock the useActivityLog hook
+vi.mock('../hooks/useActivityLog', () => ({
+  useActivityLog: vi.fn(),
 }));
 
 describe('ActivityLog', () => {
-  const mockSubscribe = vi.fn(() => vi.fn());
-  const mockVectorStorage = {
-    subscribe: mockSubscribe,
-    getAllEntries: vi.fn(),
-    storeInteraction: vi.fn(),
-  };
+  const mockEntries = [
+    {
+      id: '1',
+      metadata: {
+        query: 'test query',
+        response: 'test response',
+        timestamp: new Date('2024-02-27T12:00:00').getTime(),
+      },
+    },
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(console, 'debug').mockImplementation(() => {});
-    (useReduxAIContext as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      vectorStorage: mockVectorStorage,
-      isInitialized: true,
-      actions: [],
+  });
+
+  it('should hide content when closed', () => {
+    // Mock a default state
+    vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
+      entries: [],
+      isLoading: false,
+      error: null,
     });
-  });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('should not render when closed', () => {
     render(<ActivityLog open={false} />);
-    expect(screen.queryByText('Activity Log')).toBeNull();
+    expect(screen.queryByText('Activity Log')).not.toBeInTheDocument();
   });
 
-  it('should render when open', () => {
+  it('should show loading state', () => {
+    vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
+      entries: [],
+      isLoading: true,
+      error: null,
+    });
+
     render(<ActivityLog open={true} />);
-    expect(screen.getByText('Activity Log')).toBeDefined();
-    expect(screen.getByText('No operations logged yet.')).toBeDefined();
+    expect(screen.getByText('Loading activity log...')).toBeInTheDocument();
   });
 
-  it('should setup subscription on mount', () => {
+  it('should show error state', () => {
+    vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
+      entries: [],
+      isLoading: false,
+      error: 'Failed to load activity log',
+    });
+
     render(<ActivityLog open={true} />);
-    expect(mockSubscribe).toHaveBeenCalled();
+    expect(screen.getByText('Failed to load activity log')).toBeInTheDocument();
+  });
+
+  it('should show empty state when no entries', () => {
+    vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
+      entries: [],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<ActivityLog open={true} />);
+    expect(screen.getByText('No operations logged yet.')).toBeInTheDocument();
+  });
+
+  it('should display activity entries', () => {
+    vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
+      entries: mockEntries,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<ActivityLog open={true} />);
+
+    expect(screen.getByText('test query')).toBeInTheDocument();
+    expect(screen.getByText('test response')).toBeInTheDocument();
+    expect(screen.getByText('12:00:00 PM')).toBeInTheDocument();
   });
 });

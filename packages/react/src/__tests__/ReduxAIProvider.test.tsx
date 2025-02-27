@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { Type } from '@sinclair/typebox';
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { s } from 'ajv-ts';
 
 import { ReduxAIProvider } from '../components/ReduxAIProvider';
 
@@ -18,11 +18,6 @@ vi.mock('@redux-ai/vector', () => ({
   ),
 }));
 
-// Mock state creation
-vi.mock('@redux-ai/state', () => ({
-  createReduxAIState: vi.fn(() => Promise.resolve({})),
-}));
-
 // Create a mock store
 const mockStore = configureStore({
   reducer: {
@@ -30,15 +25,10 @@ const mockStore = configureStore({
   },
 });
 
-// Create a mock schema
-const mockSchema = s.object({
-  state: s.object({
-    test: s.object({}).optional()
-  }),
-  actions: s.array(s.object({
-    type: s.string(),
-    payload: s.any()
-  }))
+// Create a mock action schema
+const mockActions = Type.Object({
+  type: Type.String(),
+  payload: Type.Any(),
 });
 
 describe('ReduxAIProvider', () => {
@@ -54,11 +44,7 @@ describe('ReduxAIProvider', () => {
 
   it('renders loading state initially', () => {
     render(
-      <ReduxAIProvider 
-        store={mockStore} 
-        schema={mockSchema}
-        apiEndpoint="http://localhost:3000/api"
-      >
+      <ReduxAIProvider store={mockStore} actions={mockActions} endpoint="/api/ai">
         <div>Child content</div>
       </ReduxAIProvider>
     );
@@ -68,11 +54,7 @@ describe('ReduxAIProvider', () => {
 
   it('renders children when initialized', async () => {
     render(
-      <ReduxAIProvider 
-        store={mockStore}
-        schema={mockSchema}
-        apiEndpoint="http://localhost:3000/api"
-      >
+      <ReduxAIProvider store={mockStore} actions={mockActions} endpoint="/api/ai">
         <div data-testid="child">Child content</div>
       </ReduxAIProvider>
     );
@@ -88,11 +70,7 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider 
-        store={mockStore}
-        schema={mockSchema}
-        apiEndpoint="http://localhost:3000/api"
-      >
+      <ReduxAIProvider store={mockStore} actions={mockActions} endpoint="/api/ai">
         <div>Child content</div>
       </ReduxAIProvider>
     );

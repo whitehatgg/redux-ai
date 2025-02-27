@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "baseUrl": "src",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "strict": true,
@@ -10,18 +10,18 @@
     "paths": {
       "@/*": ["./*"],
       "@shared/*": ["../../shared/*"],
-      "@redux-ai/state": ["../../packages/state/src"],
       "@redux-ai/schema": ["../../packages/schema/src"],
+      "@redux-ai/state": ["../../packages/state/src"],
       "@redux-ai/vector": ["../../packages/vector/src"],
       "@redux-ai/react": ["../../packages/react/src"]
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "../server/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../packages/schema" },
-    { "path": "../packages/vector" },
     { "path": "../packages/state" },
+    { "path": "../packages/vector" },
     { "path": "../packages/react" }
   ]
 }

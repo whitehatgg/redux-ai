@@ -6,7 +6,7 @@ import { Provider } from 'react-redux';
 import { ApplicantTable } from './components/ApplicantTable';
 import { queryClient } from './lib/queryClient';
 import { store } from './store';
-import { storeSchema } from './store/schema';
+import { actionSchema } from './store/schema';
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -43,12 +43,10 @@ function AppContent() {
 }
 
 function App() {
-  console.log('Store Schema:', storeSchema);
-
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ReduxAIProvider store={store} schema={storeSchema} apiEndpoint="/api/query">
+        <ReduxAIProvider store={store} actions={actionSchema} endpoint="/api/query" debug={true}>
           <AppContent />
         </ReduxAIProvider>
       </QueryClientProvider>

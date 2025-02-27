@@ -5,9 +5,10 @@ import type { Store } from '@reduxjs/toolkit';
 
 interface ReduxAIContextType {
   store: Store;
-  schema: any;
-  vectorStorage?: ReduxAIVector;
-  apiEndpoint: string;
+  actions: any;
+  storage: ReduxAIVector | null;
+  endpoint: string;
+  debug?: boolean;
 }
 
 const ReduxAIContext = createContext<ReduxAIContextType | null>(null);
@@ -15,28 +16,29 @@ const ReduxAIContext = createContext<ReduxAIContextType | null>(null);
 export interface ReduxAIProviderProps {
   children: React.ReactNode;
   store: Store;
-  schema: any;
-  apiEndpoint: string;
+  actions: any; // JSON schema for possible actions
+  endpoint: string;
+  debug?: boolean;
 }
 
 export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
   children,
   store,
-  schema,
-  apiEndpoint,
+  actions,
+  endpoint,
+  debug = false,
 }) => {
-  const [vectorStorage, setVectorStorage] = useState<ReduxAIVector | undefined>();
+  const [storage, setStorage] = useState<ReduxAIVector | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const initializeAI = async () => {
       try {
-        // Initialize vector storage
-        const vector = await createReduxAIVector({
+        const storage = await createReduxAIVector({
           dimensions: 128,
         });
-        setVectorStorage(vector);
+        setStorage(storage);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to initialize ReduxAI system'));
       } finally {
@@ -45,7 +47,7 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     };
 
     initializeAI();
-  }, []);
+  }, [store, actions, endpoint]);
 
   if (isInitializing) {
     return (
@@ -70,9 +72,10 @@ export const ReduxAIProvider: React.FC<ReduxAIProviderProps> = ({
     <ReduxAIContext.Provider
       value={{
         store,
-        schema,
-        vectorStorage,
-        apiEndpoint,
+        actions,
+        storage,
+        endpoint,
+        debug,
       }}
     >
       {children}

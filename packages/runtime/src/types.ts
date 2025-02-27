@@ -1,20 +1,25 @@
-import type { LLMProvider } from './provider';
-
-export interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
+import type { BaseLLMProvider } from './provider';
 
 export interface CompletionResponse {
   message: string;
   action: Record<string, unknown> | null;
 }
 
+export interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface ProviderConfig {
+  timeout?: number;
+  debug?: boolean;
+}
+
 export interface QueryParams {
   query: string;
-  prompt?: string;
-  actions?: unknown[];
-  currentState?: Record<string, unknown>;
+  state?: Record<string, unknown>;
+  actions?: Record<string, unknown>;
+  conversations?: string;
 }
 
 export interface RuntimeAdapter {
@@ -22,9 +27,9 @@ export interface RuntimeAdapter {
 }
 
 export interface Runtime {
-  readonly provider: LLMProvider;
-  readonly messages: Message[];
-  readonly currentState?: Record<string, unknown>;
   readonly debug: boolean;
   query(params: QueryParams): Promise<CompletionResponse>;
 }
+
+// Re-export types used by providers
+export type { BaseLLMProvider as LLMProvider };

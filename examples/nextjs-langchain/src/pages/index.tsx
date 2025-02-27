@@ -1,10 +1,8 @@
 import { useRouter } from 'next/router';
-import { useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { personalInfoSchema, type PersonalInfo } from '@/shared/schema';
-import { setPersonalInfo } from '@/store/slices/applicantSlice';
+import { useDispatch } from 'react-redux';
 
+import { Button } from '@/components/ui/button';
 // Import shadcn components
 import {
   Form,
@@ -13,15 +11,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { type PersonalInfo } from '@/store/schema';
+import { setPersonalInfo } from '@/store/slices/applicantSlice';
 
 export default function PersonalInfoPage() {
   const dispatch = useDispatch();
   const router = useRouter();
 
   const form = useForm<PersonalInfo>({
-    resolver: zodResolver(personalInfoSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -31,7 +30,6 @@ export default function PersonalInfoPage() {
   });
 
   const onSubmit = (data: PersonalInfo) => {
-    // Save to Redux store and move to next step
     dispatch(setPersonalInfo(data));
     router.push('/work-experience');
   };
@@ -98,12 +96,9 @@ export default function PersonalInfoPage() {
               )}
             />
 
-            <button
-              type="submit"
-              className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-            >
+            <Button type="submit" className="w-full">
               Next Step
-            </button>
+            </Button>
           </form>
         </Form>
       </div>

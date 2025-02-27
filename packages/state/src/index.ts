@@ -1,96 +1,96 @@
-import { BaseAction, validateSchema, s } from '@redux-ai/schema';
 import type { ReduxAIVector } from '@redux-ai/vector';
-import type { Store, UnknownAction } from '@reduxjs/toolkit';
-import { generateSystemPrompt } from './prompts';
-import type { StateUpdateEvent } from './types';
+import type { Store } from '@reduxjs/toolkit';
+import type { Type } from '@sinclair/typebox';
 
 export interface AIStateConfig {
   store: Store;
-  schema: ReturnType<typeof s.object>;
-  vectorStorage: ReduxAIVector;
-  apiEndpoint: string;
+  actions: ReturnType<typeof Type.Object>;
+  storage: ReduxAIVector;
+  endpoint: string;
   onError?: (error: Error) => void;
 }
 
 export class ReduxAIState {
   private store: Store;
-  private schema: ReturnType<typeof s.object>;
-  private vectorStorage: ReduxAIVector;
+  private actions: ReturnType<typeof Type.Object>;
+  private storage: ReduxAIVector;
   private onError?: (error: Error) => void;
-  private apiEndpoint: string;
+  private endpoint: string;
 
   constructor(config: AIStateConfig) {
+    if (!config.storage) {
+      throw new Error('Vector storage is required for ReduxAIState');
+    }
     this.store = config.store;
-    this.schema = config.schema;
-    this.vectorStorage = config.vectorStorage;
+    this.actions = config.actions;
+    this.storage = config.storage;
     this.onError = config.onError;
-    this.apiEndpoint = config.apiEndpoint;
+    this.endpoint = config.endpoint;
   }
 
   async processQuery(query: string) {
     try {
-      if (!query?.trim()) {
-        return this.handleError('Query is required');
+      if (!this.storage) {
+        throw new Error('Vector storage not initialized');
       }
 
       const state = this.store.getState();
-      const similarEntries = await this.vectorStorage.retrieveSimilar(query, 3);
-      const conversationHistory = similarEntries
+
+      const similarEntries = await this.storage.retrieveSimilar(query, 3);
+      const conversations = similarEntries
         .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
         .join('\n\n');
 
-      const prompt = generateSystemPrompt(state, this.schema, conversationHistory);
-
-      const apiResponse = await fetch(this.apiEndpoint, {
+      const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, prompt, currentState: state })
+        body: JSON.stringify({
+          query,
+          state,
+          actions: this.actions,
+          conversations,
+        }),
       });
 
-      if (!apiResponse.ok) {
-        return this.handleError('Failed to process request. Please try again.');
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.statusText}`);
       }
 
-      const result = await apiResponse.json();
-
-      if (!result?.message) {
-        return {
-          message: "I couldn't understand that request. Could you rephrase it?",
-          action: null
-        };
-      }
+      const result = await response.json();
 
       if (result.action) {
-        // Cast to UnknownAction to satisfy Redux dispatch type
-        this.store.dispatch(result.action as UnknownAction);
+        // Validate basic action structure
+        if (!result.action.type || typeof result.action.type !== 'string') {
+          throw new Error('Invalid action: missing or invalid type');
+        }
+
+        // Split action type into namespace and action name
+        const [namespace] = result.action.type.split('/');
+        if (!namespace) {
+          throw new Error(`Invalid action type format: ${result.action.type}`);
+        }
+
+        // Check if the action namespace exists in the schema
+        if (!this.actions.properties || !this.actions.properties[namespace]) {
+          throw new Error(`Invalid action namespace: ${namespace}`);
+        }
+
+        // At this point, the action is validated against our schema
+        this.store.dispatch(result.action);
       }
 
-      await this.vectorStorage.storeInteraction(query, result.message, state);
-
+      await this.storage.storeInteraction(query, result.message, state);
       return result;
-
     } catch (error) {
-      return this.handleError(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (this.onError) {
+        this.onError(new Error(errorMessage));
+      }
+      throw error; // Re-throw the error to maintain existing behavior
     }
-  }
-
-  private handleError(error: unknown): { message: string; action: null } {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    if (this.onError) {
-      this.onError(new Error(errorMessage));
-    }
-
-    return {
-      message: "I encountered an issue processing your request. Please try again.",
-      action: null
-    };
   }
 }
 
 export const createReduxAIState = (config: AIStateConfig): ReduxAIState => {
   return new ReduxAIState(config);
 };
-
-export type { BaseAction, StateUpdateEvent };
-export { generateSystemPrompt } from './prompts';

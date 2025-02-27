@@ -44,7 +44,8 @@ export class VectorStorage implements ReduxAIVector {
   private async initialize(): Promise<void> {
     try {
       await this.storage.initialize();
-    } catch (error) {
+    } catch (_error) {
+      // Throw a generic error since the specific error is implementation detail
       throw new Error('Vector storage initialization failed');
     }
   }
@@ -66,7 +67,7 @@ export class VectorStorage implements ReduxAIVector {
 
       await this.storage.addEntry(entry);
       this.notifyListeners(entry);
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Failed to add vector entry');
     }
   }
@@ -80,10 +81,10 @@ export class VectorStorage implements ReduxAIVector {
         metadata: {
           query,
           response,
-          state: stateString
+          state: stateString,
         },
       });
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Failed to store interaction');
     }
   }
@@ -101,7 +102,8 @@ export class VectorStorage implements ReduxAIVector {
         .sort((a, b) => b.score - a.score)
         .slice(0, limit)
         .map(({ entry }) => entry);
-    } catch (error) {
+    } catch (_error) {
+      // Return empty array on error to allow graceful degradation
       return [];
     }
   }
@@ -109,7 +111,8 @@ export class VectorStorage implements ReduxAIVector {
   async getAllEntries(): Promise<VectorEntry[]> {
     try {
       return await this.storage.getAllEntries();
-    } catch (error) {
+    } catch (_error) {
+      // Return empty array on error to allow graceful degradation
       return [];
     }
   }

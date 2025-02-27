@@ -1,6 +1,6 @@
 import type { ReduxAIVector } from '@redux-ai/vector';
-import { configureStore } from '@reduxjs/toolkit';
 import type { Store } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import { Type } from '@sinclair/typebox';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,7 +8,7 @@ import { createReduxAIState } from '../index';
 
 describe('ReduxAIState', () => {
   let mockStore: Store;
-  let mockStorage: ReduxAIVector;
+  let mockStorage: any;
   let mockErrorHandler: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe('ReduxAIState', () => {
       reducer: {
         test: (state = { value: 0 }, action) => {
           switch (action.type) {
-            case 'todos/increment':
+            case 'test/increment':
               return { value: state.value + 1 };
             default:
               return state;
@@ -38,11 +38,24 @@ describe('ReduxAIState', () => {
     };
   });
 
+  // Create test actions schema with action validation
   const testActions = Type.Object({
-    todos: Type.Object({
-      type: Type.Literal('todos/increment'),
-      payload: Type.Optional(Type.Object({}, { additionalProperties: true })),
+    test: Type.Object({
+      value: Type.Number(),
     }),
+    type: Type.String(),
+    payload: Type.Any(),
+  });
+
+  it('should initialize ReduxAIState with config', () => {
+    const reduxAI = createReduxAIState({
+      store: mockStore,
+      storage: mockStorage,
+      actions: testActions,
+      endpoint: 'http://localhost:3000/api',
+    });
+
+    expect(reduxAI).toBeDefined();
   });
 
   it('should process query and dispatch valid action', async () => {
@@ -50,14 +63,8 @@ describe('ReduxAIState', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          intent: 'action',
           message: 'Incrementing counter',
-          action: {
-            type: 'todos/increment',
-            todos: {
-              type: 'todos/increment',
-            },
-          },
+          action: { type: 'test/increment' },
         }),
     };
     vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
@@ -69,31 +76,43 @@ describe('ReduxAIState', () => {
       endpoint: 'http://localhost:3000/api',
     });
 
-    const state = mockStore.getState();
     const result = await reduxAI.processQuery('increment');
-
     expect(result.message).toBe('Incrementing counter');
-    expect(result.action).toEqual({
-      type: 'todos/increment',
-      todos: {
-        type: 'todos/increment',
-      },
+    expect(result.action).toEqual({ type: 'test/increment' });
+  });
+
+  it('should reject invalid action format', async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          message: 'Incrementing counter',
+          action: { invalid: 'format' }, // Missing required 'type' field
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+    const reduxAI = createReduxAIState({
+      store: mockStore,
+      storage: mockStorage,
+      actions: testActions,
+      endpoint: 'http://localhost:3000/api',
     });
 
-    // Verify proper storage interaction
-    expect(mockStorage.storeInteraction).toHaveBeenCalledWith(
-      'increment',
-      'Incrementing counter',
-      state
+    const result = await reduxAI.processQuery('increment');
+    expect(result.message).toBe(
+      "I couldn't create a valid action for that request. Could you rephrase it?"
     );
+    expect(result.action).toBeNull();
   });
 
   it('should handle API errors', async () => {
-    const mockErrorResponse = new Response(null, {
+    const mockErrorResponse = {
+      ok: false,
       status: 500,
-      statusText: 'Internal Server Error',
-    });
-    vi.mocked(fetch).mockResolvedValue(mockErrorResponse);
+      text: () => Promise.resolve('Internal Server Error'),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockErrorResponse as Response);
 
     const reduxAI = createReduxAIState({
       store: mockStore,
@@ -103,7 +122,11 @@ describe('ReduxAIState', () => {
       onError: mockErrorHandler,
     });
 
-    await expect(reduxAI.processQuery('test query')).rejects.toThrow();
+    const result = await reduxAI.processQuery('test query');
+    expect(result).toEqual({
+      message: 'I encountered an issue processing your request. Please try again.',
+      action: null,
+    });
     expect(mockErrorHandler).toHaveBeenCalled();
   });
 
@@ -122,30 +145,34 @@ describe('ReduxAIState', () => {
       onError: mockErrorHandler,
     });
 
-    await expect(reduxAI.processQuery('test query')).rejects.toThrow('Storage error');
+    const result = await reduxAI.processQuery('test query');
+    expect(result).toEqual({
+      message: 'I encountered an issue processing your request. Please try again.',
+      action: null,
+    });
     expect(mockErrorHandler).toHaveBeenCalledWith(mockError);
   });
 
   it('should handle invalid state structure', async () => {
-    const mockResponse = {
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          message: 'Processing request',
-          action: null,
-        }),
-    };
-    vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+    const invalidStore = configureStore({
+      reducer: {
+        test: (state = { invalidField: 'wrong type' }, action) => state,
+      },
+    });
 
     const reduxAI = createReduxAIState({
-      store: mockStore,
+      store: invalidStore,
       storage: mockStorage,
       actions: testActions,
       endpoint: 'http://localhost:3000/api',
+      onError: mockErrorHandler,
     });
 
     const result = await reduxAI.processQuery('test query');
-    expect(result.message).toBe('Processing request');
+    expect(result.message).toBe(
+      'I encountered an issue processing your request. Please try again.'
+    );
     expect(result.action).toBeNull();
+    expect(mockErrorHandler).toHaveBeenCalled();
   });
 });

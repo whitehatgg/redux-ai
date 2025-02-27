@@ -1,14 +1,16 @@
 import { useCallback, useState } from 'react';
 import { createReduxAIState } from '@redux-ai/state';
+
 import { useReduxAIContext } from '../components/ReduxAIProvider';
 
 export interface AIResponse {
-  message: string;
+  message?: string;
   action?: Record<string, unknown> | null;
+  error?: string;
 }
 
 export function useReduxAI() {
-  const { store, schema, vectorStorage, apiEndpoint } = useReduxAIContext();
+  const { store, actions, storage, endpoint } = useReduxAIContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,47 +20,49 @@ export function useReduxAI() {
       setError(null);
 
       try {
-        if (!vectorStorage) {
+        if (!storage) {
           throw new Error('Vector storage is not properly initialized');
         }
 
         const state = createReduxAIState({
           store,
-          schema,
-          vectorStorage,
-          apiEndpoint,
+          actions,
+          storage,
+          endpoint,
+          onError: error => {
+            console.error('ReduxAI Error:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            setError(errorMessage);
+            throw error; // Re-throw to be caught below
+          },
         });
 
         const result = await state.processQuery(query);
-        console.log('Raw response from state.processQuery:', result);
 
-        // Handle string responses
-        if (typeof result === 'string') {
-          return { message: result, action: null };
+        if (!result) {
+          throw new Error('No response received from the server');
         }
 
-        // Handle object responses
-        if (result && typeof result === 'object') {
-          return {
-            message: String(result.message || 'No message received'),
-            action: result.action || null
-          };
+        // Handle error responses
+        if ('error' in result && result.error) {
+          throw new Error(result.error);
         }
 
-        return {
-          message: 'Invalid response format received',
-          action: null
-        };
+        // Ensure we have either a message or an action
+        if (!result.message && !result.action) {
+          throw new Error('Invalid response format: missing message and action');
+        }
 
+        return result;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        const errorMessage = error instanceof Error ? error.message : String(error);
         setError(errorMessage);
-        throw error;
+        return { error: errorMessage };
       } finally {
         setIsProcessing(false);
       }
     },
-    [store, schema, vectorStorage, apiEndpoint]
+    [store, actions, storage, endpoint]
   );
 
   return {

@@ -1,15 +1,19 @@
-import { s } from 'ajv-ts';
+import { Type } from '@sinclair/typebox';
 import { describe, expect, it } from 'vitest';
+
 import { validateSchema } from '../index';
 
 describe('Schema Validation', () => {
-  const schema = s.object({
-    counter: s.number(),
-    text: s.string(),
-    nested: s.object({
-      value: s.boolean()
-    })
-  }).required(['counter', 'text', 'nested']);
+  const schema = Type.Object(
+    {
+      counter: Type.Number(),
+      text: Type.String(),
+      nested: Type.Object({
+        value: Type.Boolean(),
+      }),
+    },
+    { required: ['counter', 'text', 'nested'] }
+  );
 
   it('should validate a correct state', () => {
     const state = {
@@ -38,6 +42,11 @@ describe('Schema Validation', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toBeDefined();
     expect(result.errors?.length).toBeGreaterThan(0);
+
+    // Find the error for the counter field
+    const error = result.errors?.find(e => e.path === '/counter');
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('Expected number');
   });
 
   it('should reject missing required fields', () => {
@@ -50,12 +59,16 @@ describe('Schema Validation', () => {
 
     const result = validateSchema(state, schema);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('must have required property \'text\'');
+
+    // Verify text property is reported as missing
+    const textError = result.errors?.find(e => e.path === '/text');
+    expect(textError).toBeDefined();
+    expect(textError?.message).toContain('Expected required property');
   });
 
   it('should reject non-object values', () => {
     const result = validateSchema('not an object', schema);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('must be object');
+    expect(result.errors?.[0].message).toContain('Expected object');
   });
 });
