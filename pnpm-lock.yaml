@@ -676,6 +676,16 @@ importers:
       '@sinclair/typebox':
         specifier: ^0.34.28
         version: 0.34.28
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^1.0.4
+        version: 1.6.1(vitest@1.6.1(@types/node@20.17.19)(jsdom@26.0.0(bufferutil@4.0.9)))
+      typescript:
+        specifier: ^5.3.3
+        version: 5.7.3
+      vitest:
+        specifier: ^1.0.4
+        version: 1.6.1(@types/node@20.17.19)(jsdom@26.0.0(bufferutil@4.0.9))
 
   packages/state:
     dependencies:
