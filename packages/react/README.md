@@ -4,14 +4,14 @@ React components and hooks for the Redux AI state management system, providing d
 
 ## Features
 
-- Debug components for Redux state inspection
-- Vector similarity search visualization
-- Real-time activity logging
-- Custom hooks for vector storage access
-- AI-powered state inspection tools
-- TypeScript-first component library
-- Theme-aware components
-- Accessibility-first design
+- 🔍 Debug components for Redux state inspection
+- 📊 Vector similarity search visualization
+- 📝 Real-time activity logging with filtering
+- 🎣 Custom hooks for vector storage access
+- 🤖 AI-powered state inspection tools
+- 💎 TypeScript-first component library
+- 🎨 Theme-aware components with Tailwind CSS
+- ♿ Accessibility-first design
 
 ## Installation
 
@@ -23,6 +23,14 @@ pnpm add @redux-ai/react
 npm install @redux-ai/react
 ```
 
+## Key Dependencies
+
+- React 18.x
+- Redux Toolkit 2.x
+- TanStack Query 5.x
+- Radix UI Components
+- Tailwind CSS
+
 ## Usage
 
 ```typescript
@@ -30,7 +38,8 @@ import {
   ReduxAIProvider,
   VectorDebugger,
   ActivityLog,
-  useVectorDebug
+  useVectorDebug,
+  useAIActions
 } from '@redux-ai/react';
 
 // Wrap your app with the provider
@@ -79,8 +88,11 @@ const VectorViewer = () => {
   const {
     entries,
     isLoading,
-    search
+    search,
+    refresh
   } = useVectorDebug();
+
+  const { suggestions, confidence } = useAIActions();
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -88,6 +100,10 @@ const VectorViewer = () => {
     <div>
       <SearchBar onSearch={search} />
       <VectorList entries={entries} />
+      <AIActionSuggestions
+        suggestions={suggestions}
+        confidence={confidence}
+      />
     </div>
   );
 };
@@ -97,7 +113,7 @@ const VectorViewer = () => {
 
 ### `<ReduxAIProvider>`
 
-Provides Redux AI context to your application.
+Root provider component that sets up the Redux AI context.
 
 #### Props
 
@@ -108,7 +124,7 @@ Provides Redux AI context to your application.
 
 ### `<VectorDebugger>`
 
-Displays available actions and their metadata.
+Interactive visualization of vector storage and actions.
 
 #### Props
 
@@ -119,7 +135,7 @@ Displays available actions and their metadata.
 
 ### `<ActivityLog>`
 
-Shows real-time logging of vector operations.
+Real-time logging with filtering capabilities.
 
 #### Props
 
@@ -130,7 +146,7 @@ Shows real-time logging of vector operations.
 
 ### `<StateInspector>`
 
-Visual inspector for Redux state.
+Visual inspector for Redux state with diff view.
 
 #### Props
 
@@ -143,7 +159,7 @@ Visual inspector for Redux state.
 
 ### `useVectorDebug()`
 
-Hook for accessing vector storage data.
+Hook for accessing and managing vector storage.
 
 #### Returns
 
@@ -151,45 +167,61 @@ Hook for accessing vector storage data.
 - `isLoading` - Loading state boolean
 - `error` - Error state object
 - `search` - Search function
+- `refresh` - Refresh entries function
 - `clear` - Clear entries function
 
 ### `useAIActions()`
 
-Hook for accessing AI-suggested actions.
+Hook for AI-suggested actions with confidence scores.
 
 #### Returns
 
 - `suggestions` - Current action suggestions
-- `confidence` - Confidence scores
+- `confidence` - Confidence scores per suggestion
 - `refresh` - Refresh suggestions function
+- `execute` - Execute suggested action
 
 ### `useStatePredictor()`
 
-Hook for state prediction functionality.
+Hook for state prediction and analysis.
 
 #### Returns
 
 - `predict` - Prediction function
 - `results` - Prediction results
 - `accuracy` - Prediction accuracy
+- `confidence` - Confidence metrics
 
 ## Styling
 
-The components come with default styling and support customization through:
+Components support customization through:
 
 - CSS variables for theming
 - Tailwind CSS classes
 - Style prop for inline styles
 - className prop for custom classes
 
+### Default Theme
+
+```css
+:root {
+  --ai-primary: #0ea5e9;
+  --ai-secondary: #0f172a;
+  --ai-accent: #f97316;
+  --ai-background: #ffffff;
+  --ai-foreground: #0f172a;
+}
+```
+
 ## TypeScript Support
 
-All components and hooks are fully typed, providing:
+Full TypeScript support with:
 
-- Prop type checking
+- Strict type checking
 - Generic type parameters
 - Type inference
 - Autocomplete support
+- Proper component prop types
 
 ## Testing
 
@@ -199,6 +231,9 @@ pnpm test
 
 # Run tests with coverage
 pnpm test:coverage
+
+# Run tests in watch mode
+pnpm test:watch
 ```
 
 ### Test Utilities
@@ -206,7 +241,8 @@ pnpm test:coverage
 ```typescript
 import {
   createMockStore,
-  renderWithProvider
+  renderWithProvider,
+  mockVectorStorage
 } from '@redux-ai/react/testing';
 
 // Create a mock store
@@ -216,10 +252,15 @@ const store = createMockStore({
   }
 });
 
-// Render components with provider
+// Render with vector storage mock
 const { getByText } = renderWithProvider(
-  <YourComponent />,
-  { store }
+  <VectorDebugger />,
+  {
+    store,
+    vectorStorage: mockVectorStorage({
+      entries: [/* mock entries */]
+    })
+  }
 );
 ```
 

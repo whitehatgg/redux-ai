@@ -4,74 +4,90 @@ An advanced AI-powered Redux toolkit that provides intelligent state management 
 
 ## Features
 
-- 🧠 TypeScript-based state intelligence
-- 🐛 Advanced error detection and resolution
-- 📊 Dynamic state visualization and debugging tools
-- ⚡ Optimized performance monitoring
-- 📦 Robust vector storage and indexing
-- 🔄 Standardized framework adapters (Express.js, Next.js)
-- 🤖 OpenAI and LangChain integrations
-- 🔍 Vector-based state retrieval and similarity search
+- 🧠 TypeScript-based state intelligence with modern Redux patterns
+- 🐛 Advanced error detection and resolution with comprehensive logging
+- 📊 Dynamic state visualization and debugging tools with React components
+- ⚡ Optimized performance monitoring and caching strategies
+- 📦 Robust vector storage and indexing with efficient similarity search
+- 🔄 Framework adapters (Express.js, Next.js) with standardized APIs
+- 🤖 OpenAI and LangChain integrations with streaming support
+- 🔍 Vector-based state retrieval with real-time updates
 
 ## Architecture
 
 The project is structured as a monorepo with the following packages:
 
-### @redux-ai/runtime
+### @redux-ai/runtime (Core)
 
 Core runtime engine providing base functionality:
 
-- Base adapter interface for framework integration
-- Provider system for LLM integrations
-- Standardized error handling
-- Type-safe runtime configuration
+- Standardized adapter interface with TypeScript types
+- Pluggable provider system for AI integrations
+- Advanced error handling and logging
+- Type-safe configuration management
 
 ### @redux-ai/express
 
 Express.js adapter implementation:
 
-- Minimal adapter for Express.js integration
-- Core request handling and error management
-- Runtime configuration support
+- Minimal Express.js integration with middleware support
+- Robust request handling and error management
+- Runtime configuration with environment variables
 - Framework-agnostic AI query processing
-
-Note: Application-specific middleware (validation, logging, API key checks) should be implemented at the application level. See the server demo for reference implementations.
 
 ### @redux-ai/nextjs
 
 Next.js adapter implementation:
 
-- Server-side rendering support
-- API route handlers
+- Full server-side rendering support
+- API route handlers with streaming capabilities
 - Edge runtime compatibility
-- Streaming SSR support
+- Optimized streaming SSR
 
 ### @redux-ai/vector
 
-Vector storage and similarity search functionality:
+Vector storage and similarity search:
 
-- Efficient vector storage and retrieval
-- Cosine similarity-based search
-- Real-time state tracking
-- Subscription-based updates
+- Efficient vector storage with indexing
+- Real-time cosine similarity search
+- Subscription-based state tracking
+- Automatic garbage collection
 
 ### @redux-ai/state
 
-Core state management functionality:
+Core state management:
 
-- AI-powered state tracking
-- Automatic action suggestion
-- Vector storage integration
-- XState machine integration
+- AI-powered state tracking and prediction
+- Automatic action suggestions based on state
+- Seamless vector storage integration
+- XState machine integration for complex flows
 
 ### @redux-ai/react
 
-React components and hooks:
+React integration:
 
-- Debug components for Redux state inspection
+- Debug components for Redux inspection
 - Vector similarity search visualization
-- Real-time activity logging
+- Real-time activity monitoring
 - AI-powered state inspection tools
+
+### @redux-ai/langchain
+
+LangChain integration:
+
+- Seamless LangChain.js compatibility
+- Streaming chat completions
+- RAG-enabled state management
+- Custom chain development utilities
+
+### @redux-ai/openai
+
+OpenAI integration:
+
+- Direct OpenAI API integration
+- Streaming response support
+- Token usage optimization
+- Rate limiting and error handling
 
 ## Installation
 
@@ -185,7 +201,7 @@ The vector storage system implements:
 
 ### Performance Optimization
 
-- Efficient vector calculations
+- Efficient vector calculations with WebAssembly
 - Batch updates for storage operations
 - Memoized React components
 - Framework-specific optimizations
