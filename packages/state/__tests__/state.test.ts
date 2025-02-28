@@ -4,7 +4,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { Type } from '@sinclair/typebox';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createReduxAIState } from '../index';
+import { createReduxAIState } from '../src/index';
 
 describe('ReduxAIState', () => {
   let mockStore: Store;
