@@ -28,7 +28,7 @@ const mockStore = configureStore({
 // Create a mock action schema
 const mockActions = Type.Object({
   type: Type.String(),
-  payload: Type.Any(),
+  payload: Type.Optional(Type.Any()),
 });
 
 describe('ReduxAIProvider', () => {
