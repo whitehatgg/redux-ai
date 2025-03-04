@@ -1,16 +1,21 @@
-import { Type } from '@sinclair/typebox';
 import { describe, expect, it } from 'vitest';
 
 describe('Schema Utils', () => {
-  const testSchema = Type.Object({
-    counter: Type.Object({
-      value: Type.Number(),
-    }),
-    type: Type.String(),
-    payload: Type.Any(),
-  });
+  const testSchema = {
+    type: 'object',
+    properties: {
+      counter: {
+        type: 'object',
+        properties: {
+          value: { type: 'number' },
+        },
+      },
+      type: { type: 'string' },
+      payload: { type: 'object' },
+    },
+  };
 
-  it('should create valid TypeBox schema', () => {
+  it('should be a valid JSON Schema', () => {
     expect(testSchema.type).toBe('object');
     expect(testSchema.properties).toBeDefined();
     expect(testSchema.properties.counter).toBeDefined();

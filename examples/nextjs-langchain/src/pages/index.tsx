@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
@@ -13,7 +14,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { type PersonalInfo } from '@/store/schema';
+import { PersonalInfoSchema, type PersonalInfo } from '@/store/schema';
 import { setPersonalInfo } from '@/store/slices/applicantSlice';
 
 export default function PersonalInfoPage() {
@@ -21,6 +22,7 @@ export default function PersonalInfoPage() {
   const router = useRouter();
 
   const form = useForm<PersonalInfo>({
+    resolver: zodResolver(PersonalInfoSchema),
     defaultValues: {
       firstName: '',
       lastName: '',

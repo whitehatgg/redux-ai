@@ -27,9 +27,6 @@
     "test:coverage": "vitest run --coverage",
     "prepublishOnly": "echo 'Publishing package'"
   },
-  "dependencies": {
-    "@sinclair/typebox": "^0.34.28"
-  },
   "devDependencies": {
     "@vitest/coverage-v8": "^1.0.4",
     "typescript": "^5.3.3",
@@ -38,5 +35,8 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
   }
 }

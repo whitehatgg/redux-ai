@@ -1,19 +1,23 @@
-import { Type } from '@sinclair/typebox';
 import { describe, expect, it } from 'vitest';
 
 import { validateSchema } from '../index';
 
 describe('Schema Validation', () => {
-  const schema = Type.Object(
-    {
-      counter: Type.Number(),
-      text: Type.String(),
-      nested: Type.Object({
-        value: Type.Boolean(),
-      }),
+  const schema = {
+    type: 'object',
+    required: ['counter', 'text', 'nested'],
+    properties: {
+      counter: { type: 'number' },
+      text: { type: 'string' },
+      nested: {
+        type: 'object',
+        required: ['value'],
+        properties: {
+          value: { type: 'boolean' },
+        },
+      },
     },
-    { required: ['counter', 'text', 'nested'] }
-  );
+  };
 
   it('should validate a correct state', () => {
     const state = {
@@ -46,7 +50,7 @@ describe('Schema Validation', () => {
     // Find the error for the counter field
     const error = result.errors?.find(e => e.path === '/counter');
     expect(error).toBeDefined();
-    expect(error?.message).toContain('Expected number');
+    expect(error?.message).toContain('must be number');
   });
 
   it('should reject missing required fields', () => {
@@ -59,16 +63,17 @@ describe('Schema Validation', () => {
 
     const result = validateSchema(state, schema);
     expect(result.valid).toBe(false);
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.length).toBeGreaterThan(0);
 
-    // Verify text property is reported as missing
-    const textError = result.errors?.find(e => e.path === '/text');
-    expect(textError).toBeDefined();
-    expect(textError?.message).toContain('Expected required property');
+    // Verify required property error
+    const missingErrors = result.errors?.filter(e => e.message.includes('required'));
+    expect(missingErrors?.length).toBeGreaterThan(0);
   });
 
   it('should reject non-object values', () => {
     const result = validateSchema('not an object', schema);
     expect(result.valid).toBe(false);
-    expect(result.errors?.[0].message).toContain('Expected object');
+    expect(result.errors?.[0].message).toContain('must be object');
   });
 });

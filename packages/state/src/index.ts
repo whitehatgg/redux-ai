@@ -1,3 +1,4 @@
+import { validateSchema } from '@redux-ai/schema';
 import type { ReduxAIVector } from '@redux-ai/vector';
 import type { Store } from '@reduxjs/toolkit';
 import type { Type } from '@sinclair/typebox';
@@ -36,11 +37,13 @@ export class ReduxAIState {
 
       const state = this.store.getState();
 
+      // Retrieve similar entries for context
       const similarEntries = await this.storage.retrieveSimilar(query, 3);
       const conversations = similarEntries
         .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
         .join('\n\n');
 
+      // Make API request with context
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,27 +61,18 @@ export class ReduxAIState {
 
       const result = await response.json();
 
+      // Validate and dispatch action if present
       if (result.action) {
-        // Validate basic action structure
-        if (!result.action.type || typeof result.action.type !== 'string') {
-          throw new Error('Invalid action: missing or invalid type');
+        const validationResult = validateSchema(result.action, this.actions);
+        if (!validationResult.valid) {
+          throw new Error(
+            'Invalid action: ' + validationResult.errors?.map(e => e.message).join(', ')
+          );
         }
-
-        // Split action type into namespace and action name
-        const [namespace] = result.action.type.split('/');
-        if (!namespace) {
-          throw new Error(`Invalid action type format: ${result.action.type}`);
-        }
-
-        // Check if the action namespace exists in the schema
-        if (!this.actions.properties || !this.actions.properties[namespace]) {
-          throw new Error(`Invalid action namespace: ${namespace}`);
-        }
-
-        // At this point, the action is validated against our schema
         this.store.dispatch(result.action);
       }
 
+      // Store the interaction
       await this.storage.storeInteraction(query, result.message, state);
       return result;
     } catch (error) {
@@ -86,7 +80,7 @@ export class ReduxAIState {
       if (this.onError) {
         this.onError(new Error(errorMessage));
       }
-      throw error; // Re-throw the error to maintain existing behavior
+      throw error;
     }
   }
 }

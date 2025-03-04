@@ -1,4 +1,5 @@
-import { BaseLLMProvider, type Message, type ProviderConfig } from '@redux-ai/runtime/src/provider';
+import { BaseLLMProvider } from '@redux-ai/runtime';
+import type { CompletionResponse, Message, ProviderConfig } from '@redux-ai/runtime/dist/types';
 import OpenAI from 'openai';
 import type { ChatCompletionMessage } from 'openai/resources/chat/completions';
 
@@ -16,20 +17,22 @@ export class OpenAIProvider extends BaseLLMProvider {
   private maxTokens: number;
 
   constructor(config: OpenAIConfig) {
-    super(config);
+    super({
+      timeout: config.timeout,
+      debug: config.debug,
+    });
     this.client = new OpenAI({ apiKey: config.apiKey });
-    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     this.model = config.model ?? 'gpt-4o';
     this.temperature = config.temperature ?? 0.7;
     this.maxTokens = config.maxTokens ?? 1000;
   }
 
   protected convertMessage(message: Message): ChatCompletionMessage {
+    // OpenAI API expects role to be one of: system, user, assistant
     return {
-      role: 'assistant',
+      role: message.role,
       content: message.content,
-      refusal: null,
-    };
+    } as ChatCompletionMessage;
   }
 
   protected async completeRaw(messages: Message[]): Promise<unknown> {
@@ -63,3 +66,5 @@ export class OpenAIProvider extends BaseLLMProvider {
     return content;
   }
 }
+
+export default OpenAIProvider;

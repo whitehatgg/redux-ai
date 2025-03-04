@@ -5,11 +5,16 @@ import { runtime } from './config';
 
 export async function registerRoutes(app: Express) {
   const adapter = new ExpressAdapter();
-  const handler = adapter.createHandler({ runtime });
+  const handler = await adapter.createHandler({ runtime });
 
   app.post('/api/query', async (req, res, next) => {
     try {
-      await handler(req, res, next);
+      // Cast the handler back to its original type for execution
+      await (handler as unknown as (req: any, res: any, next: any) => Promise<void>)(
+        req,
+        res,
+        next
+      );
     } catch (error) {
       next(error);
     }

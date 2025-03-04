@@ -9,6 +9,9 @@
     "test:coverage": "vitest run --coverage",
     "check": "tsc --noEmit"
   },
+  "dependencies": {
+    "@redux-ai/schema": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@vitest/coverage-v8": "^1.6.1",

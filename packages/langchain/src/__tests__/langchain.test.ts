@@ -1,4 +1,4 @@
-import type { Message } from '@redux-ai/runtime/src/provider';
+import type { CompletionResponse, Message } from '@redux-ai/runtime/dist/types';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';

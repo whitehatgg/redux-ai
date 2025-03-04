@@ -1,5 +1,5 @@
 import { OpenAIProvider } from '@redux-ai/openai';
-import { Runtime } from '@redux-ai/runtime';
+import { createRuntime } from '@redux-ai/runtime';
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY environment variable is required');
@@ -13,8 +13,8 @@ const provider = new OpenAIProvider({
   maxTokens: 200,
 });
 
-// Create runtime instance
-export const runtime = new Runtime({
+// Create runtime instance using the factory function
+export const runtime = createRuntime({
   provider,
   debug: process.env.NODE_ENV === 'development',
 });

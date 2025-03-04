@@ -1,154 +1,125 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Runtime } from '../index';
-import type { CompletionResponse, LLMProvider } from '../types';
+import { createRuntime } from '../index';
+import { BaseLLMProvider } from '../provider';
+import type { CompletionResponse, IntentCompletionResponse, Message } from '../types';
 
-class MockProvider implements LLMProvider {
-  async complete(prompt: string): Promise<CompletionResponse> {
-    // Test intent determination
-    if (prompt.includes('"intent": "action" | "state" | "conversation"')) {
-      if (prompt.includes('mark the first incomplete todo as done')) {
-        return {
-          message: "Let's take action to complete that todo",
-          action: { intent: 'action' },
-        };
-      } else if (prompt.includes('show my pending todos')) {
-        return {
-          message: "Let's check your todo list",
-          action: { intent: 'state' },
-        };
-      }
-      return {
-        message: "Let's have a chat about that",
-        action: { intent: 'conversation' },
-      };
+class MockProvider extends BaseLLMProvider {
+  responses: Array<CompletionResponse | IntentCompletionResponse>;
+
+  constructor(responses: Array<CompletionResponse | IntentCompletionResponse>) {
+    super({ timeout: 30000, debug: false });
+    this.responses = responses;
+  }
+
+  async complete(_prompt: string): Promise<CompletionResponse | IntentCompletionResponse> {
+    const response = this.responses.shift();
+    if (!response) {
+      throw new Error('No more mock responses');
     }
+    return response;
+  }
 
-    // Test action handling
-    if (prompt.includes('Available Actions:')) {
-      return {
-        message: "I'll mark the todo as completed",
-        action: {
-          type: 'todos/toggleComplete',
-          payload: { id: '2' },
-        },
-      };
-    }
+  protected async completeRaw(): Promise<unknown> {
+    return {};
+  }
 
-    // Test state handling
-    if (prompt.includes('state')) {
-      return {
-        message: 'You have 2 pending todos: Walk dog, Code review',
-        action: null,
-      };
-    }
-
-    // Test conversation handling
-    return {
-      message: 'Here are the available actions...',
-      action: null,
-    };
+  protected convertMessage(_message: Message): unknown {
+    return {};
   }
 }
 
-describe('Runtime', () => {
-  let provider: LLMProvider;
+describe('Runtime Core Functionality', () => {
+  describe('Intent Classification', () => {
+    it('should handle action intent with proper resources', async () => {
+      const provider = new MockProvider([
+        { intent: 'action' as const, message: 'Action detected' },
+        { message: 'Action executed', action: { type: 'test', payload: {} } },
+      ]);
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    provider = new MockProvider();
+      const runtime = createRuntime({ provider });
+      const result = await runtime.query({
+        query: 'execute action',
+        actions: { test: {} },
+      });
+
+      expect(result).toEqual({
+        message: 'Action executed',
+        action: { type: 'test', payload: {} },
+      });
+    });
+
+    it('should handle state queries with available state', async () => {
+      const provider = new MockProvider([
+        { intent: 'state' as const, message: 'State detected' },
+        { message: 'Current state info', action: null },
+      ]);
+
+      const runtime = createRuntime({ provider });
+      const result = await runtime.query({
+        query: 'get state',
+        state: { test: true },
+      });
+
+      expect(result).toEqual({
+        message: 'Current state info',
+        action: null,
+      });
+    });
+
+    it('should handle conversation queries', async () => {
+      const provider = new MockProvider([
+        { intent: 'conversation' as const, message: 'Chat detected' },
+        { message: 'Chat response', action: null },
+      ]);
+
+      const runtime = createRuntime({ provider });
+      const result = await runtime.query({
+        query: 'hello',
+      });
+
+      expect(result).toEqual({
+        message: 'Chat response',
+        action: null,
+      });
+    });
   });
 
-  describe('query', () => {
-    it('should handle action intents and return valid actions', async () => {
-      const runtime = new Runtime({ provider });
-      const actions = {
-        todos: {
-          anyOf: [
-            {
-              properties: {
-                type: { const: 'todos/toggleComplete' },
-                payload: { type: 'object' },
-              },
-            },
-          ],
-        },
-      };
-      const state = {
-        todos: [
-          { id: '1', text: 'Buy milk', completed: true },
-          { id: '2', text: 'Walk dog', completed: false },
-          { id: '3', text: 'Code review', completed: false },
-        ],
-      };
+  describe('Resource Validation', () => {
+    it('should throw error for action intent when actions unavailable', async () => {
+      const provider = new MockProvider([
+        { intent: 'action' as const, message: 'Action detected' },
+      ]);
 
-      const response = await runtime.query({
-        query: 'mark the first incomplete todo as done',
-        actions,
-        state,
-        conversations:
-          'Previous: show my todos\nAI: Here are your todos: Buy milk (done), Walk dog, Code review',
-      });
-
-      expect(response).toEqual({
-        message: "I'll mark the todo as completed",
-        action: {
-          type: 'todos/toggleComplete',
-          payload: { id: '2' },
-        },
-      });
+      const runtime = createRuntime({ provider });
+      await expect(
+        runtime.query({
+          query: 'execute action',
+        })
+      ).rejects.toThrow('No actions available for action intent');
     });
 
-    it('should handle state queries', async () => {
-      const runtime = new Runtime({ provider });
-      const state = {
-        todos: [
-          { id: '1', text: 'Buy milk', completed: true },
-          { id: '2', text: 'Walk dog', completed: false },
-          { id: '3', text: 'Code review', completed: false },
-        ],
-      };
+    it('should throw error for state intent when state unavailable', async () => {
+      const provider = new MockProvider([{ intent: 'state' as const, message: 'State detected' }]);
 
-      const response = await runtime.query({
-        query: 'show my pending todos',
-        state,
-        conversations: 'Previous: What have I completed?\nAI: You\'ve completed "Buy milk"',
-      });
-
-      expect(response).toEqual({
-        message: 'You have 2 pending todos: Walk dog, Code review',
-        action: null,
-      });
+      const runtime = createRuntime({ provider });
+      await expect(
+        runtime.query({
+          query: 'get state',
+        })
+      ).rejects.toThrow('No state available for state intent');
     });
+  });
 
-    it('should handle conversation mode for general queries', async () => {
-      const runtime = new Runtime({ provider });
-      const conversations = 'Previous: help\nAI: Here are the available actions...';
+  describe('Error Handling', () => {
+    it('should propagate provider errors', async () => {
+      const errorProvider = new MockProvider([]);
+      vi.spyOn(errorProvider, 'complete').mockRejectedValue(new Error('Provider error'));
 
-      const response = await runtime.query({
-        query: 'help me understand',
-        conversations,
-      });
-
-      expect(response).toEqual({
-        message: 'Here are the available actions...',
-        action: null,
-      });
-    });
-
-    it('should handle errors from provider', async () => {
-      const errorProvider = {
-        complete: vi.fn().mockRejectedValue(new Error('Provider error')),
-      } as LLMProvider;
-
-      const runtime = new Runtime({ provider: errorProvider });
-
+      const runtime = createRuntime({ provider: errorProvider });
       await expect(
         runtime.query({
           query: 'test',
-          actions: {},
-          state: {},
-          conversations: '',
         })
       ).rejects.toThrow('Provider error');
     });

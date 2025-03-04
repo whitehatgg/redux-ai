@@ -40,8 +40,8 @@ describe('ExpressAdapter', () => {
     mockNext = vi.fn();
   });
 
-  it('should create an express handler', () => {
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+  it('should create an express handler', async () => {
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     expect(handler).toBeDefined();
     expect(typeof handler).toBe('function');
   });
@@ -50,7 +50,7 @@ describe('ExpressAdapter', () => {
     const expectedResponse = { message: 'Success', action: null };
     mockRuntime.query = vi.fn().mockResolvedValue(expectedResponse);
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRuntime.query).toHaveBeenCalledWith(mockReq.body);
@@ -58,7 +58,7 @@ describe('ExpressAdapter', () => {
   });
 
   it('should pass through non-matching requests', async () => {
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
 
     const nonMatchingReq = {
       ...mockReq,
@@ -74,13 +74,14 @@ describe('ExpressAdapter', () => {
     const error = new Error('Invalid API key or authentication failed');
     mockRuntime.query = vi.fn().mockRejectedValue(error);
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Invalid or missing API key',
       status: 'error',
+      isConfigured: false,
     });
   });
 
@@ -88,13 +89,14 @@ describe('ExpressAdapter', () => {
     const error = new Error('Rate limit exceeded');
     mockRuntime.query = vi.fn().mockRejectedValue(error);
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(429);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Rate limit exceeded',
       status: 'error',
+      isConfigured: false,
     });
   });
 
@@ -102,13 +104,14 @@ describe('ExpressAdapter', () => {
     const error = new Error('Unknown error');
     mockRuntime.query = vi.fn().mockRejectedValue(error);
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Unknown error',
       status: 'error',
+      isConfigured: false,
     });
   });
 });

@@ -1,19 +1,21 @@
-import { BaseLLMProvider, type Message, type ProviderConfig } from '@redux-ai/runtime/src/provider';
+import { BaseLLMProvider } from '@redux-ai/runtime';
+import type { Message, ProviderConfig } from '@redux-ai/runtime/dist/types';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 
 export interface LangChainConfig extends ProviderConfig {
   model: BaseChatModel;
-  timeout?: number;
-  debug?: boolean;
 }
 
 export class LangChainProvider extends BaseLLMProvider {
   private model: BaseChatModel;
 
   constructor(config: LangChainConfig) {
-    super(config);
+    super({
+      timeout: config.timeout,
+      debug: config.debug,
+    });
     this.model = config.model;
   }
 
@@ -49,3 +51,5 @@ export class LangChainProvider extends BaseLLMProvider {
     return response.content;
   }
 }
+
+export default LangChainProvider;

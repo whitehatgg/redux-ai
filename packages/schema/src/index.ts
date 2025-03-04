@@ -1,6 +1,4 @@
-import { Type } from '@sinclair/typebox';
-import type { Static, TSchema } from '@sinclair/typebox';
-import { TypeCompiler } from '@sinclair/typebox/compiler';
+import Ajv from 'ajv';
 
 // Core validation types
 export type ValidationResult<T> = {
@@ -15,35 +13,39 @@ export interface BaseAction {
   payload?: unknown;
 }
 
-// Schema validator function
-export function validateSchema<T extends TSchema>(
-  data: unknown,
-  schema: T
-): ValidationResult<Static<T>> {
-  if (!schema) {
-    return { valid: false, value: null, errors: [{ path: '', message: 'Invalid schema' }] };
-  }
+// Schema validator function with simplified AJV settings
+export function validateSchema<T>(data: unknown, schema: Record<string, any>): ValidationResult<T> {
+  const ajv = new Ajv({
+    strict: false,
+    allErrors: false, // Only return first error for clearer validation
+    useDefaults: true,
+    discriminator: true,
+    strictTypes: true, // Enable strict type checking for discriminated unions
+  });
 
   try {
-    const C = TypeCompiler.Compile(schema);
-    const isValid = C.Check(data);
+    const validate = ajv.compile(schema);
+    const isValid = validate(data);
 
     if (!isValid) {
-      const errors = [...C.Errors(data)].map(error => {
-        return {
-          path: error.path,
-          message: error.message,
-        };
-      });
-      return { valid: false, value: null, errors };
+      const error = validate.errors?.[0];
+      return {
+        valid: false,
+        value: null,
+        errors: error
+          ? [
+              {
+                path: error.instancePath || '',
+                message: error.message || 'Unknown validation error',
+              },
+            ]
+          : undefined,
+      };
     }
 
-    return { valid: true, value: data as Static<T> };
+    return { valid: true, value: data as T };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown validation error';
     return { valid: false, value: null, errors: [{ path: '', message }] };
   }
 }
-
-// Re-export TypeBox utilities
-export { Type, type TSchema, type Static };

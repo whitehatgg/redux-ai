@@ -1,17 +1,9 @@
-export interface CompletionResponse {
-  message: string;
-  action: Record<string, unknown> | null;
-}
-
-export interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-export interface ProviderConfig {
-  timeout?: number;
-  debug?: boolean;
-}
+import type {
+  CompletionResponse,
+  IntentCompletionResponse,
+  Message,
+  ProviderConfig,
+} from './types';
 
 export abstract class BaseLLMProvider {
   protected timeout: number;
@@ -25,7 +17,7 @@ export abstract class BaseLLMProvider {
   protected abstract convertMessage(message: Message): unknown;
   protected abstract completeRaw(messages: Message[]): Promise<unknown>;
 
-  async complete(prompt: string): Promise<CompletionResponse> {
+  async complete(prompt: string): Promise<CompletionResponse | IntentCompletionResponse> {
     if (!this.completeRaw) {
       throw new Error('Provider must implement completeRaw method');
     }
@@ -39,7 +31,7 @@ export abstract class BaseLLMProvider {
         {
           role: 'system',
           content:
-            'You must respond with a valid JSON object that includes "intent" and "message" fields when determining intent, or "message" and "action" fields for other responses. The action object must have a "type" field that exactly matches one of the provided action types.',
+            'You must respond with a valid JSON object. For intent determination, include "intent" and "message". For actions, include "message" and a single valid action object that exactly matches one of the allowed action types.',
         },
         { role: 'user', content: prompt },
       ];
@@ -76,32 +68,25 @@ export abstract class BaseLLMProvider {
         throw new Error('Response missing required message property');
       }
 
-      // Return either an intent response or action response
-      if (typedResponse.intent) {
-        return {
-          message: typedResponse.message,
-          action: { intent: typedResponse.intent },
-        };
-      }
-
-      if (typedResponse.action && typeof typedResponse.action === 'object') {
-        const action = typedResponse.action as Record<string, unknown>;
-        if (!action.type || typeof action.type !== 'string') {
-          throw new Error('Action response missing required type field');
+      // Validate intent response
+      if ('intent' in typedResponse) {
+        if (!['action', 'state', 'conversation'].includes(typedResponse.intent as string)) {
+          throw new Error('Invalid intent value');
         }
         return {
+          intent: typedResponse.intent as 'action' | 'state' | 'conversation',
           message: typedResponse.message,
-          action,
         };
       }
 
+      // Return a simplified response without strict schema validation
       return {
         message: typedResponse.message,
-        action: null,
+        action: typedResponse.action as Record<string, unknown> | null,
       };
     } catch (error) {
       if (this.debug) {
-        console.debug('[Provider] Error:', error);
+        console.error('[Provider] Error:', error);
       }
       throw error;
     }

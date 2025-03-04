@@ -40,13 +40,14 @@ describe('NextjsAdapter', () => {
   it('should handle API key errors', async () => {
     mockRuntime.query = vi.fn().mockRejectedValue(new Error('API key or authentication failed'));
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Invalid or missing API key',
       status: 'error',
+      isConfigured: false,
     });
   });
 
@@ -54,38 +55,42 @@ describe('NextjsAdapter', () => {
     // Mock isRateLimited to return true for this test
     vi.spyOn(adapter as any, 'isRateLimited').mockReturnValue(true);
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockRes.status).toHaveBeenCalledWith(429);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Rate limit exceeded',
       status: 'error',
+      isConfigured: false,
     });
   });
 
   it('should handle method not allowed', async () => {
     mockReq.method = 'GET';
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockRes.status).toHaveBeenCalledWith(405);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Method not allowed',
+      status: 'error',
+      isConfigured: false,
     });
   });
 
   it('should handle unknown errors', async () => {
     mockRuntime.query = vi.fn().mockRejectedValue(new Error('Unknown error'));
 
-    const handler = adapter.createHandler({ runtime: mockRuntime });
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
       error: 'Unknown error',
       status: 'error',
+      isConfigured: false,
     });
   });
 });

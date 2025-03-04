@@ -1,7 +1,14 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 
-import type { ApplicantState } from '../schema';
+import type {
+  ApplicantState,
+  SetSearchTermAction,
+  SetSortOrderAction,
+  SetVisibleColumnsAction,
+  ToggleSearchAction,
+  VisibleColumnKey,
+} from '../schema';
 
 // Define initial state that matches ApplicantState type
 const initialState: ApplicantState = {
@@ -40,12 +47,11 @@ const initialState: ApplicantState = {
   },
 };
 
-// Create the slice without explicit generic parameters to let TypeScript infer them
 const applicantSlice = createSlice({
   name: 'applicant',
   initialState,
   reducers: {
-    setSearchTerm(state, action: PayloadAction<string>) {
+    setSearchTerm(state, action: PayloadAction<SetSearchTermAction['payload']>) {
       state.tableConfig.searchTerm = action.payload;
     },
     toggleSearch(state) {
@@ -54,10 +60,10 @@ const applicantSlice = createSlice({
         state.tableConfig.searchTerm = '';
       }
     },
-    setVisibleColumns(state, action: PayloadAction<string[]>) {
+    setVisibleColumns(state, action: PayloadAction<SetVisibleColumnsAction['payload']>) {
       state.tableConfig.visibleColumns = action.payload;
     },
-    setSortOrder(state, action: PayloadAction<{ column: string; direction: 'asc' | 'desc' }>) {
+    setSortOrder(state, action: PayloadAction<SetSortOrderAction['payload']>) {
       state.tableConfig.sortBy = action.payload.column;
       state.tableConfig.sortOrder = action.payload.direction;
     },

@@ -1,38 +1,20 @@
 import { DEFAULT_PROMPTS, JSON_FORMAT_MESSAGE } from './prompts';
-import {
-  BaseLLMProvider,
-  type CompletionResponse,
-  type Message,
-  type ProviderConfig,
-} from './provider';
-import type { QueryParams } from './types';
+import { BaseLLMProvider } from './provider';
+import type {
+  AdapterRequest,
+  AdapterResponse,
+  CompletionResponse,
+  IntentCompletionResponse,
+  Message,
+  ProviderConfig,
+  QueryParams,
+  RuntimeAdapter,
+  RuntimeBase,
+  RuntimeConfig,
+} from './types';
 
-export interface RuntimeConfig {
-  provider: BaseLLMProvider;
-  debug?: boolean;
-}
-
-interface IntentResponse {
-  intent: 'action' | 'state' | 'conversation';
-  message: string;
-}
-
-interface ActionResponse extends CompletionResponse {
-  message: string;
-  action: Record<string, unknown>;
-}
-
-interface StateResponse extends CompletionResponse {
-  message: string;
-  action: null;
-}
-
-interface ConversationResponse extends CompletionResponse {
-  message: string;
-  action: null;
-}
-
-export class Runtime {
+// Runtime implementation
+class RuntimeImpl implements RuntimeBase {
   private provider: BaseLLMProvider;
   public readonly debug: boolean;
 
@@ -45,25 +27,42 @@ export class Runtime {
     query: string;
     conversations: string;
     actions?: Record<string, unknown>;
-  }): Promise<IntentResponse> {
+    state?: Record<string, unknown>;
+  }): Promise<IntentCompletionResponse> {
     try {
-      const prompt = `${DEFAULT_PROMPTS.intent}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nActions: ${JSON.stringify(params.actions)}\nContext: ${params.conversations}`;
-      const response = await this.provider.complete(prompt);
+      const prompt = `${DEFAULT_PROMPTS.intent}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nActions: ${JSON.stringify(params.actions)}\nState: ${JSON.stringify(params.state)}\nContext: ${params.conversations}`;
 
-      const parsed = response.action as { intent: 'action' | 'state' | 'conversation' };
-      if (!parsed?.intent || !['action', 'state', 'conversation'].includes(parsed.intent)) {
-        throw new Error('Invalid intent response: missing intent field');
+      if (this.debug) {
+        console.debug('[Runtime Debug] Sending intent prompt:', prompt);
+      }
+
+      const response = (await this.provider.complete(prompt)) as IntentCompletionResponse;
+
+      if (this.debug) {
+        console.debug('[Runtime Debug] Raw intent response:', JSON.stringify(response, null, 2));
+      }
+
+      // Validate basic intent response format
+      if (
+        !response ||
+        !response.intent ||
+        !['action', 'state', 'conversation'].includes(response.intent)
+      ) {
+        throw new Error('Invalid intent response');
       }
 
       return {
-        intent: parsed.intent,
-        message: response.message,
+        intent: response.intent,
+        message: response.message || '',
       };
     } catch (error) {
       if (this.debug) {
         console.error('[Runtime Error] Intent Processing:', error);
       }
-      throw error;
+      if (error instanceof Error && error.message.includes('Provider error')) {
+        throw error;
+      }
+      throw new Error('Invalid intent response');
     }
   }
 
@@ -72,38 +71,52 @@ export class Runtime {
     actions: Record<string, unknown>;
     state: Record<string, unknown>;
     conversations: string;
-  }): Promise<ActionResponse> {
+  }): Promise<CompletionResponse> {
     try {
-      const prompt = `${DEFAULT_PROMPTS.action}${JSON_FORMAT_MESSAGE}
-Available Actions:
-${JSON.stringify(params.actions, null, 2)}
+      const prompt = `${DEFAULT_PROMPTS.action}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nActions: ${JSON.stringify(params.actions, null, 2)}\nState: ${JSON.stringify(params.state, null, 2)}\nContext: ${params.conversations}`;
 
-Query: ${params.query}
-State: ${JSON.stringify(params.state, null, 2)}
-Context: ${params.conversations}`;
-
-      const response = await this.provider.complete(prompt);
-
-      // Only validate basic structure
-      if (!response.action || typeof response.action !== 'object') {
-        throw new Error('Invalid action response: missing or invalid action object');
+      if (this.debug) {
+        console.debug('[Runtime Debug] Sending action prompt:', prompt);
       }
 
-      const action = response.action as Record<string, unknown>;
-      if (!action.type || typeof action.type !== 'string') {
-        throw new Error('Invalid action response: missing action type');
+      const response = (await this.provider.complete(prompt)) as CompletionResponse;
+
+      if (this.debug) {
+        console.debug('[Runtime Debug] Raw action response:', JSON.stringify(response, null, 2));
       }
 
-      // Return the action without additional validation
+      // Validate response format
+      if (!response || !response.message) {
+        throw new Error('Invalid action response');
+      }
+
+      // Validate action if present
+      if (response.action) {
+        if (!response.action.type || typeof response.action.type !== 'string') {
+          throw new Error('Invalid action response');
+        }
+
+        return {
+          message: response.message,
+          action: {
+            type: response.action.type,
+            ...(response.action.payload !== undefined && { payload: response.action.payload }),
+          },
+        };
+      }
+
       return {
         message: response.message,
-        action: action,
+        action: null,
       };
     } catch (error) {
       if (this.debug) {
         console.error('[Runtime Error] Action Processing:', error);
       }
-      throw error;
+      if (error instanceof Error && error.message.includes('Provider error')) {
+        throw error;
+      }
+      throw new Error('Invalid action response');
     }
   }
 
@@ -111,13 +124,23 @@ Context: ${params.conversations}`;
     query: string;
     state: Record<string, unknown>;
     conversations: string;
-  }): Promise<StateResponse> {
+  }): Promise<CompletionResponse> {
     try {
       const prompt = `${DEFAULT_PROMPTS.state}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nState: ${JSON.stringify(params.state, null, 2)}\nContext: ${params.conversations}`;
-      const response = await this.provider.complete(prompt);
 
+      if (this.debug) {
+        console.debug('[Runtime Debug] Sending state prompt:', prompt);
+      }
+
+      const response = (await this.provider.complete(prompt)) as CompletionResponse;
+
+      if (this.debug) {
+        console.debug('[Runtime Debug] Raw state response:', JSON.stringify(response, null, 2));
+      }
+
+      // Validate response format
       if (!response || !response.message) {
-        throw new Error('Invalid state response: missing message');
+        throw new Error('Invalid state response');
       }
 
       return {
@@ -128,7 +151,10 @@ Context: ${params.conversations}`;
       if (this.debug) {
         console.error('[Runtime Error] State Processing:', error);
       }
-      throw error;
+      if (error instanceof Error && error.message.includes('Provider error')) {
+        throw error;
+      }
+      throw new Error('Invalid state response');
     }
   }
 
@@ -136,13 +162,26 @@ Context: ${params.conversations}`;
     query: string;
     conversations: string;
     actions?: Record<string, unknown>;
-  }): Promise<ConversationResponse> {
+  }): Promise<CompletionResponse> {
     try {
       const prompt = `${DEFAULT_PROMPTS.conversation}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nActions: ${JSON.stringify(params.actions)}\nContext: ${params.conversations}`;
-      const response = await this.provider.complete(prompt);
 
+      if (this.debug) {
+        console.debug('[Runtime Debug] Raw conversation prompt:', prompt);
+      }
+
+      const response = (await this.provider.complete(prompt)) as CompletionResponse;
+
+      if (this.debug) {
+        console.debug(
+          '[Runtime Debug] Raw conversation response:',
+          JSON.stringify(response, null, 2)
+        );
+      }
+
+      // Validate response format
       if (!response || !response.message) {
-        throw new Error('Invalid conversation response: missing message');
+        throw new Error('Invalid conversation response');
       }
 
       return {
@@ -153,20 +192,39 @@ Context: ${params.conversations}`;
       if (this.debug) {
         console.error('[Runtime Error] Conversation Processing:', error);
       }
-      throw error;
+      if (error instanceof Error && error.message.includes('Provider error')) {
+        throw error;
+      }
+      throw new Error('Invalid conversation response');
     }
   }
 
-  async query(params: QueryParams): Promise<CompletionResponse> {
+  async query(params: QueryParams): Promise<CompletionResponse | IntentCompletionResponse> {
     const { query, state, actions, conversations = '' } = params;
 
     try {
+      if (this.debug) {
+        console.debug('[Runtime Debug] Starting query processing:', {
+          query,
+          hasState: !!state,
+          hasActions: !!actions,
+          availableActions: actions ? Object.keys(actions) : [],
+        });
+      }
+
+      // First determine intent
       const intentResponse = await this.processIntent({
         query,
         conversations,
         actions,
+        state,
       });
 
+      if (this.debug) {
+        console.debug('[Runtime Debug] Determined intent:', intentResponse);
+      }
+
+      // Process based on intent and check resource availability
       switch (intentResponse.intent) {
         case 'action': {
           if (!actions) {
@@ -182,7 +240,6 @@ Context: ${params.conversations}`;
         }
         case 'conversation':
         default: {
-          // Pass actions to conversation mode
           return this.processConversation({ query, conversations, actions });
         }
       }
@@ -195,19 +252,28 @@ Context: ${params.conversations}`;
   }
 }
 
-export function createRuntime(config: RuntimeConfig): Runtime {
-  return new Runtime(config);
+// Factory function to create runtime instances
+export function createRuntime(config: RuntimeConfig): RuntimeBase {
+  return new RuntimeImpl(config);
 }
 
-// Re-export types used by providers
-export type { CompletionResponse, Message, ProviderConfig };
+// Export types and interfaces
+export type {
+  RuntimeBase as Runtime,
+  RuntimeConfig,
+  RuntimeAdapter,
+  CompletionResponse,
+  IntentCompletionResponse,
+  Message,
+  ProviderConfig,
+  QueryParams,
+  AdapterRequest,
+  AdapterResponse,
+};
+
+// Export core provider class
 export { BaseLLMProvider };
 export type LLMProvider = BaseLLMProvider;
 
-export {
-  BaseAdapter,
-  type RuntimeAdapter,
-  type RuntimeAdapterConfig,
-  type AdapterRequest,
-  type AdapterResponse,
-} from './adapter';
+// Export adapter related types
+export { BaseAdapter } from './adapter';

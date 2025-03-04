@@ -12,15 +12,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { RootState } from '@/store';
-import type { Applicant } from '@/store/schema';
+import type { Applicant, VisibleColumnKey } from '@/store/schema';
 import {
   setSearchTerm,
   setSortOrder,
   setVisibleColumns,
   toggleSearch,
 } from '@/store/slices/applicantSlice';
-
-type VisibleColumnKey = keyof Omit<Applicant, 'id'>;
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
@@ -40,14 +38,15 @@ export function ApplicantTable() {
     if (!tableConfig.enableSearch || !tableConfig.searchTerm) return true;
     const searchTerm = tableConfig.searchTerm.toLowerCase();
     return Object.entries(applicant).some(([key, value]) => {
-      if (key === 'id' || !tableConfig.visibleColumns.includes(key)) return false;
+      if (key === 'id' || !tableConfig.visibleColumns.includes(key as VisibleColumnKey))
+        return false;
       return String(value).toLowerCase().includes(searchTerm);
     });
   });
 
   const toggleColumn = (column: VisibleColumnKey) => {
     const newColumns = tableConfig.visibleColumns.includes(column)
-      ? tableConfig.visibleColumns.filter((col: VisibleColumnKey) => col !== column)
+      ? tableConfig.visibleColumns.filter(col => col !== column)
       : [...tableConfig.visibleColumns, column];
     dispatch(setVisibleColumns(newColumns));
   };
@@ -59,7 +58,7 @@ export function ApplicantTable() {
   const handleSort = (column: VisibleColumnKey) => {
     const direction =
       column === tableConfig.sortBy && tableConfig.sortOrder === 'asc' ? 'desc' : 'asc';
-    dispatch(setSortOrder({ column: column as string, direction }));
+    dispatch(setSortOrder({ column, direction }));
   };
 
   const sortedApplicants = [...filteredApplicants].sort((a: Applicant, b: Applicant) => {
@@ -98,13 +97,13 @@ export function ApplicantTable() {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {allColumns.map(({ key, label }) => (
-            <div key={String(key)} className="flex items-center gap-2">
+            <div key={key} className="flex items-center gap-2">
               <Checkbox
-                id={String(key)}
+                id={key}
                 checked={tableConfig.visibleColumns.includes(key)}
                 onCheckedChange={() => toggleColumn(key)}
               />
-              <Label htmlFor={String(key)} className="text-sm">
+              <Label htmlFor={key} className="text-sm">
                 {label}
               </Label>
             </div>
@@ -121,7 +120,7 @@ export function ApplicantTable() {
                   ({ key, label }) =>
                     tableConfig.visibleColumns.includes(key) && (
                       <TableHead
-                        key={String(key)}
+                        key={key}
                         className="cursor-pointer whitespace-nowrap px-4 py-3.5"
                         onClick={() => handleSort(key)}
                       >
@@ -148,7 +147,7 @@ export function ApplicantTable() {
                       ({ key }) =>
                         tableConfig.visibleColumns.includes(key) && (
                           <TableCell
-                            key={`${applicant.id}-${String(key)}`}
+                            key={`${applicant.id}-${key}`}
                             className="whitespace-nowrap px-4 py-3"
                           >
                             {String(applicant[key])}

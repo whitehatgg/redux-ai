@@ -10,9 +10,16 @@
     "sourceMap": true,
     "tsBuildInfoFile": "./.tsbuildinfo",
     "noEmit": false,
-    "emitDeclarationOnly": false,
-    "skipLibCheck": true
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@redux-ai/schema": ["packages/schema/src"],
+      "@redux-ai/schema/*": ["packages/schema/src/*"]
+    }
   },
+  "references": [{ "path": "../schema" }],
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

@@ -9,7 +9,7 @@ export type RootState = {
 };
 export type AppDispatch = typeof store.dispatch;
 
-// Create the store with proper type annotations
+// Create the store
 export const store = configureStore({
   reducer: {
     applicant: applicantReducer,

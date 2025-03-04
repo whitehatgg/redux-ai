@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { BaseAdapter, type RuntimeAdapterConfig } from '../adapter';
-import type { CompletionResponse, Message, Runtime } from '../types';
+import type { CompletionResponse, Message } from '../types';
 
-class MockRuntime implements Runtime {
+class MockRuntime implements RuntimeBase {
   readonly provider: {
     complete: (
       messages: Message[],
@@ -39,7 +39,7 @@ class MockRuntime implements Runtime {
 }
 
 describe('RuntimeAdapter', () => {
-  let mockRuntime: Runtime;
+  let mockRuntime: RuntimeBase;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,11 +68,11 @@ describe('RuntimeAdapter', () => {
   describe('BaseAdapter', () => {
     it('should handle API key errors correctly', () => {
       const adapter = new TestAdapter();
-      const error = new Error('Invalid API key');
+      const error = new Error('Invalid API key or authentication failed');
       const response = adapter.handleError(error);
 
       expect(response.status).toBe(401);
-      expect(response.body.error).toContain('Invalid or missing API key');
+      expect(response.body.error).toBe('Invalid or missing API key');
       expect(response.body.isConfigured).toBe(false);
     });
 
@@ -83,6 +83,7 @@ describe('RuntimeAdapter', () => {
 
       expect(response.status).toBe(429);
       expect(response.body.error).toContain('Rate limit exceeded');
+      expect(response.body.isConfigured).toBe(false);
     });
 
     it('should handle model access errors correctly', () => {
@@ -91,7 +92,7 @@ describe('RuntimeAdapter', () => {
       const response = adapter.handleError(error);
 
       expect(response.status).toBe(403);
-      expect(response.body.error).toContain('does not have access');
+      expect(response.body.error).toContain('Your API key does not have access');
       expect(response.body.isConfigured).toBe(false);
     });
 
@@ -102,6 +103,7 @@ describe('RuntimeAdapter', () => {
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Unknown error');
+      expect(response.body.isConfigured).toBe(false);
     });
 
     it('should handle non-Error objects correctly', () => {
@@ -109,7 +111,7 @@ describe('RuntimeAdapter', () => {
       const response = adapter.handleError('string error');
 
       expect(response.status).toBe(500);
-      expect(response.body.error).toBe('An unknown error occurred');
+      expect(response.body.error).toBe('Unknown error');
     });
   });
 
@@ -143,7 +145,7 @@ describe('RuntimeAdapter', () => {
 
     it('should handle runtime errors correctly', async () => {
       const errorRuntime = new MockRuntime();
-      vi.spyOn(errorRuntime, 'query').mockRejectedValue(new Error('Runtime error'));
+      vi.spyOn(errorRuntime, 'query').mockRejectedValue(new Error('provider error'));
 
       const adapter = new TestAdapter();
       const handler = adapter.createHandler({ runtime: errorRuntime });

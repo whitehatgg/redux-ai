@@ -1,88 +1,86 @@
-import { Type } from '@sinclair/typebox';
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
-// Define the base schemas
-export const applicantSchema = Type.Object({
-  id: Type.String(),
-  name: Type.String(),
-  email: Type.String(),
-  status: Type.String(),
-  position: Type.String(),
-  appliedDate: Type.String(),
+// Define the base schemas for table data
+export const applicantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  status: z.string(),
+  position: z.string(),
+  appliedDate: z.string(),
 });
 
-export const tableConfigSchema = Type.Object({
-  visibleColumns: Type.Array(Type.String()),
-  enableSearch: Type.Boolean(),
-  searchTerm: Type.String(),
-  sortBy: Type.Union([Type.String(), Type.Null()]),
-  sortOrder: Type.Union([Type.Union([Type.Literal('asc'), Type.Literal('desc')]), Type.Null()]),
+// Define the allowed column keys
+export const columnKeys = ['name', 'email', 'status', 'position', 'appliedDate'] as const;
+export type VisibleColumnKey = (typeof columnKeys)[number];
+
+// Table configuration schema
+export const tableConfigSchema = z.object({
+  visibleColumns: z.array(z.enum(columnKeys)),
+  enableSearch: z.boolean(),
+  searchTerm: z.string(),
+  sortBy: z.union([z.string(), z.null()]),
+  sortOrder: z.union([z.enum(['asc', 'desc']), z.null()]),
 });
 
 // Define the complete state schema
-export const applicantStateSchema = Type.Object({
-  applicants: Type.Array(applicantSchema),
+export const applicantStateSchema = z.object({
+  applicants: z.array(applicantSchema),
   tableConfig: tableConfigSchema,
 });
 
-// Individual action schemas for each possible action type
-export const setSearchTermAction = Type.Object(
-  {
-    type: Type.Literal('applicant/setSearchTerm'),
-    payload: Type.String(),
-  },
-  {
-    description: 'Set a search term to filter applicants by name, email, or position',
-    keywords: ['search', 'filter', 'find', 'query', 'lookup', 'name', 'applicant', 'text', 'term'],
-  }
-);
-
-export const toggleSearchAction = Type.Object(
-  {
-    type: Type.Literal('applicant/toggleSearch'),
-  },
-  {
-    description: 'Enable or disable the search functionality in the applicant table',
-    keywords: ['toggle', 'enable', 'disable', 'switch', 'search', 'on', 'off'],
-  }
-);
-
-export const setVisibleColumnsAction = Type.Object(
-  {
-    type: Type.Literal('applicant/setVisibleColumns'),
-    payload: Type.Array(Type.String()),
-  },
-  {
-    description: 'Choose which columns to display in the applicant table view',
-    keywords: ['columns', 'visible', 'show', 'hide', 'display', 'table', 'fields'],
-  }
-);
-
-export const setSortOrderAction = Type.Object(
-  {
-    type: Type.Literal('applicant/setSortOrder'),
-    payload: Type.Object({
-      column: Type.String(),
-      direction: Type.Union([Type.Literal('asc'), Type.Literal('desc')]),
-    }),
-  },
-  {
-    description: 'Set the sorting order for a specific column in the applicant table',
-    keywords: ['sort', 'order', 'ascending', 'descending', 'column', 'direction'],
-  }
-);
-
-// Export the actionSchema for use with ReduxAIProvider
-export const actionSchema = Type.Object({
-  applicant: Type.Object({
-    setSearchTerm: setSearchTermAction,
-    toggleSearch: toggleSearchAction,
-    setVisibleColumns: setVisibleColumnsAction,
-    setSortOrder: setSortOrderAction,
-  }),
+// Define the action payload schemas
+export const setSearchTermSchema = z.string();
+export const setVisibleColumnsSchema = z.array(z.enum(columnKeys));
+export const setSortOrderSchema = z.object({
+  column: z.string(),
+  direction: z.enum(['asc', 'desc']),
 });
 
+// State query action schema
+export const stateQuerySchema = z.object({
+  query: z.string(),
+  state: z.record(z.unknown()),
+});
+
+// Action schemas defined as discriminated union
+export const actionSchema = z
+  .discriminatedUnion('type', [
+    z.object({
+      type: z.literal('applicant/setSearchTerm'),
+      payload: setSearchTermSchema,
+    }),
+    z.object({
+      type: z.literal('applicant/toggleSearch'),
+    }),
+    z.object({
+      type: z.literal('applicant/setVisibleColumns'),
+      payload: setVisibleColumnsSchema,
+    }),
+    z.object({
+      type: z.literal('applicant/setSortOrder'),
+      payload: setSortOrderSchema,
+    }),
+    z.object({
+      type: z.literal('state/query'),
+      payload: stateQuerySchema,
+    }),
+  ])
+  .nullable();
+
 // Export inferred types
-export type Applicant = typeof applicantSchema._type;
-export type TableConfig = typeof tableConfigSchema._type;
-export type ApplicantState = typeof applicantStateSchema._type;
-export type Action = typeof actionSchema._type;
+export type Applicant = z.infer<typeof applicantSchema>;
+export type TableConfig = z.infer<typeof tableConfigSchema>;
+export type ApplicantState = z.infer<typeof applicantStateSchema>;
+export type Action = z.infer<typeof actionSchema>;
+
+// Export action types
+export type SetSearchTermAction = Extract<Action, { type: 'applicant/setSearchTerm' }>;
+export type ToggleSearchAction = Extract<Action, { type: 'applicant/toggleSearch' }>;
+export type SetVisibleColumnsAction = Extract<Action, { type: 'applicant/setVisibleColumns' }>;
+export type SetSortOrderAction = Extract<Action, { type: 'applicant/setSortOrder' }>;
+
+// Generate JSON schema
+export const jsonActionSchema = zodToJsonSchema(actionSchema);
+export const jsonStateSchema = zodToJsonSchema(applicantStateSchema);

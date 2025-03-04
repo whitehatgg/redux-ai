@@ -1,11 +1,12 @@
-import { BaseAdapter, type RuntimeAdapterConfig } from '@redux-ai/runtime';
+import { BaseAdapter } from '@redux-ai/runtime';
+import type { AdapterResponse, RuntimeAdapterConfig } from '@redux-ai/runtime/dist/types';
 import type { NextFunction, Request, Response } from 'express';
 
 /**
  * Express adapter for Redux AI runtime
  */
 export class ExpressAdapter extends BaseAdapter {
-  public createHandler(config: RuntimeAdapterConfig) {
+  public async createHandler(config: RuntimeAdapterConfig): Promise<AdapterResponse> {
     const runtime = config.runtime;
     const path = config.endpoint ?? '/api/query';
 
@@ -37,39 +38,13 @@ export class ExpressAdapter extends BaseAdapter {
           console.error('[Express Debug] Error processing request:', error);
         }
 
-        // Handle specific error types
-        if (error instanceof Error) {
-          const errorMessage = error.message.toLowerCase();
-
-          // API key related errors
-          if (
-            errorMessage.includes('api key') ||
-            errorMessage.includes('apikey') ||
-            errorMessage.includes('authentication')
-          ) {
-            return res.status(401).json({
-              error: 'Invalid or missing API key',
-              status: 'error',
-            });
-          }
-
-          // Rate limit errors
-          if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
-            return res.status(429).json({
-              error: 'Rate limit exceeded',
-              status: 'error',
-            });
-          }
-        }
-
-        return res.status(500).json({
-          error: error instanceof Error ? error.message : 'Unknown error',
-          status: 'error',
-        });
+        const errorResult = this.handleError(error);
+        return res.status(errorResult.status).json(errorResult.body);
       }
     };
 
-    return handler.bind(this);
+    // Cast the handler function as AdapterResponse to satisfy the interface
+    return handler as unknown as AdapterResponse;
   }
 }
 
