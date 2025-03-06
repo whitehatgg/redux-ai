@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { Type } from '@sinclair/typebox';
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,11 +24,11 @@ const mockStore = configureStore({
   },
 });
 
-// Create a mock action schema
-const mockActions = Type.Object({
-  type: Type.String(),
-  payload: Type.Optional(Type.Any()),
-});
+// Define interfaces for type safety
+interface MockAction {
+  type: string;
+  payload?: any;
+}
 
 describe('ReduxAIProvider', () => {
   beforeEach(() => {
@@ -44,7 +43,7 @@ describe('ReduxAIProvider', () => {
 
   it('renders loading state initially', () => {
     render(
-      <ReduxAIProvider store={mockStore} actions={mockActions} endpoint="/api/ai">
+      <ReduxAIProvider store={mockStore} actions={{} as MockAction} endpoint="/api/ai">
         <div>Child content</div>
       </ReduxAIProvider>
     );
@@ -54,7 +53,7 @@ describe('ReduxAIProvider', () => {
 
   it('renders children when initialized', async () => {
     render(
-      <ReduxAIProvider store={mockStore} actions={mockActions} endpoint="/api/ai">
+      <ReduxAIProvider store={mockStore} actions={{} as MockAction} endpoint="/api/ai">
         <div data-testid="child">Child content</div>
       </ReduxAIProvider>
     );
@@ -70,7 +69,7 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider store={mockStore} actions={mockActions} endpoint="/api/ai">
+      <ReduxAIProvider store={mockStore} actions={{} as MockAction} endpoint="/api/ai">
         <div>Child content</div>
       </ReduxAIProvider>
     );

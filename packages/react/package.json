@@ -37,7 +37,6 @@
     "@redux-ai/state": "workspace:*",
     "@redux-ai/vector": "workspace:*",
     "@reduxjs/toolkit": "^2.5.1",
-    "@sinclair/typebox": "^0.34.28",
     "@tanstack/react-query": "^5.66.7",
     "@tanstack/react-query-devtools": "^5.66.7",
     "class-variance-authority": "^0.7.0",

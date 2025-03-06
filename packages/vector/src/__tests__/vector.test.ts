@@ -40,26 +40,24 @@ describe('ReduxAIVector', () => {
     const vector = await createReduxAIVector();
     const query = 'test query';
     const response = 'test response';
-    const state = { test: 'state' };
 
     const mockEntry: VectorEntry = {
       id: '123',
       vector: new Array(128).fill(0),
       timestamp: Date.now(),
-      metadata: { query, response, state: JSON.stringify(state) },
+      metadata: { query, response },
     };
 
     mockStorage.retrieveSimilar.mockResolvedValueOnce([mockEntry]);
 
-    await vector.storeInteraction(query, response, state);
+    await vector.storeInteraction(query, response);
     const similar = await vector.retrieveSimilar(query, 1);
 
-    expect(mockStorage.storeInteraction).toHaveBeenCalledWith(query, response, state);
+    expect(mockStorage.storeInteraction).toHaveBeenCalledWith(query, response);
     expect(similar).toHaveLength(1);
     expect(similar[0].metadata).toEqual({
       query,
       response,
-      state: JSON.stringify(state),
     });
   });
 
@@ -70,8 +68,8 @@ describe('ReduxAIVector', () => {
     const unsubscribe = vector.subscribe(callback);
     expect(typeof unsubscribe).toBe('function');
 
-    await vector.storeInteraction('test', 'response', {});
-    expect(mockStorage.storeInteraction).toHaveBeenCalledWith('test', 'response', {});
+    await vector.storeInteraction('test', 'response');
+    expect(mockStorage.storeInteraction).toHaveBeenCalledWith('test', 'response');
 
     unsubscribe();
     expect(unsubscribeSpy).toHaveBeenCalled();
@@ -89,7 +87,7 @@ describe('ReduxAIVector', () => {
     const error = new Error('Storage operation failed');
 
     mockStorage.storeInteraction.mockRejectedValueOnce(error);
-    await expect(vector.storeInteraction('test', 'response', {})).rejects.toThrow(
+    await expect(vector.storeInteraction('test', 'response')).rejects.toThrow(
       'Storage operation failed'
     );
   });

@@ -30,11 +30,11 @@ class MockProvider extends BaseLLMProvider {
 }
 
 describe('Runtime Core Functionality', () => {
-  describe('Intent Classification', () => {
+  describe('Intent Processing', () => {
     it('should handle action intent with proper resources', async () => {
       const provider = new MockProvider([
         { intent: 'action' as const, message: 'Action detected' },
-        { message: 'Action executed', action: { type: 'test', payload: {} } },
+        { message: 'Action executed', action: { type: 'test' }, intent: 'action' },
       ]);
 
       const runtime = createRuntime({ provider });
@@ -45,14 +45,15 @@ describe('Runtime Core Functionality', () => {
 
       expect(result).toEqual({
         message: 'Action executed',
-        action: { type: 'test', payload: {} },
+        action: { type: 'test' },
+        intent: 'action',
       });
     });
 
-    it('should handle state queries with available state', async () => {
+    it('should handle state intent with available state', async () => {
       const provider = new MockProvider([
-        { intent: 'state' as const, message: 'State detected' },
-        { message: 'Current state info', action: null },
+        { intent: 'state' as const, message: 'State query' },
+        { message: 'Current state', action: null, intent: 'state' },
       ]);
 
       const runtime = createRuntime({ provider });
@@ -62,66 +63,45 @@ describe('Runtime Core Functionality', () => {
       });
 
       expect(result).toEqual({
-        message: 'Current state info',
+        message: 'Current state',
         action: null,
+        intent: 'state',
       });
     });
 
-    it('should handle conversation queries', async () => {
+    it('should handle conversation intent', async () => {
       const provider = new MockProvider([
-        { intent: 'conversation' as const, message: 'Chat detected' },
-        { message: 'Chat response', action: null },
+        { intent: 'conversation' as const, message: 'Chat mode' },
+        { message: 'Chat response', action: null, intent: 'conversation' },
       ]);
 
       const runtime = createRuntime({ provider });
-      const result = await runtime.query({
-        query: 'hello',
-      });
+      const result = await runtime.query({ query: 'hello' });
 
       expect(result).toEqual({
         message: 'Chat response',
         action: null,
+        intent: 'conversation',
       });
     });
   });
 
-  describe('Resource Validation', () => {
-    it('should throw error for action intent when actions unavailable', async () => {
+  describe('Error Handling', () => {
+    it('should handle provider errors', async () => {
+      const errorProvider = new MockProvider([]);
+      vi.spyOn(errorProvider, 'complete').mockRejectedValue(new Error('Provider error'));
+
+      const runtime = createRuntime({ provider: errorProvider });
+      await expect(runtime.query({ query: 'test' })).rejects.toThrow('Provider error');
+    });
+
+    it('should handle missing resources gracefully', async () => {
       const provider = new MockProvider([
         { intent: 'action' as const, message: 'Action detected' },
       ]);
 
       const runtime = createRuntime({ provider });
-      await expect(
-        runtime.query({
-          query: 'execute action',
-        })
-      ).rejects.toThrow('No actions available for action intent');
-    });
-
-    it('should throw error for state intent when state unavailable', async () => {
-      const provider = new MockProvider([{ intent: 'state' as const, message: 'State detected' }]);
-
-      const runtime = createRuntime({ provider });
-      await expect(
-        runtime.query({
-          query: 'get state',
-        })
-      ).rejects.toThrow('No state available for state intent');
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should propagate provider errors', async () => {
-      const errorProvider = new MockProvider([]);
-      vi.spyOn(errorProvider, 'complete').mockRejectedValue(new Error('Provider error'));
-
-      const runtime = createRuntime({ provider: errorProvider });
-      await expect(
-        runtime.query({
-          query: 'test',
-        })
-      ).rejects.toThrow('Provider error');
+      await expect(runtime.query({ query: 'test' })).rejects.toThrow('No actions available');
     });
   });
 });

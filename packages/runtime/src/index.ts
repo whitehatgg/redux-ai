@@ -14,7 +14,7 @@ import type {
 } from './types';
 
 // Runtime implementation
-class RuntimeImpl implements RuntimeBase {
+export class RuntimeImpl implements RuntimeBase {
   private provider: BaseLLMProvider;
   public readonly debug: boolean;
 
@@ -73,7 +73,13 @@ class RuntimeImpl implements RuntimeBase {
     conversations: string;
   }): Promise<CompletionResponse> {
     try {
-      const prompt = `${DEFAULT_PROMPTS.action}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nActions: ${JSON.stringify(params.actions, null, 2)}\nState: ${JSON.stringify(params.state, null, 2)}\nContext: ${params.conversations}`;
+      const prompt = `${DEFAULT_PROMPTS.action}${JSON_FORMAT_MESSAGE}\n\nQuery: ${
+        params.query
+      }\nActions: ${JSON.stringify(params.actions, null, 2)}\nState: ${JSON.stringify(
+        params.state,
+        null,
+        2
+      )}\nContext: ${params.conversations}`;
 
       if (this.debug) {
         console.debug('[Runtime Debug] Sending action prompt:', prompt);
@@ -126,7 +132,9 @@ class RuntimeImpl implements RuntimeBase {
     conversations: string;
   }): Promise<CompletionResponse> {
     try {
-      const prompt = `${DEFAULT_PROMPTS.state}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nState: ${JSON.stringify(params.state, null, 2)}\nContext: ${params.conversations}`;
+      const prompt = `${DEFAULT_PROMPTS.state}${JSON_FORMAT_MESSAGE}\n\nQuery: ${
+        params.query
+      }\nState: ${JSON.stringify(params.state, null, 2)}\nContext: ${params.conversations}`;
 
       if (this.debug) {
         console.debug('[Runtime Debug] Sending state prompt:', prompt);
@@ -164,7 +172,12 @@ class RuntimeImpl implements RuntimeBase {
     actions?: Record<string, unknown>;
   }): Promise<CompletionResponse> {
     try {
-      const prompt = `${DEFAULT_PROMPTS.conversation}${JSON_FORMAT_MESSAGE}\n\nQuery: ${params.query}\nActions: ${JSON.stringify(params.actions)}\nContext: ${params.conversations}`;
+      // Include both past conversations and available actions in the context
+      const prompt = `${DEFAULT_PROMPTS.conversation}${JSON_FORMAT_MESSAGE}\n\nQuery: ${
+        params.query
+      }\nActions: ${JSON.stringify(params.actions)}\nContext: ${
+        params.conversations || 'No previous conversation history.'
+      }`;
 
       if (this.debug) {
         console.debug('[Runtime Debug] Raw conversation prompt:', prompt);
@@ -208,6 +221,7 @@ class RuntimeImpl implements RuntimeBase {
           query,
           hasState: !!state,
           hasActions: !!actions,
+          hasConversations: !!conversations,
           availableActions: actions ? Object.keys(actions) : [],
         });
       }
@@ -230,17 +244,29 @@ class RuntimeImpl implements RuntimeBase {
           if (!actions) {
             throw new Error('No actions available for action intent');
           }
-          return this.processAction({ query, actions, state: state || {}, conversations });
+          const actionResponse = await this.processAction({ query, actions, state: state || {}, conversations });
+          return {
+            ...actionResponse,
+            intent: intentResponse.intent,
+          };
         }
         case 'state': {
           if (!state) {
             throw new Error('No state available for state intent');
           }
-          return this.processState({ query, state, conversations });
+          const stateResponse = await this.processState({ query, state, conversations });
+          return {
+            ...stateResponse,
+            intent: intentResponse.intent,
+          };
         }
         case 'conversation':
         default: {
-          return this.processConversation({ query, conversations, actions });
+          const conversationResponse = await this.processConversation({ query, conversations, actions });
+          return {
+            ...conversationResponse,
+            intent: intentResponse.intent,
+          };
         }
       }
     } catch (error) {

@@ -6,7 +6,7 @@ import { Provider } from 'react-redux';
 import { ApplicantTable } from './components/ApplicantTable';
 import { queryClient } from './lib/queryClient';
 import { store } from './store';
-import { actionSchema, jsonActionSchema } from './store/schema';
+import { jsonActionSchema } from './store/schema';
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);

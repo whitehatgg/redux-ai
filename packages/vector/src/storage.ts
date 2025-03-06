@@ -1,5 +1,5 @@
 import { IndexedDBStorage } from './indexeddb';
-import type { ReduxAIVector, VectorConfig, VectorEntry } from './types';
+import type { InteractionMetadata, ReduxAIVector, VectorConfig, VectorEntry } from './types';
 
 export function textToVector(text: string, dimensions = 128): number[] {
   const vector = new Array(dimensions).fill(0);
@@ -45,7 +45,6 @@ export class VectorStorage implements ReduxAIVector {
     try {
       await this.storage.initialize();
     } catch (_error) {
-      // Throw a generic error since the specific error is implementation detail
       throw new Error('Vector storage initialization failed');
     }
   }
@@ -72,16 +71,20 @@ export class VectorStorage implements ReduxAIVector {
     }
   }
 
-  async storeInteraction(query: string, response: string, state: unknown): Promise<void> {
+  async storeInteraction(
+    userQuery: string,
+    systemResponse: string,
+    metadata?: InteractionMetadata
+  ): Promise<void> {
     try {
-      const stateString = JSON.stringify(state);
-
       await this.addEntry({
-        vector: textToVector(`${query} ${response}`, this.dimensions),
+        vector: textToVector(`${userQuery} ${systemResponse}`, this.dimensions),
         metadata: {
-          query,
-          response,
-          state: stateString,
+          query: userQuery,
+          response: systemResponse,
+          timestamp: Date.now(),
+          ...(metadata?.intent && { intent: metadata.intent }),
+          ...(metadata?.action && { action: metadata.action }),
         },
       });
     } catch (_error) {
@@ -103,7 +106,6 @@ export class VectorStorage implements ReduxAIVector {
         .slice(0, limit)
         .map(({ entry }) => entry);
     } catch (_error) {
-      // Return empty array on error to allow graceful degradation
       return [];
     }
   }
@@ -112,7 +114,6 @@ export class VectorStorage implements ReduxAIVector {
     try {
       return await this.storage.getAllEntries();
     } catch (_error) {
-      // Return empty array on error to allow graceful degradation
       return [];
     }
   }

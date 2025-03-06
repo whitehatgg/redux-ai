@@ -1,27 +1,29 @@
 import { validateSchema } from '@redux-ai/schema';
 import type { ReduxAIVector } from '@redux-ai/vector';
 import type { Store } from '@reduxjs/toolkit';
-import type { Type } from '@sinclair/typebox';
 
 export interface AIStateConfig {
   store: Store;
-  actions: ReturnType<typeof Type.Object>;
+  actions: Record<string, unknown>;
   storage: ReduxAIVector;
   endpoint: string;
   onError?: (error: Error) => void;
 }
 
+interface AIResponse {
+  message: string;
+  action: Record<string, unknown> | null;
+  intent?: string; // Added intent field
+}
+
 export class ReduxAIState {
   private store: Store;
-  private actions: ReturnType<typeof Type.Object>;
+  private actions: Record<string, unknown>;
   private storage: ReduxAIVector;
   private onError?: (error: Error) => void;
   private endpoint: string;
 
   constructor(config: AIStateConfig) {
-    if (!config.storage) {
-      throw new Error('Vector storage is required for ReduxAIState');
-    }
     this.store = config.store;
     this.actions = config.actions;
     this.storage = config.storage;
@@ -29,21 +31,24 @@ export class ReduxAIState {
     this.endpoint = config.endpoint;
   }
 
-  async processQuery(query: string) {
+  private handleError(error: Error): AIResponse {
+    if (this.onError) {
+      this.onError(error);
+    }
+    return {
+      message: 'Error processing request',
+      action: null,
+    };
+  }
+
+  async processQuery(query: string): Promise<AIResponse> {
     try {
-      if (!this.storage) {
-        throw new Error('Vector storage not initialized');
-      }
-
       const state = this.store.getState();
-
-      // Retrieve similar entries for context
       const similarEntries = await this.storage.retrieveSimilar(query, 3);
       const conversations = similarEntries
         .map(entry => `User: ${entry.metadata.query}\nAssistant: ${entry.metadata.response}`)
         .join('\n\n');
 
-      // Make API request with context
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,22 +70,22 @@ export class ReduxAIState {
       if (result.action) {
         const validationResult = validateSchema(result.action, this.actions);
         if (!validationResult.valid) {
-          throw new Error(
-            'Invalid action: ' + validationResult.errors?.map(e => e.message).join(', ')
+          return this.handleError(
+            new Error(`Invalid action: ${validationResult.errors?.map(e => e.message).join(', ')}`)
           );
         }
         this.store.dispatch(result.action);
       }
 
-      // Store the interaction
-      await this.storage.storeInteraction(query, result.message, state);
+      // Store conversation data with intent and action if available
+      await this.storage.storeInteraction(query, result.message, {
+        intent: result.intent,
+        action: result.action,
+      });
+
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (this.onError) {
-        this.onError(new Error(errorMessage));
-      }
-      throw error;
+      return this.handleError(error instanceof Error ? error : new Error(String(error)));
     }
   }
 }

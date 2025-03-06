@@ -25,7 +25,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const { sendQuery, isProcessing } = useReduxAI();
+  const { sendQuery, isProcessing, error: queryError } = useReduxAI();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,11 +65,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       const response = await sendQuery(trimmedInput);
       console.debug('[ChatBubble] Raw response:', response);
 
-      if (response.error) {
+      if (queryError) {
         const errorMessage: ChatMessage = {
           id: generateMessageId(),
           role: 'error',
-          content: response.error,
+          content: queryError,
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, errorMessage]);

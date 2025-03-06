@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VectorStorage } from '../storage';
-import type { VectorEntry } from '../types';
+import type { VectorEntry, InteractionMetadata } from '../types';
 
 // Mock IndexedDB storage
 vi.mock('../indexeddb', () => ({
@@ -16,10 +16,16 @@ vi.mock('../indexeddb', () => ({
 
 describe('VectorStorage', () => {
   let storage: VectorStorage;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
   const testConfig = { dimensions: 128 };
 
   beforeEach(async () => {
     storage = await VectorStorage.create(testConfig);
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
   });
 
   describe('addEntry', () => {
@@ -47,21 +53,31 @@ describe('VectorStorage', () => {
   });
 
   describe('storeInteraction', () => {
-    it('should store interaction data', async () => {
+    it('should store interaction data with intent and action', async () => {
       const query = 'test query';
       const response = 'test response';
-      const state = { value: 'test' };
-
-      await expect(storage.storeInteraction(query, response, state)).resolves.not.toThrow();
-    });
-
-    it('should handle complex state objects', async () => {
-      const state = {
-        nested: { deep: { value: 123 } },
-        array: [1, 2, 3],
+      const metadata: InteractionMetadata = {
+        intent: 'action',
+        action: { type: 'test/increment' }
       };
 
-      await expect(storage.storeInteraction('query', 'response', state)).resolves.not.toThrow();
+      await expect(storage.storeInteraction(query, response, metadata)).resolves.not.toThrow();
+    });
+
+    it('should store interaction data without optional metadata', async () => {
+      const query = 'test query';
+      const response = 'test response';
+
+      await expect(storage.storeInteraction(query, response)).resolves.not.toThrow();
+    });
+
+    it('should handle storage errors gracefully', async () => {
+      const mockStorage = vi.spyOn(storage as any, 'storage', 'get').mockReturnValue({
+        addEntry: vi.fn().mockRejectedValue(new Error('Storage error'))
+      });
+
+      await expect(storage.storeInteraction('query', 'response')).rejects.toThrow('Failed to store interaction');
+      mockStorage.mockRestore();
     });
   });
 
@@ -118,6 +134,7 @@ describe('VectorStorage', () => {
       };
 
       await expect(storage.addEntry(testEntry)).resolves.not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('Error in vector storage listener:', expect.any(Error));
     });
   });
 });

@@ -6,8 +6,10 @@ import { useReduxAIContext } from '../components/ReduxAIProvider';
 export interface ActivityEntry {
   id: string;
   metadata: {
-    query: string;
-    response: string;
+    intent?: string;
+    action?: Record<string, unknown>;
+    query?: string;
+    response?: string;
     timestamp: number;
   };
 }
@@ -16,6 +18,8 @@ function convertToActivityEntry(entry: VectorEntry): ActivityEntry {
   return {
     id: entry.id,
     metadata: {
+      intent: String(entry.metadata.intent || ''),
+      action: entry.metadata.action as Record<string, unknown> | undefined,
       query: String(entry.metadata.query || ''),
       response: String(entry.metadata.response || ''),
       timestamp: Number(entry.metadata.timestamp || Date.now()),
@@ -41,7 +45,9 @@ export function useActivityLog() {
         setIsLoading(true);
         const data = await vectorStorage.getAllEntries();
         if (isMounted) {
-          const convertedData = data.map(convertToActivityEntry);
+          const convertedData = data
+            .map(convertToActivityEntry)
+            .sort((a, b) => b.metadata.timestamp - a.metadata.timestamp);
           setEntries(convertedData);
           setError(null);
         }
@@ -60,7 +66,7 @@ export function useActivityLog() {
     const unsubscribe = vectorStorage.subscribe((newEntry: VectorEntry) => {
       if (isMounted) {
         const convertedEntry = convertToActivityEntry(newEntry);
-        setEntries(prev => [...prev, convertedEntry]);
+        setEntries(prev => [convertedEntry, ...prev]);
       }
     });
 

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
-import { X } from 'lucide-react';
+import { X, Activity, ArrowRight, ChevronDown, ChevronRight, MessageSquare, Settings, Zap } from 'lucide-react';
 
 import { useActivityLog } from '../hooks/useActivityLog';
 
@@ -9,8 +9,30 @@ interface ActivityLogProps {
   onClose?: () => void;
 }
 
+// Helper to format action type for display by converting both namespaced and uppercase styles
+const formatActionType = (type: string): string => {
+  // Handle both namespaced (user/action) and uppercase with underscore (USER_ACTION) formats
+  const parts = type.includes('/') ? type.split('/') : type.toLowerCase().split('_');
+  return parts
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' › ');
+};
+
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   const { entries, isLoading, error } = useActivityLog();
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+
+  const toggleEntry = (id: string) => {
+    setExpandedEntries(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   if (!open) return null;
 
@@ -31,36 +53,84 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
         <ScrollArea.Viewport className="h-full w-full">
           <div className="space-y-4 p-4">
             {isLoading ? (
-              <div className="py-8 text-center text-muted-foreground">Loading activity log...</div>
+              <div className="py-8 text-center text-muted-foreground">Loading activities...</div>
             ) : error ? (
               <div className="py-8 text-center text-destructive">{error}</div>
             ) : entries.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
-                No operations logged yet.
+                No activities recorded yet.
               </div>
             ) : (
-              entries.map(entry => (
-                <div key={entry.id} className="rounded-lg bg-muted p-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Operation: vector/store</h4>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(entry.metadata.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
+              entries.map(entry => {
+                const isExpanded = expandedEntries.has(entry.id);
+                const intent = entry.metadata.intent || 'conversation';
+
+                // Get appropriate icon and label based on intent
+                const intentDetails = {
+                  action: { icon: Zap, label: 'Action' },
+                  state: { icon: Settings, label: 'State' },
+                  conversation: { icon: MessageSquare, label: 'Conversation' }
+                }[intent];
+
+                const IntentIcon = intentDetails?.icon || Activity;
+
+                return (
+                  <div key={entry.id} className="rounded-lg border bg-card p-4 shadow-sm">
                     <div className="space-y-2">
-                      <div className="text-sm">
-                        <span className="font-medium">Query: </span>
-                        <span className="text-muted-foreground">{entry.metadata.query}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <IntentIcon className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">{intentDetails?.label || intent}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.metadata.timestamp).toLocaleTimeString()}
+                        </span>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Response: </span>
-                        <span className="text-muted-foreground">{entry.metadata.response}</span>
-                      </div>
+
+                      {entry.metadata.action && (
+                        <div className="mt-2 rounded-md bg-muted/50 p-2">
+                          <div className="flex items-center gap-2 text-xs">
+                            <ArrowRight className="h-4 w-4 text-primary" />
+                            <span>{formatActionType(entry.metadata.action.type as string)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {(entry.metadata.query || entry.metadata.response) && (
+                        <button
+                          onClick={() => toggleEntry(entry.id)}
+                          className="mt-2 flex w-full items-center gap-2 rounded-md p-1 text-xs text-muted-foreground hover:bg-muted"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                          <MessageSquare className="h-3 w-3" />
+                          <span>Conversation Details</span>
+                        </button>
+                      )}
+
+                      {isExpanded && (
+                        <div className="mt-2 space-y-2 rounded-md bg-muted/30 p-2 text-xs">
+                          {entry.metadata.query && (
+                            <div className="text-muted-foreground">
+                              <span className="font-medium">User: </span>
+                              {entry.metadata.query}
+                            </div>
+                          )}
+                          {entry.metadata.response && (
+                            <div className="text-muted-foreground">
+                              <span className="font-medium">Assistant: </span>
+                              {entry.metadata.response}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </ScrollArea.Viewport>

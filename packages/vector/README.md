@@ -34,15 +34,10 @@ const storage = await VectorStorage.create({
   gcThreshold: 7 * 24 * 60 * 60 * 1000, // 7 days
 });
 
-// Store an interaction with metadata
+// Store an interaction
 await storage.storeInteraction(
   'What is the current user state?',
-  'User is logged in and viewing dashboard',
-  {
-    userId: 123,
-    view: 'dashboard',
-    timestamp: Date.now(),
-  }
+  'User is logged in and viewing dashboard'
 );
 
 // Retrieve similar interactions
@@ -78,9 +73,15 @@ Returns a Promise that resolves to a new VectorStorage instance.
 
 ### Methods
 
-#### `storeInteraction(query: string, response: string, metadata: Record<string, unknown>)`
+#### `storeInteraction(query: string, response: string)`
 
-Stores a new interaction with the given query, response, and metadata.
+Stores a new interaction with the given query and response. The interaction will be vectorized and stored for future similarity searches.
+
+Parameters:
+- query (string) - The user's query or input
+- response (string) - The system's response
+
+Returns: Promise<void>
 
 #### `retrieveSimilar(query: string, limit?: number)`
 
