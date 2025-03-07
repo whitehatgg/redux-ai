@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActivityLog } from '../components/ActivityLog';
@@ -45,7 +45,7 @@ describe('ActivityLog', () => {
     });
 
     render(<ActivityLog open={true} />);
-    expect(screen.getByText('Loading activity log...')).toBeInTheDocument();
+    expect(screen.getByText('Loading activities...')).toBeInTheDocument();
   });
 
   it('should show error state', () => {
@@ -79,8 +79,13 @@ describe('ActivityLog', () => {
 
     render(<ActivityLog open={true} />);
 
-    expect(screen.getByText('test query')).toBeInTheDocument();
-    expect(screen.getByText('test response')).toBeInTheDocument();
-    expect(screen.getByText('12:00:00 PM')).toBeInTheDocument();
+    // Click the conversation details button to expand
+    fireEvent.click(screen.getByText('Conversation Details'));
+
+    // Now verify the expanded content
+    expect(screen.getByText('User:')).toBeInTheDocument();
+    expect(screen.getByText(/test query/)).toBeInTheDocument();
+    expect(screen.getByText('Assistant:')).toBeInTheDocument();
+    expect(screen.getByText(/test response/)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
-import { X, Activity, ArrowRight, ChevronDown, ChevronRight, MessageSquare, Settings, Zap } from 'lucide-react';
+import {
+  Activity,
+  ArrowRight,
+  ChevronDown,
+  ChevronRight,
+  MessageSquare,
+  Settings,
+  X,
+  Zap,
+} from 'lucide-react';
 
 import { useActivityLog } from '../hooks/useActivityLog';
 
@@ -13,9 +22,7 @@ interface ActivityLogProps {
 const formatActionType = (type: string): string => {
   // Handle both namespaced (user/action) and uppercase with underscore (USER_ACTION) formats
   const parts = type.includes('/') ? type.split('/') : type.toLowerCase().split('_');
-  return parts
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' › ');
+  return parts.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' › ');
 };
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
@@ -58,7 +65,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               <div className="py-8 text-center text-destructive">{error}</div>
             ) : entries.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
-                No activities recorded yet.
+                No operations logged yet.
               </div>
             ) : (
               entries.map(entry => {
@@ -69,7 +76,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                 const intentDetails = {
                   action: { icon: Zap, label: 'Action' },
                   state: { icon: Settings, label: 'State' },
-                  conversation: { icon: MessageSquare, label: 'Conversation' }
+                  conversation: { icon: MessageSquare, label: 'Conversation' },
                 }[intent];
 
                 const IntentIcon = intentDetails?.icon || Activity;
@@ -80,7 +87,9 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <IntentIcon className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">{intentDetails?.label || intent}</span>
+                          <span className="text-sm font-medium">
+                            {intentDetails?.label || intent}
+                          </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {new Date(entry.metadata.timestamp).toLocaleTimeString()}
