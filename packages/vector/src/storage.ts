@@ -85,6 +85,7 @@ export class VectorStorage implements ReduxAIVector {
           timestamp: Date.now(),
           ...(metadata?.intent && { intent: metadata.intent }),
           ...(metadata?.action && { action: metadata.action }),
+          ...(metadata?.reasoning && { reasoning: metadata.reasoning }),
         },
       });
     } catch (_error) {

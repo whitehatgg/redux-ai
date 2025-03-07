@@ -22,6 +22,7 @@ export interface VectorConfig {
 export interface InteractionMetadata {
   intent?: string;
   action?: Record<string, unknown>;
+  reasoning?: string[];
 }
 
 // Public interface for vector operations

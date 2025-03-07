@@ -10,6 +10,7 @@ export interface ActivityEntry {
     action?: Record<string, unknown>;
     query?: string;
     response?: string;
+    reasoning?: string[];
     timestamp: number;
   };
 }
@@ -22,6 +23,7 @@ function convertToActivityEntry(entry: VectorEntry): ActivityEntry {
       action: entry.metadata.action as Record<string, unknown> | undefined,
       query: String(entry.metadata.query || ''),
       response: String(entry.metadata.response || ''),
+      reasoning: Array.isArray(entry.metadata.reasoning) ? entry.metadata.reasoning : undefined,
       timestamp: Number(entry.metadata.timestamp || Date.now()),
     },
   };

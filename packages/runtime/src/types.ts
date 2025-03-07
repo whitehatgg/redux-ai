@@ -3,11 +3,13 @@ import type { BaseLLMProvider } from './provider';
 export interface CompletionResponse {
   message: string;
   action: Record<string, unknown> | null;
+  reasoning: string | string[];
 }
 
 export interface IntentCompletionResponse {
   intent: 'action' | 'state' | 'conversation';
   message: string;
+  reasoning: string | string[];
 }
 
 export interface Message {
@@ -59,7 +61,7 @@ export interface RuntimeAdapter {
 // Base interface for Runtime implementation
 export interface RuntimeBase {
   readonly debug: boolean;
-  query(params: QueryParams): Promise<CompletionResponse | IntentCompletionResponse>;
+  query(params: QueryParams): Promise<CompletionResponse & { reasoning: string[]; intent: string }>;
 }
 
 // Configuration for creating a runtime instance
@@ -75,5 +77,4 @@ export interface RuntimeAdapterConfig {
   debug?: boolean;
 }
 
-// Re-export the provider type
 export type { BaseLLMProvider };

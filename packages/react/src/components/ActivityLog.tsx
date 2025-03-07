@@ -9,6 +9,7 @@ import {
   Settings,
   X,
   Zap,
+  Brain,
 } from 'lucide-react';
 
 import { useActivityLog } from '../hooks/useActivityLog';
@@ -105,7 +106,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                         </div>
                       )}
 
-                      {(entry.metadata.query || entry.metadata.response) && (
+                      {(entry.metadata.query || entry.metadata.response || entry.metadata.reasoning) && (
                         <button
                           onClick={() => toggleEntry(entry.id)}
                           className="mt-2 flex w-full items-center gap-2 rounded-md p-1 text-xs text-muted-foreground hover:bg-muted"
@@ -132,6 +133,19 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                             <div className="text-muted-foreground">
                               <span className="font-medium">Assistant: </span>
                               {entry.metadata.response}
+                            </div>
+                          )}
+                          {entry.metadata.reasoning && entry.metadata.reasoning.length > 0 && (
+                            <div className="mt-2 border-t border-border/50 pt-2">
+                              <div className="flex items-center gap-1 font-medium text-muted-foreground">
+                                <Brain className="h-3 w-3" />
+                                <span>Reasoning:</span>
+                              </div>
+                              <ul className="mt-1 list-inside list-disc space-y-1 text-muted-foreground">
+                                {entry.metadata.reasoning.map((reason, index) => (
+                                  <li key={index}>{reason}</li>
+                                ))}
+                              </ul>
                             </div>
                           )}
                         </div>

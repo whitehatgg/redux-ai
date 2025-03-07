@@ -53,7 +53,7 @@ class TestProvider extends BaseLLMProvider {
   async complete(prompt: string): Promise<CompletionResponse | IntentCompletionResponse> {
     console.log('\nProcessing LLM prompt:', prompt);
 
-    // Simulate an LLM evaluating the context and generating responses
+    // Simulate an LLM evaluating the context and generating responses with reasoning
     const response = this.evaluatePrompt(prompt);
     console.log('LLM generated response:', JSON.stringify(response, null, 2));
     return response;
@@ -78,47 +78,52 @@ class TestProvider extends BaseLLMProvider {
     const hasActionContext = actions && this.matchesActionSchema(query, actions);
     const hasStateContext = state && this.matchesStateQuery(query);
 
+    let intent: 'action' | 'state' | 'conversation';
+    let reasoning: string;
+
     if (hasActionContext) {
-      return {
-        intent: 'action' as const,
-        message: 'Query maps to available action schema',
-      };
+      intent = 'action';
+      reasoning = `Query "${query}" matches available action patterns and contains actionable verbs (create/update/archive/assign).`;
     } else if (hasStateContext) {
-      return {
-        intent: 'state' as const,
-        message: 'Query requests state information',
-      };
+      intent = 'state';
+      reasoning = `Query "${query}" requests information about current system state or analytics.`;
+    } else {
+      intent = 'conversation';
+      reasoning = `Query "${query}" is a general conversation without specific action or state requirements.`;
     }
 
     return {
-      intent: 'conversation' as const,
-      message: 'General query detected',
+      intent,
+      message: `Classified as ${intent} query`,
+      reasoning,
     };
   }
 
   private generateResponse(query: string, actions: string, state: string): CompletionResponse {
-    // Simulate LLM generating appropriate response based on context
+    let message: string;
+    let action: Record<string, unknown> | null = null;
+    let reasoning: string;
+
     if (this.matchesActionSchema(query, actions)) {
       const actionType = this.determineActionType(query, actions);
-      return {
-        message: 'Processing task action',
-        action: {
-          type: actionType,
-          payload: this.extractActionPayload(query),
-        },
+      action = {
+        type: actionType,
+        payload: this.extractActionPayload(query),
       };
-    }
-
-    if (this.matchesStateQuery(query)) {
-      return {
-        message: 'Current system state: ' + this.formatStateResponse(query, state),
-        action: null,
-      };
+      message = 'Processing task action';
+      reasoning = `Selected ${actionType} based on query keywords and available action schema. Extracted relevant parameters from natural language input.`;
+    } else if (this.matchesStateQuery(query)) {
+      message = 'Current system state: ' + this.formatStateResponse(query, state);
+      reasoning = `Analyzed state query context and retrieved relevant information from system state.`;
+    } else {
+      message = 'I understand your question about ' + query;
+      reasoning = `Processed as conversational query, providing appropriate contextual response.`;
     }
 
     return {
-      message: 'I understand your question about ' + query,
-      action: null,
+      message,
+      action,
+      reasoning,
     };
   }
 
@@ -204,17 +209,17 @@ class TestProvider extends BaseLLMProvider {
   }
 }
 
-// Test runner for complex scenarios
+// Test runner for complex scenarios updated to show reasoning
 export async function runComplexTests() {
   const provider = new TestProvider();
   const runtime = createRuntime({ provider, debug: true });
 
-  console.log('\nTesting Advanced Intent Classification\n');
+  console.log('\nTesting Advanced Intent Classification with Reasoning\n');
   console.log('-'.repeat(50));
 
   try {
     // Test complex action intent
-    console.log('\nTesting Complex Action Intent:');
+    console.log('\nTesting Complex Action Intent with Reasoning:');
     console.log(`Query: "${testQueries.action.complex}"`);
     const actionResult = await runtime.query({
       query: testQueries.action.complex,
@@ -224,7 +229,7 @@ export async function runComplexTests() {
     console.log('Result:', JSON.stringify(actionResult, null, 2));
 
     // Test state query with analytics
-    console.log('\nTesting Analytics State Query:');
+    console.log('\nTesting Analytics State Query with Reasoning:');
     console.log(`Query: "${testQueries.state.analytics}"`);
     const stateResult = await runtime.query({
       query: testQueries.state.analytics,
@@ -236,7 +241,7 @@ export async function runComplexTests() {
     console.log('Result:', JSON.stringify(stateResult, null, 2));
 
     // Test ambiguous query that could be action or state
-    console.log('\nTesting Ambiguous Query:');
+    console.log('\nTesting Ambiguous Query with Reasoning:');
     console.log(`Query: "${testQueries.action.ambiguous}"`);
     const ambiguousResult = await runtime.query({
       query: testQueries.action.ambiguous,

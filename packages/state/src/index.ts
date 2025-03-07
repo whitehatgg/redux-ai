@@ -13,7 +13,8 @@ export interface AIStateConfig {
 interface AIResponse {
   message: string;
   action: Record<string, unknown> | null;
-  intent?: string; // Added intent field
+  intent?: string;
+  reasoning?: string | string[];
 }
 
 export class ReduxAIState {
@@ -38,6 +39,7 @@ export class ReduxAIState {
     return {
       message: 'Error processing request',
       action: null,
+      reasoning: `Error occurred: ${error.message}`,
     };
   }
 
@@ -77,10 +79,11 @@ export class ReduxAIState {
         this.store.dispatch(result.action);
       }
 
-      // Store conversation data with intent and action if available
+      // Store conversation data with intent, action, and reasoning
       await this.storage.storeInteraction(query, result.message, {
         intent: result.intent,
         action: result.action,
+        reasoning: result.reasoning,
       });
 
       return result;

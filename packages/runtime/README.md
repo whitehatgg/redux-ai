@@ -5,12 +5,28 @@ Core runtime engine for Redux AI toolkit that provides base functionality and ut
 ## Features
 
 - Base runtime utilities for Redux AI toolkit
+- Advanced chain-of-thought reasoning system
+- Comprehensive activity logging
 - Type-safe integration points for AI providers
 - Core state management primitives
 - Extensible provider system for LLM integrations
 - Built-in testing utilities and mocks
 - Standardized error handling
 - Provider-agnostic abstractions
+
+## Recent Improvements
+
+### Enhanced Chain-of-Thought Reasoning
+- Structured reasoning format for all operations
+- Detailed decision-making process logging
+- Consistent reasoning steps across all intents
+- Comprehensive context tracking
+
+### Activity Logging Enhancements
+- Rich context capture in every interaction
+- Detailed operation tracing
+- Structured logging format
+- Real-time decision tracking
 
 ## Installation
 
@@ -49,6 +65,11 @@ class CustomProvider implements LLMProvider {
     return {
       message: 'Response from custom provider',
       action: { type: 'CUSTOM_ACTION' },
+      reasoning: [
+        'Initial observation: Analyzing request context',
+        'Analysis: Processing request parameters',
+        'Decision: Generate appropriate response'
+      ]
     };
   }
 }
@@ -74,6 +95,7 @@ interface Message {
 interface CompletionResponse {
   message: string;
   action: { type: string } | null;
+  reasoning: string[];
 }
 ```
 
@@ -98,15 +120,22 @@ import { createMockProvider } from '@redux-ai/runtime/testing';
 const mockProvider = createMockProvider({
   responses: [
     {
-      message: 'Mock response',
+      message: 'Mock response with reasoning',
       action: { type: 'TEST_ACTION' },
+      reasoning: [
+        'Initial observation: Analyzing test request',
+        'Analysis: Processing test parameters',
+        'Decision: Generate test response'
+      ]
     },
   ],
 });
 
 // Use in tests
 const runtime = createRuntime({ provider: mockProvider });
-const result = await runtime.process([{ role: 'user', content: 'Test message' }]);
+const result = await runtime.process([
+  { role: 'user', content: 'Test message' }
+]);
 ```
 
 ## Error Handling

@@ -5,6 +5,8 @@ An advanced AI-powered Redux toolkit that provides intelligent state management 
 ## Features
 
 - 🧠 TypeScript-based state intelligence with modern Redux patterns
+- 🌐 Advanced multilingual support with consistent language detection
+- 🔄 Chain-of-thought reasoning with comprehensive activity logging
 - 🐛 Advanced error detection and resolution with comprehensive logging
 - 📊 Dynamic state visualization and debugging tools with React components
 - ⚡ Optimized performance monitoring and caching strategies
@@ -12,6 +14,20 @@ An advanced AI-powered Redux toolkit that provides intelligent state management 
 - 🔄 Framework adapters (Express.js, Next.js) with standardized APIs
 - 🤖 OpenAI and LangChain integrations with streaming support
 - 🔍 Vector-based state retrieval with real-time updates
+
+## Recent Improvements
+
+### Enhanced Chain-of-Thought Reasoning
+- Comprehensive reasoning steps for all operations (action, state, conversation)
+- Detailed activity logging with structured reasoning chains
+- Real-time tracking of decision-making processes
+- Clear reasoning breakdown in API responses
+
+### Improved Activity Logging
+- Structured logging of all runtime activities
+- Rich context capture in every interaction
+- Detailed reasoning chains for debugging
+- Comprehensive tracking of state changes
 
 ## Architecture
 
@@ -22,7 +38,7 @@ The project is structured as a monorepo with the following packages:
 Core runtime engine providing base functionality:
 
 - Standardized adapter interface with TypeScript types
-- Pluggable provider system for AI integrations
+- Chain-of-thought reasoning with activity logging
 - Advanced error handling and logging
 - Type-safe configuration management
 
