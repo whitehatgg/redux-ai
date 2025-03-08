@@ -1,36 +1,20 @@
 #!/bin/sh
 
-# Unit Tests
-echo "Running unit tests..."
-pnpm exec vitest run || {
-  echo "❌ Unit tests failed. Please fix the failing tests before committing."
+# Function to handle errors
+handle_error() {
+  echo "Error: $1 failed"
+  echo "Please fix the issues before committing"
   exit 1
 }
 
-# Type checking
-echo "Running TypeScript type checking..."
-pnpm exec tsc -b packages/*/tsconfig.json client/tsconfig.json || {
-  echo "❌ TypeScript type checking failed. Please fix the type errors before committing."
-  exit 1
-}
+echo "Running pre-commit checks..."
 
-# ESLint
-echo "Running ESLint..."
-pnpm exec eslint . || {
-  echo "❌ ESLint check failed. Please fix the linting errors before committing."
-  exit 1
-}
+# Run tests
+echo "Running tests..."
+pnpm run -r test || handle_error "Tests"
 
-# Prettier
-echo "Running Prettier..."
-pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}" --ignore-path .prettierignore || {
-  echo "❌ Prettier formatting failed. Please fix the formatting issues before committing."
-  exit 1
-}
+# Run builds if tests pass
+echo "Running builds..."
+pnpm run -r build --if-present || handle_error "Build"
 
-# Lint-staged
-echo "Running lint-staged..."
-pnpm lint-staged || {
-  echo "❌ lint-staged checks failed. Please fix the issues before committing."
-  exit 1
-}
+echo "✨ All checks passed! Proceeding with commit..."

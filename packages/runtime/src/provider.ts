@@ -23,28 +23,15 @@ export abstract class BaseLLMProvider {
   protected abstract convertMessage(message: Message): unknown;
   protected abstract completeRaw(messages: Message[]): Promise<unknown>;
 
-  protected async complete(prompt: string): Promise<CompletionResponse | IntentCompletionResponse> {
+  public async createCompletion(messages: Message[]): Promise<CompletionResponse | IntentCompletionResponse> {
     if (!this.completeRaw) {
       throw new Error('Provider must implement completeRaw method');
     }
 
     try {
       if (this.debug) {
-        console.log('[Provider] Processing prompt:', prompt);
+        console.log('[Provider] Processing messages:', messages);
       }
-
-      const messages: Message[] = [
-        {
-          role: 'system',
-          content: [
-            'Follow this chain-of-thought reasoning format:',
-            'Initial observation: Processing user query',
-            'Analysis: Determining appropriate action',
-            'Decision: Executing selected response'
-          ].join('\n')
-        },
-        { role: 'user', content: prompt }
-      ];
 
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error(`Provider timeout after ${this.timeout}ms`)), this.timeout);

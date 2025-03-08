@@ -61,7 +61,7 @@ export interface RuntimeAdapter {
 // Base interface for Runtime implementation
 export interface RuntimeBase {
   readonly debug: boolean;
-  query(params: QueryParams): Promise<CompletionResponse & { reasoning: string[]; intent: string }>;
+  query(params: QueryParams): Promise<CompletionResponse>;
 }
 
 // Configuration for creating a runtime instance

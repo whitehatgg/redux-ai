@@ -36,29 +36,29 @@ export class RuntimeImpl implements RuntimeBase {
         params.conversations ? `Previous interactions: ${params.conversations}` : null,
       ].filter(Boolean).join('\n');
 
-      const prompt = `${DEFAULT_PROMPTS.intent}${JSON_FORMAT_MESSAGE}\n\nQuery: "${params.query}"\n${contextStr}`;
+      const messages: Message[] = [
+        { role: 'system', content: DEFAULT_PROMPTS.intent + JSON_FORMAT_MESSAGE },
+        { role: 'user', content: `Query: "${params.query}"\n${contextStr}` }
+      ];
 
       if (this.debug) {
-        console.debug('[Runtime Debug] Intent analysis prompt:', prompt);
+        console.debug('[Runtime Debug] Intent analysis messages:', messages);
       }
 
-      const response = await this.provider.complete(prompt);
+      const response = await this.provider.createCompletion(messages);
 
       if (this.debug) {
         console.debug('[Runtime Debug] Raw intent response:', JSON.stringify(response, null, 2));
       }
 
-      // Validate intent response format
       if (!response || typeof response !== 'object') {
         throw new Error('Invalid intent response format');
       }
 
-      // Check that response has required fields
       if (!('intent' in response) || !('message' in response) || !('reasoning' in response)) {
         throw new Error('Intent response missing required fields');
       }
 
-      // Validate intent value
       const intent = response.intent;
       if (!['action', 'state', 'conversation'].includes(intent)) {
         throw new Error('Invalid intent value');
@@ -107,13 +107,16 @@ export class RuntimeImpl implements RuntimeBase {
       const responseType = intentResponse.intent === 'action' ? 'action' :
                         intentResponse.intent === 'state' ? 'state' : 'conversation';
 
-      const prompt = `${DEFAULT_PROMPTS[responseType]}${JSON_FORMAT_MESSAGE}\n\nQuery: "${query}"\n${contextStr}`;
+      const messages: Message[] = [
+        { role: 'system', content: DEFAULT_PROMPTS[responseType] + JSON_FORMAT_MESSAGE },
+        { role: 'user', content: `Query: "${query}"\n${contextStr}` }
+      ];
 
       if (this.debug) {
-        console.debug('[Runtime Debug] Response generation prompt:', prompt);
+        console.debug('[Runtime Debug] Response generation messages:', messages);
       }
 
-      const response = await this.provider.complete(prompt);
+      const response = await this.provider.createCompletion(messages);
 
       if (this.debug) {
         console.debug('[Runtime Debug] Final response:', JSON.stringify(response, null, 2));
@@ -123,7 +126,6 @@ export class RuntimeImpl implements RuntimeBase {
         throw new Error('Invalid response format');
       }
 
-      // Return a new object with only the expected fields
       return {
         message: response.message,
         action: 'action' in response ? response.action : null,

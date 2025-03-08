@@ -1,28 +1,26 @@
-import { resolve } from 'path';
+/// <reference types="vitest" />
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['../../vitest.setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
-    passWithNoTests: true,
+    setupFiles: ['../../vitest.setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/**', 'src/types/**', '**/*.d.ts', 'test/**', 'dist/**'],
-    },
-    deps: {
-      optimizer: {
-        web: {
-          include: ['@testing-library/jest-dom'],
-        },
-      },
+      exclude: ['src/types/**', '**/*.d.ts', 'dist/**'],
     },
   },
   resolve: {
     alias: {
+      '@': resolve(__dirname, './src'),
       '@testing-library/jest-dom': resolve(
         __dirname,
         '../../node_modules/@testing-library/jest-dom'

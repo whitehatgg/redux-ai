@@ -11,27 +11,25 @@ const defaultReasoning = [
 ];
 
 class MockProvider extends BaseLLMProvider {
-  responses: Array<CompletionResponse | IntentCompletionResponse>;
-  debug: boolean;
+  private responses: Array<CompletionResponse | IntentCompletionResponse>;
+  private debug: boolean;
 
-  constructor(responses: Array<CompletionResponse | IntentCompletionResponse>, debug = true) {
+  constructor(responses: Array<CompletionResponse | IntentCompletionResponse>, debug = false) {
     super({ timeout: 30000, debug });
     this.responses = [...responses];
     this.debug = debug;
   }
 
-  protected convertMessage(_message: Message): unknown {
-    return {};
+  protected convertMessage(message: Message): unknown {
+    return {
+      role: message.role,
+      content: message.content,
+    };
   }
 
-  protected async completeRaw(): Promise<unknown> {
-    const response = this.responses[0];
-    return response;
-  }
-
-  async complete(prompt: string): Promise<CompletionResponse | IntentCompletionResponse> {
+  protected async completeRaw(messages: Message[]): Promise<unknown> {
     if (this.debug) {
-      console.log('Processing prompt:', prompt);
+      console.debug('Processing messages:', messages);
     }
 
     const response = this.responses.shift();
@@ -39,20 +37,8 @@ class MockProvider extends BaseLLMProvider {
       throw new Error('No more mock responses');
     }
 
-    // Determine if this is an intent classification call
-    const isIntentCall = prompt.includes(DEFAULT_PROMPTS.intent);
-
-    if (this.debug) {
-      console.log(`Call type: ${isIntentCall ? 'Intent classification' : 'Final response'}`);
-      console.log('Current response:', JSON.stringify(response, null, 2));
-    }
-
-    // For intent classification, return the intent response directly
-    if (isIntentCall) {
-      if (!('intent' in response)) {
-        throw new Error('Expected intent response for intent classification');
-      }
-
+    // Always include the default reasoning array in the response
+    if ('intent' in response) {
       return {
         intent: response.intent,
         message: response.message,
@@ -60,26 +46,31 @@ class MockProvider extends BaseLLMProvider {
       };
     }
 
-    // For final response, ensure no intent field
     return {
       message: response.message,
-      action: 'action' in response ? response.action : null,
+      action: response.action,
       reasoning: defaultReasoning
     };
   }
 }
 
 describe('Runtime Chain-of-Thought Reasoning', () => {
+  let provider: MockProvider;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('State Query Handling', () => {
     it('should process state queries with reasoning', async () => {
-      const provider = new MockProvider([
+      provider = new MockProvider([
         {
           intent: 'state',
           message: 'Processing state query',
           reasoning: defaultReasoning
         },
         {
-          message: 'Die aktuelle Liste der Bewerber zeigt...',
+          message: 'State data retrieved successfully',
           action: null,
           reasoning: defaultReasoning
         }
@@ -89,7 +80,7 @@ describe('Runtime Chain-of-Thought Reasoning', () => {
       const result = await runtime.query({ query: "What's the state" });
 
       expect(result).toEqual({
-        message: 'Die aktuelle Liste der Bewerber zeigt...',
+        message: 'State data retrieved successfully',
         action: null,
         reasoning: defaultReasoning
       });
@@ -98,15 +89,15 @@ describe('Runtime Chain-of-Thought Reasoning', () => {
 
   describe('Action Processing', () => {
     it('should process actions with proper reasoning steps', async () => {
-      const provider = new MockProvider([
+      provider = new MockProvider([
         {
           intent: 'action',
           message: 'Processing action request',
           reasoning: defaultReasoning
         },
         {
-          message: 'Task creation initiated...',
-          action: null,
+          message: 'Action executed successfully',
+          action: { type: 'TEST_ACTION' },
           reasoning: defaultReasoning
         }
       ]);
@@ -118,8 +109,8 @@ describe('Runtime Chain-of-Thought Reasoning', () => {
       });
 
       expect(result).toEqual({
-        message: 'Task creation initiated...',
-        action: null,
+        message: 'Action executed successfully',
+        action: { type: 'TEST_ACTION' },
         reasoning: defaultReasoning
       });
     });
@@ -127,7 +118,7 @@ describe('Runtime Chain-of-Thought Reasoning', () => {
 
   describe('Conversation Handling', () => {
     it('should include reasoning chains in responses', async () => {
-      const provider = new MockProvider([
+      provider = new MockProvider([
         {
           intent: 'conversation',
           message: 'Processing conversation',
@@ -153,15 +144,15 @@ describe('Runtime Chain-of-Thought Reasoning', () => {
 
   describe('Error Handling', () => {
     it('should handle provider errors gracefully', async () => {
-      const provider = new MockProvider([]);
-      vi.spyOn(provider, 'complete').mockRejectedValue(new Error('Provider error'));
+      provider = new MockProvider([]);
+      vi.spyOn(provider, 'createCompletion').mockRejectedValue(new Error('Provider error'));
 
       const runtime = createRuntime({ provider });
       await expect(runtime.query({ query: 'test' })).rejects.toThrow('Provider error');
     });
 
     it('should handle empty mock responses', async () => {
-      const provider = new MockProvider([]);
+      provider = new MockProvider([]);
       const runtime = createRuntime({ provider });
       await expect(runtime.query({ query: 'test' })).rejects.toThrow('No more mock responses');
     });

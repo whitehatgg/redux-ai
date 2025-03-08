@@ -1,141 +1,99 @@
 import type { VectorEntry } from './types';
 
-const DB_NAME = 'reduxai_vector';
-const STORE_NAME = 'vector_entries';
-const DB_VERSION = 1;
-
 export class IndexedDBStorage {
   private db: IDBDatabase | null = null;
+  private readonly dbName = 'vector-store';
+  private readonly storeName = 'vectors';
+  private initialized = false;
+
+  constructor() {
+    this.db = null;
+  }
 
   async initialize(): Promise<void> {
-    if (typeof window === 'undefined' || !window.indexedDB) {
-      console.warn('[IndexedDB] IndexedDB not available');
+    if (this.initialized) {
       return;
     }
 
     try {
-      await new Promise<void>(resolve => {
-        const deleteRequest = window.indexedDB.deleteDatabase(DB_NAME);
-        deleteRequest.onsuccess = () => {
-          console.debug('[IndexedDB] Successfully deleted old database');
-          resolve();
-        };
-        deleteRequest.onerror = () => {
-          console.warn('[IndexedDB] Error deleting old database');
-          resolve(); // Continue even if delete fails
-        };
-      });
-    } catch (error) {
-      console.warn('[IndexedDB] Error during database deletion:', error);
-    }
+      console.debug('[IndexedDB] Starting initialization');
+      const request = indexedDB.open(this.dbName, 1);
 
-    return new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => {
-        const error = request.error;
-        console.error('[IndexedDB] Database error:', {
-          name: error?.name,
-          message: error?.message,
-          code: error?.code,
-        });
-        reject(new Error(`Failed to open IndexedDB: ${error?.message}`));
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
-        console.debug('[IndexedDB] Successfully opened database');
-        resolve();
-      };
-
-      request.onupgradeneeded = () => {
-        const db = request.result;
-
-        if (db.objectStoreNames.contains(STORE_NAME)) {
-          db.deleteObjectStore(STORE_NAME);
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName, { keyPath: 'id' });
         }
-
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-
-        console.debug('[IndexedDB] Store created successfully');
       };
-    });
+
+      this.db = await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      this.initialized = true;
+      console.debug('[IndexedDB] Initialization complete');
+    } catch (error) {
+      console.error('[IndexedDB] Initialization failed:', error);
+      throw new Error('Failed to initialize IndexedDB');
+    }
+  }
+
+  private getStore(mode: IDBTransactionMode = 'readonly'): IDBObjectStore {
+    if (!this.db || !this.initialized) {
+      throw new Error('Database not initialized');
+    }
+    const transaction = this.db.transaction(this.storeName, mode);
+    return transaction.objectStore(this.storeName);
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
-    if (!this.db) {
-      throw new Error('Database not initialized');
+    try {
+      const store = this.getStore('readwrite');
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(entry);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('[IndexedDB] Failed to add entry:', error);
+      throw error;
     }
-
-    return new Promise((resolve, reject) => {
-      try {
-        console.debug('[IndexedDB] Adding entry:', { id: entry.id, timestamp: entry.timestamp });
-
-        const transaction = this.db?.transaction([STORE_NAME], 'readwrite');
-        if (!transaction) {
-          throw new Error('Failed to create transaction');
-        }
-
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.add({
-          ...entry,
-          id: entry.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        });
-
-        request.onsuccess = () => {
-          console.debug('[IndexedDB] Entry added successfully');
-          resolve();
-        };
-
-        request.onerror = () => {
-          const error = request.error;
-          console.error('[IndexedDB] Error adding entry:', {
-            name: error?.name,
-            message: error?.message,
-            code: error?.code,
-          });
-          reject(new Error(`Failed to add entry: ${error?.message}`));
-        };
-      } catch (error) {
-        console.error('[IndexedDB] Critical error in addEntry:', error);
-        reject(error);
-      }
-    });
   }
 
   async getAllEntries(): Promise<VectorEntry[]> {
-    if (!this.db) {
-      throw new Error('Database not initialized');
-    }
-
-    return new Promise((resolve, reject) => {
-      try {
-        const transaction = this.db?.transaction([STORE_NAME], 'readonly');
-        if (!transaction) {
-          throw new Error('Failed to create transaction');
-        }
-
-        const store = transaction.objectStore(STORE_NAME);
+    try {
+      const store = this.getStore('readonly');
+      return new Promise<VectorEntry[]>((resolve, reject) => {
         const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('[IndexedDB] Failed to get entries:', error);
+      throw error;
+    }
+  }
 
-        request.onsuccess = () => {
-          resolve(request.result);
-        };
-
-        request.onerror = () => {
-          const error = request.error;
-          console.error('[IndexedDB] Error getting entries:', {
-            name: error?.name,
-            message: error?.message,
-            code: error?.code,
-          });
-          reject(new Error(`Failed to get entries: ${error?.message}`));
-        };
-      } catch (error) {
-        console.error('[IndexedDB] Critical error in getAllEntries:', error);
-        reject(error);
+  async cleanup(): Promise<void> {
+    try {
+      if (this.db) {
+        this.db.close();
+        this.db = null;
       }
-    });
+      this.initialized = false;
+
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase(this.dbName);
+        request.onsuccess = () => {
+          console.debug('[IndexedDB] Cleanup complete');
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('[IndexedDB] Cleanup failed:', error);
+      throw error;
+    }
   }
 }
