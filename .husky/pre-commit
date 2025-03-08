@@ -9,12 +9,12 @@ handle_error() {
 
 echo "Running pre-commit checks..."
 
-# Run tests
+# Run tests (suppress warnings but capture errors)
 echo "Running tests..."
-pnpm run -r test || handle_error "Tests"
+NODE_NO_WARNINGS=1 pnpm run -r test 2>/dev/null || handle_error "Tests"
 
-# Run builds if tests pass
+# Run builds if tests pass (suppress warnings but capture errors)
 echo "Running builds..."
-pnpm run -r build --if-present || handle_error "Build"
+NODE_NO_WARNINGS=1 pnpm run -r build --if-present 2>/dev/null || handle_error "Build"
 
 echo "✨ All checks passed! Proceeding with commit..."
