@@ -17,8 +17,8 @@ pnpm run -r lint || handle_error "Lint"
 echo "Running tests..."
 pnpm run -r test -- --passWithNoTests || handle_error "Tests"
 
-# Run builds if tests pass
+# Run builds 
 echo "Running builds..."
-pnpm run -r build --if-present || handle_error "Build"
+pnpm run -r build || handle_error "Build"
 
 echo "✨ All checks passed! Proceeding with commit..."
