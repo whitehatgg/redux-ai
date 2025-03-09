@@ -22,6 +22,7 @@ export class OpenAIProvider extends BaseLLMProvider {
       debug: config.debug,
     });
     this.client = new OpenAI({ apiKey: config.apiKey });
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     this.model = config.model ?? 'gpt-4o';
     this.temperature = config.temperature ?? 0.7;
     this.maxTokens = config.maxTokens ?? 1000;
@@ -34,7 +35,7 @@ export class OpenAIProvider extends BaseLLMProvider {
     } as ChatCompletionMessage;
   }
 
-  protected async completeRaw(messages: Message[]): Promise<unknown> {
+  protected async completeRaw(messages: Message[]): Promise<CompletionResponse> {
     const openAIMessages = messages.map(msg => this.convertMessage(msg));
 
     if (this.debug) {
@@ -63,7 +64,25 @@ export class OpenAIProvider extends BaseLLMProvider {
       console.debug('[OpenAI] Raw response:', content);
     }
 
-    return JSON.parse(content);
+    // Parse the JSON response into a CompletionResponse
+    const parsedResponse = JSON.parse(content);
+    return {
+      message: parsedResponse.message || '',
+      action: parsedResponse.action || null,
+      reasoning: Array.isArray(parsedResponse.reasoning) ? parsedResponse.reasoning : [],
+      intent: parsedResponse.intent || 'conversation'
+    };
+  }
+
+  public async complete(messages: Message[]): Promise<CompletionResponse> {
+    try {
+      return await this.completeRaw(messages);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw error;
+    }
   }
 }
 

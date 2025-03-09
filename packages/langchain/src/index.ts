@@ -1,5 +1,5 @@
 import { BaseLLMProvider } from '@redux-ai/runtime';
-import type { Message, ProviderConfig } from '@redux-ai/runtime/dist/types';
+import type { Message, ProviderConfig, CompletionResponse } from '@redux-ai/runtime/dist/types';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
@@ -49,6 +49,18 @@ export class LangChainProvider extends BaseLLMProvider {
     }
 
     return response.content;
+  }
+
+  public async complete(messages: Message[]): Promise<string> {
+    try {
+      const response = await this.completeRaw(messages);
+      return response as string;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw error;
+    }
   }
 }
 
