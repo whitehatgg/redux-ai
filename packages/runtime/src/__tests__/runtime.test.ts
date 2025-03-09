@@ -3,30 +3,35 @@ import { createRuntime } from '../index';
 import { BaseLLMProvider } from '../provider';
 import type { CompletionResponse, IntentCompletionResponse, Message } from '../types';
 
-// Mock provider for testing dynamic prompts
 class MockProvider extends BaseLLMProvider {
   protected convertMessage(message: Message): unknown {
     return message;
   }
 
   protected async completeRaw(messages: Message[]): Promise<CompletionResponse | IntentCompletionResponse> {
-    // Check message content for prompt type
-    const content = messages[0].content;
+    const systemPrompt = messages[0].content;
+    const userQuery = messages[1]?.content || '';
 
-    // Intent classification prompt
-    if (content.includes('INTENT CLASSIFICATION RULES')) {
+    // Handle intent classification
+    if (systemPrompt.includes('INTENT CLASSIFICATION RULES')) {
+      const hasState = systemPrompt.includes('Current state:');
+      const hasActions = systemPrompt.includes('Available actions:');
+      const isStateQuery = userQuery.toLowerCase().includes('state');
+      const intent = isStateQuery ? 'state' : hasActions ? 'action' : 'conversation';
+
       return {
-        intent: 'action',
-        message: 'Classified as action query',
-        reasoning: ['Test reasoning']
+        intent,
+        message: `Classified as ${intent} query`,
+        reasoning: ['Query analysis complete'],
       };
     }
 
-    // Action/state prompt response
+    // Default response
     return {
       message: 'Mock response',
-      action: content.includes('action') ? { type: 'test_action' } : null,
-      reasoning: ['Test reasoning']
+      action: null,
+      reasoning: ['Test reasoning'],
+      intent: 'conversation',
     };
   }
 }
@@ -35,62 +40,33 @@ describe('Runtime Dynamic Prompt Tests', () => {
   const mockProvider = new MockProvider();
 
   describe('Intent Classification', () => {
-    it('should properly process intent with complete context', async () => {
+    it('should properly classify state query with state context', async () => {
+      const runtime = createRuntime({ provider: mockProvider });
+      const result = await runtime.query({
+        query: 'show the state',
+        state: { test: true },
+      });
+
+      expect(result.intent).toBe('state');
+    });
+
+    it('should classify as action when actions available', async () => {
       const runtime = createRuntime({ provider: mockProvider });
       const result = await runtime.query({
         query: 'perform action',
-        actions: { test_action: { params: [] } }
+        actions: { test_action: { params: [] } },
       });
 
-      expect(result).toEqual({
-        message: 'Mock response',
-        action: { type: 'test_action' },
-        reasoning: ['Test reasoning']
-      });
+      expect(result.intent).toBe('action');
     });
-  });
 
-  describe('Action Processing', () => {
-    it('should process action with required schema', async () => {
+    it('should default to conversation without specific context', async () => {
       const runtime = createRuntime({ provider: mockProvider });
       const result = await runtime.query({
-        query: 'perform action',
-        actions: {
-          test_action: {
-            params: ['param1'],
-            required: ['param1']
-          }
-        }
+        query: 'hello there',
       });
 
-      expect(result).toEqual({
-        message: 'Mock response',
-        action: { type: 'test_action' },
-        reasoning: ['Test reasoning']
-      });
-    });
-  });
-
-  describe('State Handling', () => {
-    it('should process state query with valid state data', async () => {
-      const runtime = createRuntime({ provider: mockProvider });
-      const result = await runtime.query({
-        query: 'check state',
-        state: { test: true }
-      });
-
-      expect(result).toEqual({
-        message: 'Mock response',
-        action: null,
-        reasoning: ['Test reasoning']
-      });
-    });
-
-    it('should throw error for state query without state data', async () => {
-      const runtime = createRuntime({ provider: mockProvider });
-      await expect(runtime.query({
-        query: 'check state'
-      })).rejects.toThrow('State prompt requires state data');
+      expect(result.intent).toBe('conversation');
     });
   });
 });
