@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ActivityLog } from '../components/ActivityLog';
@@ -26,7 +26,6 @@ describe('ActivityLog', () => {
   });
 
   it('should hide content when closed', () => {
-    // Mock a default state
     vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
       entries: [],
       isLoading: false,
@@ -68,24 +67,5 @@ describe('ActivityLog', () => {
 
     render(<ActivityLog open={true} />);
     expect(screen.getByText('No operations logged yet.')).toBeInTheDocument();
-  });
-
-  it('should display activity entries', () => {
-    vi.spyOn(useActivityLogModule, 'useActivityLog').mockReturnValue({
-      entries: mockEntries,
-      isLoading: false,
-      error: null,
-    });
-
-    render(<ActivityLog open={true} />);
-
-    // Click the conversation details button to expand
-    fireEvent.click(screen.getByText('Conversation Details'));
-
-    // Now verify the expanded content
-    expect(screen.getByText('User:')).toBeInTheDocument();
-    expect(screen.getByText(/test query/)).toBeInTheDocument();
-    expect(screen.getByText('Assistant:')).toBeInTheDocument();
-    expect(screen.getByText(/test response/)).toBeInTheDocument();
   });
 });

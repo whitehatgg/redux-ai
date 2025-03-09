@@ -28,7 +28,7 @@ export class OpenAIProvider extends BaseLLMProvider {
     this.maxTokens = config.maxTokens ?? 1000;
   }
 
-  protected convertMessage(message: Message): ChatCompletionMessage {
+  protected async convertMessage(message: Message): Promise<ChatCompletionMessage> {
     return {
       role: message.role,
       content: message.content,
@@ -36,7 +36,7 @@ export class OpenAIProvider extends BaseLLMProvider {
   }
 
   protected async completeRaw(messages: Message[]): Promise<CompletionResponse> {
-    const openAIMessages = messages.map(msg => this.convertMessage(msg));
+    const openAIMessages = await Promise.all(messages.map(msg => this.convertMessage(msg)));
 
     if (this.debug) {
       console.debug('[OpenAI] Request context:', {
@@ -85,5 +85,3 @@ export class OpenAIProvider extends BaseLLMProvider {
     }
   }
 }
-
-export default OpenAIProvider;

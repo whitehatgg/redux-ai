@@ -5,17 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createReduxAIState } from '../index';
 
-// Simple TypeScript interfaces for testing
 interface TestState {
   test: {
     value: number;
   };
 }
 
-// Make TestAction compatible with Record<string, unknown>
 interface TestAction {
-  [key: string]: unknown;
   type: 'test/increment';
+  [key: string]: unknown;
 }
 
 describe('ReduxAIState', () => {
@@ -64,6 +62,8 @@ describe('ReduxAIState', () => {
       JSON.stringify({
         message: 'Success',
         action: { type: 'test/increment' },
+        intent: 'action',
+        reasoning: ['Test reasoning']
       }),
       { status: 200, statusText: 'OK' }
     );
@@ -81,6 +81,8 @@ describe('ReduxAIState', () => {
 
     expect(result.message).toBe('Success');
     expect(result.action).toEqual({ type: 'test/increment' });
+    expect(result.intent).toBe('action');
+    expect(result.reasoning).toEqual(['Test reasoning']);
     expect(mockStore.getState().test.value).toBe(1);
   });
 
@@ -89,6 +91,8 @@ describe('ReduxAIState', () => {
       JSON.stringify({
         message: 'Error processing request',
         action: null,
+        intent: 'conversation',
+        reasoning: []
       }),
       { status: 200, statusText: 'OK' }
     );
@@ -107,11 +111,13 @@ describe('ReduxAIState', () => {
 
     expect(result.message).toBe('Error processing request');
     expect(result.action).toBeNull();
+    expect(result.intent).toBe('conversation');
     expect(mockStore.getState().test.value).toBe(0);
   });
 
   it('should handle API errors gracefully', async () => {
-    vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+    const mockError = new Error('Network error');
+    vi.mocked(fetch).mockRejectedValue(mockError);
 
     const reduxAI = createReduxAIState({
       store: mockStore,
@@ -121,11 +127,13 @@ describe('ReduxAIState', () => {
       onError: mockErrorHandler,
     });
 
-    const result = await reduxAI.processQuery('test query');
-
-    expect(result.message).toBe('Error processing request');
-    expect(result.action).toBeNull();
-    expect(mockErrorHandler).toHaveBeenCalled();
+    try {
+      await reduxAI.processQuery('test query');
+      expect.fail('Should have thrown an error');
+    } catch (error) {
+      expect(error).toBe(mockError);
+      expect(mockErrorHandler).toHaveBeenCalledWith(mockError);
+    }
   });
 
   it('should handle storage errors gracefully', async () => {
@@ -133,12 +141,15 @@ describe('ReduxAIState', () => {
       JSON.stringify({
         message: 'Success',
         action: { type: 'test/increment' },
+        intent: 'action',
+        reasoning: ['Test reasoning']
       }),
       { status: 200, statusText: 'OK' }
     );
 
+    const mockError = new Error('Storage error');
     vi.mocked(fetch).mockResolvedValue(mockResponse);
-    mockStorage.storeInteraction = vi.fn().mockRejectedValue(new Error('Storage error'));
+    mockStorage.storeInteraction = vi.fn().mockRejectedValue(mockError);
 
     const reduxAI = createReduxAIState({
       store: mockStore,
@@ -148,10 +159,12 @@ describe('ReduxAIState', () => {
       onError: mockErrorHandler,
     });
 
-    const result = await reduxAI.processQuery('test query');
-
-    expect(result.message).toBe('Error processing request');
-    expect(result.action).toBeNull();
-    expect(mockErrorHandler).toHaveBeenCalled();
+    try {
+      await reduxAI.processQuery('test query');
+      expect.fail('Should have thrown an error');
+    } catch (error) {
+      expect(error).toBe(mockError);
+      expect(mockErrorHandler).toHaveBeenCalledWith(mockError);
+    }
   });
 });

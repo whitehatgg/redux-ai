@@ -1,41 +1,34 @@
-import type { Message } from '@redux-ai/runtime';
-import { describe, expect, it, vi } from 'vitest';
+import { vi } from 'vitest';
 
+// Mock must be defined before module imports
+const mockCompletionsCreate = vi.fn();
+vi.mock('openai', () => ({
+  default: vi.fn(() => ({
+    chat: {
+      completions: {
+        create: mockCompletionsCreate
+      }
+    }
+  }))
+}));
+
+import type { Message } from '@redux-ai/runtime';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { OpenAIConfig } from '../index';
 import { OpenAIProvider } from '../index';
 
-vi.mock('openai', () => {
-  const createMockClient = () => ({
-    chat: {
-      completions: {
-        create: vi.fn(),
-      },
-    },
-  });
+describe('OpenAI Provider', () => {
+  let mockConfig: OpenAIConfig;
 
-  return {
-    default: class MockOpenAI {
-      constructor() {
-        return createMockClient();
-      }
-    },
-  };
-});
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockConfig = {
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+      debug: true
+    };
 
-describe('OpenAI Package', () => {
-  const mockConfig: OpenAIConfig = {
-    apiKey: 'test-key',
-    model: 'gpt-4o',
-  };
-
-  it('should properly initialize OpenAI client', () => {
-    const provider = new OpenAIProvider(mockConfig);
-    expect(provider).toBeInstanceOf(OpenAIProvider);
-  });
-
-  it('should handle API calls correctly', async () => {
-    const provider = new OpenAIProvider(mockConfig);
-    const mockResponse = {
+    mockCompletionsCreate.mockResolvedValue({
       choices: [
         {
           message: {
@@ -44,16 +37,22 @@ describe('OpenAI Package', () => {
               action: null,
               reasoning: ['Test reasoning step'],
               intent: 'conversation'
-            }),
-          },
-        },
-      ],
-    };
+            })
+          }
+        }
+      ]
+    });
+  });
 
-    // @ts-ignore - Mocking private OpenAI instance
-    provider.client.chat.completions.create.mockResolvedValue(mockResponse);
+  it('should properly initialize OpenAI client', () => {
+    const provider = new OpenAIProvider(mockConfig);
+    expect(provider).toBeInstanceOf(OpenAIProvider);
+  });
 
-    const messages: Message[] = [{ role: 'user' as const, content: 'Hello' }];
+  it('should handle API calls correctly', async () => {
+    const provider = new OpenAIProvider(mockConfig);
+    const messages: Message[] = [{ role: 'user', content: 'Hello' }];
+
     const response = await provider.complete(messages);
 
     expect(response).toEqual({
@@ -64,14 +63,12 @@ describe('OpenAI Package', () => {
     });
   });
 
-  it('should properly handle API errors', async () => {
+  it('should handle API errors gracefully', async () => {
     const provider = new OpenAIProvider(mockConfig);
     const mockError = new Error('API Error');
+    mockCompletionsCreate.mockRejectedValueOnce(mockError);
 
-    // @ts-ignore - Mocking private OpenAI instance
-    provider.client.chat.completions.create.mockRejectedValue(mockError);
-
-    const messages: Message[] = [{ role: 'user' as const, content: 'Hello' }];
+    const messages: Message[] = [{ role: 'user', content: 'Hello' }];
     await expect(provider.complete(messages)).rejects.toThrow('API Error');
   });
 });
