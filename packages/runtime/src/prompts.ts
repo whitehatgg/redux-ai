@@ -1,26 +1,32 @@
 import type { QueryParams } from './types';
 
 function generateIntentPrompt(params: QueryParams): string {
+  const hasActions = !!params.actions;
+  const hasState = !!params.state;
+
   return `Analyze user query based ONLY on the following context:
 
 ${params.query ? `Query: "${params.query}"` : ''}
-${params.actions ? `Available actions: ${JSON.stringify(params.actions, null, 2)}` : ''}
-${params.state ? `Current state: ${JSON.stringify(params.state, null, 2)}` : ''}
+${hasActions ? `Available actions: ${JSON.stringify(params.actions, null, 2)}` : ''}
+${hasState ? `Current state: ${JSON.stringify(params.state, null, 2)}` : ''}
 ${params.conversations ? `Previous conversations:\n${params.conversations}` : ''}
 
 INTENT CLASSIFICATION RULES:
 1. 'action' intent - ONLY if:
+   - Actions schema is available (${hasActions ? 'YES' : 'NO'})
    - Query explicitly requests an operation
    - The operation EXACTLY matches an action defined in 'Available actions:'
    - Required parameters can be extracted from query
 
 2. 'state' intent - ONLY if:
+   - State data is available (${hasState ? 'YES' : 'NO'})
    - Query explicitly requests state information
    - The requested data exists in 'Current state:'
 
 3. 'conversation' intent - ONLY if:
    - Query doesn't match action or state criteria
    - Focus is on dialogue or clarification
+   - OR when required context (actions/state) is missing
 
 REQUIRED JSON Response Format:
 {

@@ -39,6 +39,23 @@ export class RuntimeImpl implements RuntimeBase {
       throw new Error('Invalid intent response format');
     }
 
+    // Validate intent based on available context
+    const intent = response.intent;
+    if (intent === 'action' && !params.actions) {
+      return { 
+        intent: 'conversation',
+        message: 'Defaulting to conversation - no actions schema available',
+        reasoning: ['Action intent requires actions schema']
+      };
+    }
+    if (intent === 'state' && !params.state) {
+      return {
+        intent: 'conversation',
+        message: 'Defaulting to conversation - no state data available',
+        reasoning: ['State intent requires state data']
+      };
+    }
+
     return response as IntentCompletionResponse;
   }
 
@@ -54,14 +71,22 @@ export class RuntimeImpl implements RuntimeBase {
 
     const intentResponse = await this.processIntent(params);
 
+    // Additional validation to ensure we have required context
+    let intent = intentResponse.intent;
+    if (intent === 'action' && !params.actions) {
+      intent = 'conversation';
+    } else if (intent === 'state' && !params.state) {
+      intent = 'conversation';
+    }
+
     const messages: Message[] = [
-      { role: 'system', content: generatePrompt(intentResponse.intent, params) },
+      { role: 'system', content: generatePrompt(intent, params) },
       { role: 'user', content: params.query }
     ];
 
     if (this.debug) {
       console.debug('[Runtime Debug] Action request:', {
-        intent: intentResponse.intent,
+        intent,
         messages
       });
     }
@@ -75,7 +100,7 @@ export class RuntimeImpl implements RuntimeBase {
       message: response.message,
       action: 'action' in response ? response.action : null,
       reasoning: response.reasoning || [],
-      intent: intentResponse.intent
+      intent
     };
   }
 }
