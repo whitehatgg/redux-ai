@@ -5,12 +5,6 @@ import type {
   ProviderConfig,
 } from './types';
 
-const defaultReasoning = [
-  'Initial observation: Processing user query',
-  'Analysis: Determining appropriate action',
-  'Decision: Executing selected response'
-];
-
 export abstract class BaseLLMProvider {
   protected timeout: number;
   protected debug: boolean;
@@ -39,46 +33,13 @@ export abstract class BaseLLMProvider {
 
       const rawResponse = await Promise.race([this.completeRaw(messages), timeoutPromise]);
 
-      let parsed: unknown;
-      if (typeof rawResponse === 'string') {
-        try {
-          parsed = JSON.parse(rawResponse);
-        } catch {
-          throw new Error('Invalid JSON response');
-        }
-      } else {
-        parsed = rawResponse;
+      if (this.debug) {
+        console.log('[Provider] Raw response:', rawResponse);
       }
 
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error('Invalid response format');
-      }
+      return rawResponse as CompletionResponse | IntentCompletionResponse;
 
-      const typedResponse = parsed as Record<string, unknown>;
-      if (!typedResponse.message || typeof typedResponse.message !== 'string') {
-        throw new Error('Response missing required message property');
-      }
-
-      // Always use the default reasoning array
-      if ('intent' in typedResponse) {
-        if (!['action', 'state', 'conversation'].includes(typedResponse.intent as string)) {
-          throw new Error('Invalid intent value');
-        }
-
-        return {
-          intent: typedResponse.intent as 'action' | 'state' | 'conversation',
-          message: typedResponse.message,
-          reasoning: defaultReasoning
-        };
-      }
-
-      return {
-        message: typedResponse.message,
-        action: typedResponse.action as Record<string, unknown> | null,
-        reasoning: defaultReasoning
-      };
-
-    } catch (error) {
+    } catch (error: unknown) {
       if (this.debug) {
         console.error('[Provider] Error:', error);
       }

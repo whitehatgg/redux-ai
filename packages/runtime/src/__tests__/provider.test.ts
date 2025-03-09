@@ -1,66 +1,51 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CompletionResponse, LLMProvider, Message } from '../types';
+import type { CompletionResponse, Message } from '../types';
+import { BaseLLMProvider } from '../provider';
 
-class MockProvider implements LLMProvider {
-  private mockComplete = vi.fn().mockImplementation(
-    async (
-      messages: Message[],
-      currentState?: Record<string, unknown>
-    ): Promise<CompletionResponse> => ({
-      message: `Processed ${messages.length} messages with state: ${JSON.stringify(currentState)}`,
+class MockProvider extends BaseLLMProvider {
+  protected convertMessage(message: Message): unknown {
+    return message;
+  }
+
+  protected async completeRaw(messages: Message[]): Promise<CompletionResponse> {
+    return {
+      message: `Processed ${messages.length} messages`,
       action: { type: 'test_action' },
-    })
-  );
-
-  async complete(
-    messages: Message[],
-    currentState?: Record<string, unknown>
-  ): Promise<CompletionResponse> {
-    return this.mockComplete(messages, currentState);
+      reasoning: ['Test reasoning']
+    };
   }
 }
 
 describe('LLMProvider', () => {
-  let provider: LLMProvider;
+  let provider: BaseLLMProvider;
   const mockMessages: Message[] = [
     { role: 'system', content: 'System message' },
     { role: 'user', content: 'User message' },
   ];
-
-  const mockState = {
-    key: 'value',
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     provider = new MockProvider();
   });
 
-  it('should process messages and state correctly', async () => {
-    const response = await provider.complete(mockMessages, mockState);
+  it('should process messages correctly', async () => {
+    const response = await provider.createCompletion(mockMessages);
 
     expect(response).toEqual({
-      message: `Processed ${mockMessages.length} messages with state: ${JSON.stringify(mockState)}`,
+      message: 'Processed 2 messages',
       action: { type: 'test_action' },
-    });
-  });
-
-  it('should handle empty state', async () => {
-    const response = await provider.complete(mockMessages);
-
-    expect(response).toEqual({
-      message: `Processed ${mockMessages.length} messages with state: undefined`,
-      action: { type: 'test_action' },
+      reasoning: ['Test reasoning']
     });
   });
 
   it('should handle empty message list', async () => {
-    const response = await provider.complete([], mockState);
+    const response = await provider.createCompletion([]);
 
     expect(response).toEqual({
-      message: `Processed 0 messages with state: ${JSON.stringify(mockState)}`,
+      message: 'Processed 0 messages',
       action: { type: 'test_action' },
+      reasoning: ['Test reasoning']
     });
   });
 });

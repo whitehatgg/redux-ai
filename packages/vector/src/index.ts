@@ -1,4 +1,4 @@
-import type { InteractionMetadata, ReduxAIVector, VectorConfig, VectorEntry } from './types';
+import type { InteractionMetadata, ReduxAIVector, VectorConfig, VectorEntry, VectorMetadata } from './types';
 import { VectorStorage } from './storage';
 
 // Export implementations
@@ -9,6 +9,7 @@ export type {
   ReduxAIVector,
   VectorConfig,
   VectorEntry,
+  VectorMetadata,
   InteractionMetadata
 };
 

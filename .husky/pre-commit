@@ -9,9 +9,13 @@ handle_error() {
 
 echo "Running pre-commit checks..."
 
-# Run tests
+# Run linting first
+echo "Running lint..."
+pnpm run -r lint || handle_error "Lint"
+
+# Run tests with --passWithNoTests to handle packages without tests
 echo "Running tests..."
-pnpm run -r test || handle_error "Tests"
+pnpm run -r test -- --passWithNoTests || handle_error "Tests"
 
 # Run builds if tests pass
 echo "Running builds..."

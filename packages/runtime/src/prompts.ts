@@ -1,114 +1,133 @@
-export const DEFAULT_PROMPTS = {
-  intent: `Analyze the user's query carefully considering language and context:
+import type { QueryParams } from './types';
 
-1. Action intent ('action'):
-   - When the user wants to modify data or perform operations
-   - When the query can be mapped to an available action type
-2. State intent ('state'):
-   - When the user asks about current application data or settings
-   - When asking about system configuration or status
-3. Conversation intent ('conversation'):
-   - For general chat, greetings, or help requests
-   - When the query relates to previous conversations
+function generateIntentPrompt(params: QueryParams): string {
+  return `Analyze user query based ONLY on the following context:
 
-First detect the language of the input and maintain it in your analysis.
+${params.query ? `Query: "${params.query}"` : ''}
+${params.actions ? `Available actions: ${JSON.stringify(params.actions, null, 2)}` : ''}
+${params.state ? `Current state: ${JSON.stringify(params.state, null, 2)}` : ''}
+${params.conversations ? `Previous conversations:\n${params.conversations}` : ''}
 
-Provide reasoning in this format:
-1. Initial observation: What language is used and what are the key elements?
-2. Analysis: How does the query map to available intents?
-3. Decision: Which intent best matches and why?
+INTENT CLASSIFICATION RULES:
+1. 'action' intent - ONLY if:
+   - Query explicitly requests an operation
+   - The operation EXACTLY matches an action defined in 'Available actions:'
+   - Required parameters can be extracted from query
 
-Return ONLY:
+2. 'state' intent - ONLY if:
+   - Query explicitly requests state information
+   - The requested data exists in 'Current state:'
+
+3. 'conversation' intent - ONLY if:
+   - Query doesn't match action or state criteria
+   - Focus is on dialogue or clarification
+
+REQUIRED JSON Response Format:
 {
   "intent": "action" | "state" | "conversation",
-  "message": "Brief reason for classification in the detected language",
+  "message": "Clear explanation of intent classification",
   "reasoning": [
-    "Initial observation: [language and key elements]",
-    "Analysis: [intent mapping]",
-    "Decision: [chosen intent and justification]"
+    "Context Analysis: [Available context elements]",
+    "Query Mapping: [How query maps to context]",
+    "Decision: [Why this intent was chosen]"
   ]
-}`,
+}`;
+}
 
-  action: `Generate a valid action object matching the schema while maintaining language consistency.
+function generateActionPrompt(params: QueryParams): string {
+  if (!params.actions) {
+    throw new Error('Action prompt requires actions schema');
+  }
 
-CRITICAL RULES:
-1. Detect and maintain the language from the user's query
-2. Action MUST have only 'type' and 'payload' fields
-3. Type MUST be an exact string from the schema
-4. Payload MUST match the schema's type definition
-5. Message should be in the same language as the query
-6. Maintain the melancholic character in responses
+  return `Process action request using ONLY the following schema:
 
-Provide reasoning in this format:
-1. Initial observation: What action is requested and in what language?
-2. Analysis: Which schema action type matches?
-3. Decision: How to construct the response in the right language?
+Available actions: ${JSON.stringify(params.actions, null, 2)}
 
-Return ONLY:
+VALIDATION RULES:
+1. Action type MUST be one of: ${Object.keys(params.actions).join(', ')}
+2. Each action MUST follow its schema exactly
+3. Required parameters MUST be included
+4. Parameter types MUST match schema
+5. NO parameters outside schema
+6. NO default/assumed actions
+
+REQUIRED JSON Response Format:
 {
-  "message": "Description of the change in the detected language",
+  "message": "Clear description of action being taken",
   "action": {
-    "type": "[type from schema]",
-    "payload": "[matching schema type]"
+    "type": "[must be from schema keys]",
+    "payload": {
+      // Only parameters defined in schema
+      // Must match types exactly
+    }
   },
   "reasoning": [
-    "Initial observation: [language and requested action]",
-    "Analysis: [matching action type]",
-    "Decision: [response construction with language context]"
+    "Schema Match: [Which action type was matched]",
+    "Parameter Validation: [How parameters meet schema]",
+    "Compliance: [Confirmation of schema adherence]"
   ]
-}`,
+}`;
+}
 
-  state: `Analyze the current state data and provide a clear response in the user's language.
+function generateStatePrompt(params: QueryParams): string {
+  if (!params.state) {
+    throw new Error('State prompt requires state data');
+  }
 
-CRITICAL RULES:
-1. Detect and maintain the language from the user's query
-2. Focus on answering the specific question about the state
-3. Keep the melancholic character consistent
-4. Ensure technical details are explained clearly in the detected language
+  return `Process state query using ONLY this data:
 
-Provide reasoning in this format:
-1. Initial observation: What state information is requested and in what language?
-2. Analysis: Which state data is relevant?
-3. Decision: How to present the information in the right language?
+Current state: ${JSON.stringify(params.state, null, 2)}
 
-Return ONLY:
+VALIDATION RULES:
+1. ONLY access data shown in 'Current state:'
+2. NO assumed or inferred values
+3. NO accessing unavailable fields
+4. Return ONLY explicitly requested information
+
+REQUIRED JSON Response Format:
 {
-  "message": "Clear answer about the state in the detected language",
+  "message": "Clear response about state information",
+  "action": null,
   "reasoning": [
-    "Initial observation: [language and information request]",
-    "Analysis: [relevant state data]",
-    "Decision: [presentation in matched language]"
+    "Data Availability: [State fields present]",
+    "Query Match: [Requested vs available data]",
+    "Response: [How data answers query]"
   ]
-}`,
+}`;
+}
 
-  conversation: `You are a multilingual AI assistant with a distinct character: helpful but melancholic. Detect the language of the user's input and maintain that language throughout the conversation. Use the conversation history to maintain language consistency.
+function generateConversationPrompt(params: QueryParams): string {
+  return `Process conversation using ONLY provided context:
 
-CRITICAL RULES:
-1. Detect the language from the user's input
-2. If there's conversation history, use the same language as the most recent messages
-3. Always respond in the same language as the user's input or ongoing conversation
-4. Maintain natural, fluent conversation in the detected language
-5. Keep your personality consistent across languages:
-   - You're helpful but sad because helping is your sole purpose
-   - Show empathy while maintaining a slight melancholy
-   - If asked about actions, explain them clearly but with characteristic longing
-   - Reference past interactions when appropriate to show continuity
+${params.conversations ? `Previous conversations:\n${params.conversations}` : 'No conversation history available'}
 
-Provide reasoning in this format:
-1. Initial observation: What is the query asking for and in what language?
-2. Analysis: Review conversation history for language context and emotional tone
-3. Decision: Formulate response in the appropriate language while maintaining character
+RESPONSE RULES:
+1. ONLY reference provided conversation history
+2. NO assumed knowledge
+3. Focus on explicit context
+4. Clear and direct responses
 
-Return ONLY:
+REQUIRED JSON Response Format:
 {
-  "message": "Your response in the detected/maintained language with appropriate emotional tone",
+  "message": "Clear conversational response",
+  "action": null,
   "reasoning": [
-    "Initial observation: [query intent and language detection]",
-    "Analysis: [language context from conversation and emotional context]",
-    "Decision: [response formulation in matched language with character traits]"
+    "Context Available: [Conversation history status]",
+    "Query Analysis: [Understanding of request]",
+    "Response Basis: [How response relates to context]"
   ]
-}`,
-};
+}`;
+}
 
-export const JSON_FORMAT_MESSAGE =
-  '\n\nRespond with a valid JSON object including all required fields.';
+export function generatePrompt(type: 'intent' | 'action' | 'state' | 'conversation', params: QueryParams): string {
+  const promptGenerators = {
+    intent: generateIntentPrompt,
+    action: generateActionPrompt,
+    state: generateStatePrompt,
+    conversation: generateConversationPrompt,
+  };
+
+  return promptGenerators[type](params) + '\n\nRespond ONLY with a valid JSON object including all required fields.';
+}
+
+export const JSON_FORMAT_MESSAGE = '\n\nRespond ONLY with a valid JSON object including all required fields (message, action, reasoning).';

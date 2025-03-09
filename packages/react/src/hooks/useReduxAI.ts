@@ -20,7 +20,7 @@ export function useReduxAI() {
 
       try {
         if (!storage) {
-          throw new Error('Vector storage is not properly initialized');
+          throw new Error('Vector storage not initialized');
         }
 
         const state = createReduxAIState({
@@ -29,31 +29,19 @@ export function useReduxAI() {
           storage,
           endpoint,
           onError: error => {
-            console.error('ReduxAI Error:', error);
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            setError(errorMessage);
+            console.error('[ReduxAI]:', error);
+            if (error instanceof Error) {
+              setError(error.message);
+            }
           },
         });
 
-        const result = await state.processQuery(query);
-
-        if (!result) {
-          throw new Error('No response received from the server');
+        // eslint-disable-next-line no-useless-catch
+        try {
+          return await state.processQuery(query);
+        } catch (error) {
+          throw error;
         }
-
-        // Ensure we have either a message or an action
-        if (!result.message && !result.action) {
-          throw new Error('Invalid response format: missing message or action');
-        }
-
-        return result;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        setError(errorMessage);
-        return {
-          message: errorMessage,
-          action: null,
-        };
       } finally {
         setIsProcessing(false);
       }

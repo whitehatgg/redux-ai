@@ -28,7 +28,6 @@ export class OpenAIProvider extends BaseLLMProvider {
   }
 
   protected convertMessage(message: Message): ChatCompletionMessage {
-    // OpenAI API expects role to be one of: system, user, assistant
     return {
       role: message.role,
       content: message.content,
@@ -36,14 +35,15 @@ export class OpenAIProvider extends BaseLLMProvider {
   }
 
   protected async completeRaw(messages: Message[]): Promise<unknown> {
-    if (this.debug) {
-      console.debug('[OpenAI] Converting messages:', messages);
-    }
-
     const openAIMessages = messages.map(msg => this.convertMessage(msg));
 
     if (this.debug) {
-      console.debug('[OpenAI] Sending request with messages:', openAIMessages);
+      console.debug('[OpenAI] Request context:', {
+        messages: openAIMessages,
+        actionsInContext: openAIMessages.some(msg => 
+          msg.content && msg.content.includes('Available actions:')
+        )
+      });
     }
 
     const response = await this.client.chat.completions.create({
@@ -54,16 +54,16 @@ export class OpenAIProvider extends BaseLLMProvider {
       response_format: { type: 'json_object' },
     });
 
-    if (!response.choices[0].message.content) {
+    const content = response.choices[0].message?.content;
+    if (!content) {
       throw new Error('Empty response from OpenAI');
     }
 
-    const content = response.choices[0].message.content;
     if (this.debug) {
-      console.debug('[OpenAI] Received response:', content);
+      console.debug('[OpenAI] Raw response:', content);
     }
 
-    return content;
+    return JSON.parse(content);
   }
 }
 

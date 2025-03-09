@@ -4,17 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { OpenAIConfig } from '../index';
 import { OpenAIProvider } from '../index';
 
-/**
- * Test suite for OpenAI package
- *
- * Mocking Best Practices:
- * 1. Use factory pattern with vi.mock to ensure proper hoisting in all environments
- * 2. Define mock factory inside vi.mock to avoid initialization order issues
- * 3. Return class constructor that creates fresh mock instances
- * 4. Avoid using top-level variables in mock definitions
- */
-
-// Configure the mock before tests
 vi.mock('openai', () => {
   const createMockClient = () => ({
     chat: {
@@ -36,7 +25,7 @@ vi.mock('openai', () => {
 describe('OpenAI Package', () => {
   const mockConfig: OpenAIConfig = {
     apiKey: 'test-key',
-    model: 'gpt-3.5-turbo',
+    model: 'gpt-4o',
   };
 
   it('should properly initialize OpenAI client', () => {
@@ -50,7 +39,12 @@ describe('OpenAI Package', () => {
       choices: [
         {
           message: {
-            content: JSON.stringify({ message: 'Test response', action: null }),
+            content: JSON.stringify({
+              message: 'Test response',
+              action: null,
+              reasoning: ['Test reasoning step'],
+              intent: 'conversation'
+            }),
           },
         },
       ],
@@ -62,7 +56,12 @@ describe('OpenAI Package', () => {
     const messages: Message[] = [{ role: 'user' as const, content: 'Hello' }];
     const response = await provider.complete(messages);
 
-    expect(response).toEqual({ message: 'Test response', action: null });
+    expect(response).toEqual({
+      message: 'Test response',
+      action: null,
+      reasoning: ['Test reasoning step'],
+      intent: 'conversation'
+    });
   });
 
   it('should properly handle API errors', async () => {

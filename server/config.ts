@@ -5,16 +5,15 @@ if (!process.env.OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY environment variable is required');
 }
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const provider = new OpenAIProvider({
   apiKey: process.env.OPENAI_API_KEY,
-  model: 'gpt-4o',
+  model: 'gpt-4o',  // Restore to gpt-4o as requested
   temperature: 0.7,
-  maxTokens: 200,
+  maxTokens: 1000,
+  debug: true // Enable debug logging to see what's happening
 });
 
-// Create runtime instance using the factory function
 export const runtime = createRuntime({
   provider,
-  debug: process.env.NODE_ENV === 'development',
+  debug: true // Enable runtime debug logging as well
 });

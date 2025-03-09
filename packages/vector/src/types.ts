@@ -7,7 +7,17 @@ export interface ReduxAIAction {
 export interface VectorEntry {
   id: string;
   vector: number[];
-  metadata: Record<string, unknown>;
+  metadata: VectorMetadata;
+  timestamp: number;
+}
+
+// Comprehensive metadata type for vector entries
+export interface VectorMetadata {
+  query?: string;
+  response?: string;
+  intent?: string;
+  action?: Record<string, unknown>;
+  reasoning?: string[];
   timestamp: number;
 }
 
@@ -18,22 +28,18 @@ export interface VectorConfig {
   maxEntries?: number;
 }
 
-// Metadata type for storeInteraction
-export interface InteractionMetadata {
-  intent?: string;
-  action?: Record<string, unknown>;
-  reasoning?: string[];
-}
-
 // Public interface for vector operations
 export interface ReduxAIVector {
-  addEntry: (data: { vector: number[]; metadata: Record<string, unknown> }) => Promise<void>;
+  addEntry: (data: { vector: number[]; metadata: VectorMetadata }) => Promise<void>;
   retrieveSimilar: (searchQuery: string, resultLimit?: number) => Promise<VectorEntry[]>;
   getAllEntries: () => Promise<VectorEntry[]>;
   storeInteraction: (
     userQuery: string,
     systemResponse: string,
-    metadata?: InteractionMetadata
+    metadata?: Partial<VectorMetadata>
   ) => Promise<void>;
   subscribe: (callback: (newEntry: VectorEntry) => void) => () => void;
 }
+
+// Export the InteractionMetadata type
+export type InteractionMetadata = Partial<VectorMetadata>;

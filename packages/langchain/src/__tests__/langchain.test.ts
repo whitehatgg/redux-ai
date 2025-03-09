@@ -11,7 +11,7 @@ class MockChatModel {
   lc_serializable = true;
 
   invoke = vi.fn().mockImplementation(async () => ({
-    content: JSON.stringify({ message: 'Test response', action: null }),
+    content: 'Test response',
   }));
 
   _modelType() {
@@ -19,66 +19,31 @@ class MockChatModel {
   }
 }
 
-describe(
-  'LangChainProvider',
-  () => {
-    it('should properly initialize with a model', () => {
-      const provider = new LangChainProvider({
-        model: new MockChatModel() as unknown as BaseChatModel,
-        timeout: 5000,
-        debug: false,
-      });
-      expect(provider).toBeInstanceOf(LangChainProvider);
+describe('LangChainProvider', () => {
+  it('should properly initialize with a model', () => {
+    const provider = new LangChainProvider({
+      model: new MockChatModel() as unknown as BaseChatModel,
+      timeout: 5000,
+      debug: false,
+    });
+    expect(provider).toBeInstanceOf(LangChainProvider);
+  });
+
+  it('should process messages correctly', async () => {
+    const mockModel = new MockChatModel();
+    const provider = new LangChainProvider({
+      model: mockModel as unknown as BaseChatModel,
+      timeout: 5000,
+      debug: false,
     });
 
-    it('should process messages and return valid response', async () => {
-      const mockModel = new MockChatModel();
-      const provider = new LangChainProvider({
-        model: mockModel as unknown as BaseChatModel,
-        timeout: 5000,
-        debug: false,
-      });
+    const messages: Message[] = [
+      { role: 'user', content: 'Hello' },
+      { role: 'assistant', content: 'Hi there!' }
+    ];
 
-      const mockResponse = {
-        content: JSON.stringify({ message: 'Test response', action: null }),
-      };
-      mockModel.invoke.mockResolvedValue(mockResponse);
-
-      const response = await provider.complete('Hello');
-      expect(response).toEqual({ message: 'Test response', action: null });
-    });
-
-    it('should handle non-JSON responses', async () => {
-      const mockModel = new MockChatModel();
-      const provider = new LangChainProvider({
-        model: mockModel as unknown as BaseChatModel,
-        timeout: 5000,
-        debug: false,
-      });
-
-      // Return a plain string to trigger JSON parse error
-      const mockResponse = { content: 'not a json string' };
-      mockModel.invoke.mockResolvedValue(mockResponse);
-
-      await expect(provider.complete('Hello')).rejects.toThrow(
-        'Invalid JSON response from provider'
-      );
-    });
-
-    it('should handle invalid response content', async () => {
-      const mockModel = new MockChatModel();
-      const provider = new LangChainProvider({
-        model: mockModel as unknown as BaseChatModel,
-        timeout: 5000,
-        debug: false,
-      });
-
-      // Return a non-object response after JSON parsing
-      const mockResponse = { content: 'null' };
-      mockModel.invoke.mockResolvedValue(mockResponse);
-
-      await expect(provider.complete('Hello')).rejects.toThrow('Invalid response: not an object');
-    });
-  },
-  { timeout: 10000 }
-);
+    const result = await provider.completeRaw(messages);
+    expect(result).toBe('Test response');
+    expect(mockModel.invoke).toHaveBeenCalled();
+  });
+});

@@ -1,39 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BaseAdapter, type RuntimeAdapterConfig } from '../adapter';
-import type { CompletionResponse, Message } from '../types';
+import type { CompletionResponse, Message, QueryParams, RuntimeBase } from '../types';
 
 class MockRuntime implements RuntimeBase {
-  readonly provider: {
-    complete: (
-      messages: Message[],
-      currentState?: Record<string, unknown>
-    ) => Promise<CompletionResponse>;
-  };
-  readonly messages: Message[];
-  readonly debug: boolean;
-  readonly currentState?: Record<string, unknown>;
+  readonly debug: boolean = false;
 
-  constructor() {
-    this.provider = {
-      complete: vi.fn().mockResolvedValue({
-        message: 'Test response',
-        action: { type: 'test_action' },
-      }),
-    };
-    this.messages = [];
-    this.debug = false;
-  }
-
-  async query(params: {
-    query: string;
-    prompt?: string;
-    actions?: unknown[];
-    currentState?: Record<string, unknown>;
-  }): Promise<CompletionResponse> {
+  async query(params: QueryParams): Promise<CompletionResponse> {
     return {
       message: 'Test response',
       action: { type: 'test_action' },
+      reasoning: ['Test reasoning'],
     };
   }
 }
@@ -55,10 +32,10 @@ describe('RuntimeAdapter', () => {
           const response = await runtime.query(request);
           return response;
         } catch (error) {
-          const errorResponse = this.handleError(error);
+          const errorResult = this.handleError(error);
           return {
-            status: errorResponse.status,
-            body: errorResponse.body,
+            status: errorResult.status,
+            body: errorResult.body,
           };
         }
       }.bind(this);
@@ -145,14 +122,14 @@ describe('RuntimeAdapter', () => {
 
     it('should handle runtime errors correctly', async () => {
       const errorRuntime = new MockRuntime();
-      vi.spyOn(errorRuntime, 'query').mockRejectedValue(new Error('provider error'));
+      vi.spyOn(errorRuntime, 'query').mockRejectedValue(new Error('runtime error'));
 
       const adapter = new TestAdapter();
       const handler = adapter.createHandler({ runtime: errorRuntime });
 
       const response = await handler({ query: 'test' });
       expect(response.status).toBe(500);
-      expect(response.body.error).toBe('Runtime error');
+      expect(response.body.error).toBe('runtime error');
     });
   });
 });

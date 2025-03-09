@@ -16,15 +16,17 @@ export interface ActivityEntry {
 }
 
 function convertToActivityEntry(entry: VectorEntry): ActivityEntry {
+  const metadata = entry.metadata;
+
   return {
     id: entry.id,
     metadata: {
-      intent: String(entry.metadata.intent || ''),
-      action: entry.metadata.action as Record<string, unknown> | undefined,
-      query: String(entry.metadata.query || ''),
-      response: String(entry.metadata.response || ''),
-      reasoning: Array.isArray(entry.metadata.reasoning) ? entry.metadata.reasoning : undefined,
-      timestamp: Number(entry.metadata.timestamp || Date.now()),
+      intent: metadata.intent,
+      action: metadata.action,
+      query: metadata.query || '',
+      response: metadata.response || '',
+      reasoning: metadata.reasoning || [],
+      timestamp: metadata.timestamp,
     },
   };
 }

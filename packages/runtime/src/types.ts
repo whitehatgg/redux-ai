@@ -4,6 +4,7 @@ export interface CompletionResponse {
   message: string;
   action: Record<string, unknown> | null;
   reasoning: string | string[];
+  intent?: 'action' | 'state' | 'conversation';
 }
 
 export interface IntentCompletionResponse {

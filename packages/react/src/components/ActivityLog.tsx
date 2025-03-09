@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import {
-  Activity,
   ArrowRight,
   ChevronDown,
   ChevronRight,
@@ -19,11 +18,15 @@ interface ActivityLogProps {
   onClose?: () => void;
 }
 
-// Helper to format action type for display by converting both namespaced and uppercase styles
 const formatActionType = (type: string): string => {
-  // Handle both namespaced (user/action) and uppercase with underscore (USER_ACTION) formats
   const parts = type.includes('/') ? type.split('/') : type.toLowerCase().split('_');
   return parts.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' › ');
+};
+
+const intentConfig = {
+  action: { icon: Zap, label: 'Action', color: 'text-blue-500' },
+  state: { icon: Settings, label: 'State', color: 'text-green-500' },
+  conversation: { icon: MessageSquare, label: 'Conversation', color: 'text-primary' },
 };
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
@@ -72,24 +75,17 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               entries.map(entry => {
                 const isExpanded = expandedEntries.has(entry.id);
                 const intent = entry.metadata.intent || 'conversation';
-
-                // Get appropriate icon and label based on intent
-                const intentDetails = {
-                  action: { icon: Zap, label: 'Action' },
-                  state: { icon: Settings, label: 'State' },
-                  conversation: { icon: MessageSquare, label: 'Conversation' },
-                }[intent];
-
-                const IntentIcon = intentDetails?.icon || Activity;
+                const config = intentConfig[intent as keyof typeof intentConfig] || intentConfig.conversation;
+                const IntentIcon = config.icon;
 
                 return (
                   <div key={entry.id} className="rounded-lg border bg-card p-4 shadow-sm">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <IntentIcon className="h-4 w-4 text-primary" />
+                          <IntentIcon className={`h-4 w-4 ${config.color}`} />
                           <span className="text-sm font-medium">
-                            {intentDetails?.label || intent}
+                            {config.label}
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
@@ -100,7 +96,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                       {entry.metadata.action && (
                         <div className="mt-2 rounded-md bg-muted/50 p-2">
                           <div className="flex items-center gap-2 text-xs">
-                            <ArrowRight className="h-4 w-4 text-primary" />
+                            <ArrowRight className={`h-4 w-4 ${config.color}`} />
                             <span>{formatActionType(entry.metadata.action.type as string)}</span>
                           </div>
                         </div>
@@ -117,7 +113,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                             <ChevronRight className="h-3 w-3" />
                           )}
                           <MessageSquare className="h-3 w-3" />
-                          <span>Conversation Details</span>
+                          <span>Details</span>
                         </button>
                       )}
 

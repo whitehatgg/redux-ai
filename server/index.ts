@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
+import http from 'http';
 
 import { registerRoutes } from './routes';
 import { log, serveStatic, setupVite } from './vite';
@@ -26,9 +27,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     await registerRoutes(app);
     log('Routes registered successfully');
 
-    // Global error handler
-    app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Server error:', err);
+    // Global error handler with detailed logging
+    app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+      console.error('Server error details:', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        path: req.path,
+        method: req.method,
+        body: req.body
+      });
+
       if (!res.headersSent) {
         res.status(500).json({
           error: err instanceof Error ? err.message : 'Internal Server Error',
@@ -36,14 +44,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       }
     });
 
+    const server = http.createServer(app);
+
     if (app.get('env') === 'development') {
-      await setupVite(app);
+      await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
     const PORT = parseInt(process.env.PORT || '5000', 10);
-    app.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', () => {
       log(`Server listening on port ${PORT}`);
     });
   } catch (error) {

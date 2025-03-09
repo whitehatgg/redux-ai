@@ -85,12 +85,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         };
         setMessages(prev => [...prev, assistantMessage]);
       }
-    } catch (error) {
-      console.error('[ChatBubble] Error processing query:', error);
+    } catch (error: unknown) {
+      console.error('[ChatBubble] Error:', error);
+      const errorContent = error instanceof Error ? error.message : String(error);
       const errorMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'error',
-        content: error instanceof Error ? error.message : String(error),
+        content: errorContent,
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);
