@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { createReduxAIState } from '@redux-ai/state';
-
+import { useSelector } from '@xstate/react';
 import { useReduxAIContext } from '../components/ReduxAIProvider';
 
 export interface AIResponse {
@@ -9,49 +8,44 @@ export interface AIResponse {
 }
 
 export function useReduxAI() {
-  const { store, actions, storage, endpoint } = useReduxAIContext();
+  const { aiState, machineService } = useReduxAIContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Use XState selector to track messages with proper undefined handling
+  const messages = useSelector(
+    machineService,
+    (state) => state?.context?.messages ?? [],
+    (a, b) => a === b
+  );
+
   const sendQuery = useCallback(
     async (query: string): Promise<AIResponse> => {
+      if (!aiState) {
+        throw new Error('ReduxAI state not initialized');
+      }
+
       setIsProcessing(true);
       setError(null);
 
       try {
-        if (!storage) {
-          throw new Error('Vector storage not initialized');
+        return await aiState.processQuery(query);
+      } catch (error) {
+        if (error instanceof Error) {
+          setError(error.message);
         }
-
-        const state = createReduxAIState({
-          store,
-          actions,
-          storage,
-          endpoint,
-          onError: error => {
-            console.error('[ReduxAI]:', error);
-            if (error instanceof Error) {
-              setError(error.message);
-            }
-          },
-        });
-
-        // eslint-disable-next-line no-useless-catch
-        try {
-          return await state.processQuery(query);
-        } catch (error) {
-          throw error;
-        }
+        throw error;
       } finally {
         setIsProcessing(false);
       }
     },
-    [store, actions, storage, endpoint]
+    [aiState]
   );
 
   return {
     sendQuery,
     isProcessing,
     error,
+    messages,
   };
 }

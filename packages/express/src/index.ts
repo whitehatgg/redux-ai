@@ -9,17 +9,14 @@ export class ExpressAdapter extends BaseAdapter {
   public async createHandler(config: RuntimeAdapterConfig): Promise<AdapterResponse> {
     const runtime = config.runtime;
     const path = config.endpoint ?? '/api/query';
+    const self = this;
 
-    const handler = async (req: Request, res: Response, next: NextFunction) => {
+    async function handler(req: Request, res: Response, next: NextFunction) {
       if (req.path !== path || req.method !== 'POST') {
         return next();
       }
 
       try {
-        if (runtime.debug) {
-          console.log('[Express Debug] Incoming request body:', req.body);
-        }
-
         const { query, state, actions, conversations } = req.body;
         const response = await runtime.query({
           query,
@@ -28,23 +25,14 @@ export class ExpressAdapter extends BaseAdapter {
           conversations,
         });
 
-        if (runtime.debug) {
-          console.log('[Express Debug] Response:', response);
-        }
-
         return res.json(response);
       } catch (error) {
-        if (runtime.debug) {
-          console.error('[Express Debug] Error processing request:', error);
-        }
-
-        const errorResult = this.handleError(error);
+        const errorResult = self.handleError(error);
         return res.status(errorResult.status).json(errorResult.body);
       }
-    };
+    }
 
-    // Cast the handler function as AdapterResponse to satisfy the interface
-    return handler as unknown as AdapterResponse;
+    return handler;
   }
 }
 

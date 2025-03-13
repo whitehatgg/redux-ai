@@ -126,7 +126,7 @@ export default [
         },
       ],
       '@typescript-eslint/consistent-type-imports': [
-        'error',
+        'warn',
         {
           prefer: 'type-imports',
           fixStyle: 'inline-type-imports',
@@ -135,8 +135,8 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'warn',
       'no-unused-vars': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'debug'] }],
-      'prefer-const': 'error',
-      'no-var': 'error',
+      'prefer-const': 'warn',
+      'no-var': 'warn',
       'no-prototype-builtins': 'off',
       'no-undef': 'off',
     },

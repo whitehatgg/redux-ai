@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createRuntime } from '../index';
 import { BaseLLMProvider } from '../provider';
 import type { CompletionResponse, IntentCompletionResponse, Message } from '../types';
@@ -10,50 +10,97 @@ class MockProvider extends BaseLLMProvider {
 
   protected async completeRaw(messages: Message[]): Promise<CompletionResponse | IntentCompletionResponse> {
     const systemPrompt = messages[0].content;
-    const userQuery = messages[1]?.content.toLowerCase() || '';
+    const userQuery = messages[1]?.content || '';
+
+    // Handle workflow prompts specifically
+    if (systemPrompt.includes('WORKFLOW')) {
+      return {
+        message: 'Processing workflow steps',
+        steps: [
+          {
+            query: 'create a task',
+            message: 'Task created',
+            intent: 'action',
+            reasoning: ['First step: Create task'],
+            action: { type: 'task/create', payload: { title: 'New Task' } }
+          },
+          {
+            query: 'show all tasks',
+            message: 'Current tasks: []',
+            intent: 'state',
+            reasoning: ['Second step: View tasks'],
+            action: null
+          }
+        ],
+        reasoning: ['Workflow steps identified'],
+        action: null,
+        intent: 'workflow'
+      };
+    }
 
     // Handle intent classification
-    if (systemPrompt.includes('INTENT CLASSIFICATION RULES')) {
-      if (userQuery.includes('action')) {
+    if (systemPrompt.includes('INTENT CLASSIFICATION')) {
+      if (userQuery.includes('and then')) {
+        return {
+          intent: 'workflow',
+          message: 'Processing workflow steps',
+          steps: [
+            { query: 'create a task', message: 'Task created', intent: 'action', reasoning: ['First step: Create task'], action: { type: 'task/create', payload: { title: 'New Task' } } },
+            { query: 'show all tasks', message: 'Current tasks: []', intent: 'state', reasoning: ['Second step: View tasks'], action: null }
+          ],
+          reasoning: ['Multiple operations detected', 'Workflow steps identified'],
+          action: null
+        };
+      } else if (userQuery.includes('create')) {
         return {
           intent: 'action',
-          message: 'Classified as action query',
-          reasoning: ['Query analysis complete'],
+          message: 'Task created',
+          reasoning: ['Action keywords detected'],
+          action: { type: 'task/create', payload: { title: 'New Task' } }
         };
-      } else if (userQuery.includes('state')) {
+      } else if (userQuery.includes('show')) {
         return {
           intent: 'state',
-          message: 'Classified as state query',
-          reasoning: ['Query analysis complete'],
+          message: 'Current tasks: []',
+          reasoning: ['State request detected'],
+          action: null
         };
       }
       return {
         intent: 'conversation',
-        message: 'Classified as conversation query',
-        reasoning: ['Query analysis complete'],
+        message: 'General conversation query',
+        reasoning: ['No specific intent detected'],
+        action: null
       };
     }
 
-    // Handle action/state/conversation processing
-    if (userQuery.includes('action') && !systemPrompt.includes('Available actions:')) {
+    // Return appropriate response based on query content
+    if (userQuery.includes('create a task')) {
       return {
-        message: 'Defaulting to conversation - no actions schema available',
-        action: null,
-        reasoning: ['Action intent requires actions schema'],
-      };
-    } else if (userQuery.includes('state') && !systemPrompt.includes('Current state:')) {
-      return {
-        message: 'Defaulting to conversation - no state data available',
-        action: null,
-        reasoning: ['State intent requires state data'],
+        message: 'Task created',
+        action: {
+          type: 'task/create',
+          payload: { title: 'New Task' }
+        },
+        reasoning: ['Created task with default title'],
+        intent: 'action'
       };
     }
 
-    // Default conversation response
+    if (userQuery.includes('show all tasks')) {
+      return {
+        message: 'Current tasks: []',
+        action: null,
+        reasoning: ['Retrieved current task list'],
+        intent: 'state'
+      };
+    }
+
     return {
-      message: 'Conversation response',
+      message: 'Assistance-focused response',
       action: null,
-      reasoning: ['Test reasoning'],
+      reasoning: ['Default assistance response'],
+      intent: 'conversation'
     };
   }
 }
@@ -62,24 +109,52 @@ describe('Runtime Dynamic Prompt Tests', () => {
   const mockProvider = new MockProvider();
 
   describe('Intent Classification', () => {
-    it('should properly classify state query with state context', async () => {
+    it('should classify state query with state context', async () => {
       const runtime = createRuntime({ provider: mockProvider });
       const result = await runtime.query({
-        query: 'show the state',
-        state: { test: true },
+        query: 'show all tasks',
+        state: { tasks: [] },
       });
 
       expect(result.intent).toBe('state');
+      expect(result.action).toBeNull();
     });
 
-    it('should classify as action when actions available', async () => {
+    it('should classify as action when valid', async () => {
       const runtime = createRuntime({ provider: mockProvider });
       const result = await runtime.query({
-        query: 'perform action',
+        query: 'create a task',
         actions: { test_action: { params: [] } },
       });
 
       expect(result.intent).toBe('action');
+      expect(result.action).toBeDefined();
+    });
+
+    it('should handle multi-step workflow intents', async () => {
+      const runtime = createRuntime({ provider: mockProvider });
+      const result = await runtime.query({
+        query: 'create a task and then show all tasks',
+        actions: { test_action: { params: [] } },
+        state: { tasks: [] },
+      });
+
+      expect(result.intent).toBe('workflow');
+      expect(result.workflow).toBeDefined();
+      expect(Array.isArray(result.workflow)).toBe(true);
+      expect(result.workflow).toHaveLength(2);
+      expect(result.action).toBeNull();
+
+      const [firstStep, secondStep] = result.workflow!;
+
+      expect(firstStep.intent).toBe('action');
+      expect(firstStep.message).toBe('Task created');
+      expect(firstStep.action).toBeDefined();
+      expect(firstStep.action?.type).toBe('task/create');
+
+      expect(secondStep.intent).toBe('state');
+      expect(secondStep.message).toBe('Current tasks: []');
+      expect(secondStep.action).toBeNull();
     });
 
     it('should default to conversation without specific context', async () => {
@@ -89,30 +164,7 @@ describe('Runtime Dynamic Prompt Tests', () => {
       });
 
       expect(result.intent).toBe('conversation');
-    });
-
-    it('should force conversation intent when action requested but no actions schema', async () => {
-      const runtime = createRuntime({ provider: mockProvider });
-      const result = await runtime.query({
-        query: 'perform action',
-        state: { test: true }, // Only state provided, no actions
-      });
-
-      expect(result.intent).toBe('conversation');
-      expect(result.message).toBe('Defaulting to conversation - no actions schema available');
-      expect(result.reasoning).toContain('Action intent requires actions schema');
-    });
-
-    it('should force conversation intent when state requested but no state data', async () => {
-      const runtime = createRuntime({ provider: mockProvider });
-      const result = await runtime.query({
-        query: 'show the state',
-        actions: { test_action: { params: [] } }, // Only actions provided, no state
-      });
-
-      expect(result.intent).toBe('conversation');
-      expect(result.message).toBe('Defaulting to conversation - no state data available');
-      expect(result.reasoning).toContain('State intent requires state data');
+      expect(result.action).toBeNull();
     });
   });
 });

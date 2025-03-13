@@ -1,14 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Minimize2, Sidebar } from 'lucide-react';
+import { useSelector } from '@xstate/react';
+import type { ConversationMessage } from '@redux-ai/state';
 
 import { useReduxAI } from '../hooks/useReduxAI';
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'error';
-  content: string;
-  timestamp: number;
-}
+import { useReduxAIContext } from './ReduxAIProvider';
 
 interface ChatBubbleProps {
   className?: string;
@@ -23,23 +19,27 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   isMinimized = false,
   onMinimize,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const { sendQuery, isProcessing, error: queryError } = useReduxAI();
+  const { sendQuery, isProcessing } = useReduxAI();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { machineService } = useReduxAIContext();
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const messages = useSelector(
+    machineService,
+    (state) => state?.context?.messages ?? [],
+    (a, b) => a === b
+  );
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
-  const generateMessageId = () => {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  };
+  useEffect(() => {
+    setTimeout(scrollToBottom, 100);
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,52 +49,17 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       return;
     }
 
-    const userMessage: ChatMessage = {
-      id: generateMessageId(),
-      role: 'user',
-      content: trimmedInput,
-      timestamp: Date.now(),
-    };
-
     setInput('');
     setIsSubmitting(true);
-    setMessages(prev => [...prev, userMessage]);
 
     try {
-      console.debug('[ChatBubble] Sending query:', trimmedInput);
-      const response = await sendQuery(trimmedInput);
-      console.debug('[ChatBubble] Raw response:', response);
-
-      if (queryError) {
-        const errorMessage: ChatMessage = {
-          id: generateMessageId(),
-          role: 'error',
-          content: queryError,
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
-        return;
-      }
-
-      if (response.message) {
-        const assistantMessage: ChatMessage = {
-          id: generateMessageId(),
-          role: 'assistant',
-          content: response.message,
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-      }
+      await sendQuery(trimmedInput);
     } catch (error: unknown) {
-      console.error('[ChatBubble] Error:', error);
       const errorContent = error instanceof Error ? error.message : String(error);
-      const errorMessage: ChatMessage = {
-        id: generateMessageId(),
-        role: 'error',
-        content: errorContent,
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      machineService?.send({
+        type: 'RESPONSE',
+        message: errorContent
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -136,18 +101,16 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
         <div className="flex-1 overflow-y-auto pb-24 pt-14">
           <div className="space-y-4 p-4">
-            {messages.map(message => (
+            {messages?.map((message: ConversationMessage, index: number) => (
               <div
-                key={message.id}
+                key={`${message.role}-${index}`}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`inline-block max-w-[80%] rounded-lg p-3 ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
-                      : message.role === 'error'
-                        ? 'bg-destructive text-destructive-foreground'
-                        : 'bg-muted'
+                      : 'bg-muted'
                   }`}
                 >
                   {message.content}

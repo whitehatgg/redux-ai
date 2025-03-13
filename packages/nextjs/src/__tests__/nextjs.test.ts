@@ -1,4 +1,4 @@
-import type { Runtime } from '@redux-ai/runtime';
+import { BaseAdapter } from '@redux-ai/runtime';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,7 +6,7 @@ import { NextjsAdapter } from '../adapter';
 
 describe('NextjsAdapter', () => {
   let adapter: NextjsAdapter;
-  let mockRuntime: Runtime;
+  let mockRuntime: any;
   let mockReq: Partial<NextApiRequest>;
   let mockRes: Partial<NextApiResponse>;
 
@@ -17,8 +17,13 @@ describe('NextjsAdapter', () => {
 
     mockRuntime = {
       debug: false,
-      query: vi.fn().mockImplementation(async () => ({ message: 'Success', action: null })),
-    } as unknown as Runtime;
+      query: vi.fn().mockImplementation(async () => ({ 
+        message: 'Success', 
+        action: null,
+        intent: 'action',
+        reasoning: ['Test reasoning']
+      })),
+    };
 
     mockReq = {
       method: 'POST',
@@ -37,36 +42,21 @@ describe('NextjsAdapter', () => {
     };
   });
 
-  it('should handle API key errors', async () => {
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error('API key or authentication failed'));
+  it('should pass through API key errors', async () => {
+    const errorMessage = 'API key or authentication failed';
+    mockRuntime.query = vi.fn().mockRejectedValue(new Error(errorMessage));
 
     const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Invalid or missing API key',
-      status: 'error',
-      isConfigured: false,
+      error: errorMessage,
+      status: 'error'
     });
   });
 
-  it('should handle rate limit errors', async () => {
-    // Mock isRateLimited to return true for this test
-    vi.spyOn(adapter as any, 'isRateLimited').mockReturnValue(true);
-
-    const handler = await adapter.createHandler({ runtime: mockRuntime });
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
-
-    expect(mockRes.status).toHaveBeenCalledWith(429);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Rate limit exceeded',
-      status: 'error',
-      isConfigured: false,
-    });
-  });
-
-  it('should handle method not allowed', async () => {
+  it('should pass through method errors', async () => {
     mockReq.method = 'GET';
 
     const handler = await adapter.createHandler({ runtime: mockRuntime });
@@ -74,23 +64,35 @@ describe('NextjsAdapter', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(405);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Method not allowed',
-      status: 'error',
-      isConfigured: false,
+      error: 'GET not allowed',
+      status: 'error'
     });
   });
 
-  it('should handle unknown errors', async () => {
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error('Unknown error'));
+  it('should pass through unknown errors', async () => {
+    const errorMessage = 'Unknown error occurred';
+    mockRuntime.query = vi.fn().mockRejectedValue(new Error(errorMessage));
 
     const handler = await adapter.createHandler({ runtime: mockRuntime });
     await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
 
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Unknown error',
-      status: 'error',
-      isConfigured: false,
+      error: errorMessage,
+      status: 'error'
+    });
+  });
+
+  it('should pass through not found errors', async () => {
+    mockReq.url = '/wrong/path';
+
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
+    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+
+    expect(mockRes.status).toHaveBeenCalledWith(404);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: 'Not found: /wrong/path',
+      status: 'error'
     });
   });
 });

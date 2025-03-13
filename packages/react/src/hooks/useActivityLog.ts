@@ -37,6 +37,9 @@ export function useActivityLog() {
   const [error, setError] = useState<string | null>(null);
   const { storage: vectorStorage } = useReduxAIContext();
 
+  // This effect handles both initial loading and subscription to new entries
+  // The vectorStorage dependency is sufficient as it's the only external dependency
+  // that affects the functionality of this hook
   useEffect(() => {
     if (!vectorStorage) {
       return;
@@ -67,6 +70,7 @@ export function useActivityLog() {
       }
     };
 
+    // Subscription is tied to vectorStorage lifecycle
     const unsubscribe = vectorStorage.subscribe((newEntry: VectorEntry) => {
       if (isMounted) {
         const convertedEntry = convertToActivityEntry(newEntry);
@@ -80,7 +84,7 @@ export function useActivityLog() {
       isMounted = false;
       unsubscribe();
     };
-  }, [vectorStorage]);
+  }, [vectorStorage]); // vectorStorage is the only required dependency
 
   return {
     entries,

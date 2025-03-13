@@ -4,13 +4,18 @@ export interface CompletionResponse {
   message: string;
   action: Record<string, unknown> | null;
   reasoning: string | string[];
-  intent?: 'action' | 'state' | 'conversation';
+  intent: 'action' | 'state' | 'conversation' | 'workflow';
+  workflow?: CompletionResponse[];
+  steps?: Array<{ query: string }>;
 }
 
 export interface IntentCompletionResponse {
-  intent: 'action' | 'state' | 'conversation';
+  intent: 'action' | 'state' | 'conversation' | 'workflow';
   message: string;
   reasoning: string | string[];
+  action: Record<string, unknown> | null;
+  workflow?: CompletionResponse[];
+  steps?: Array<{ query: string }>;
 }
 
 export interface Message {
@@ -30,7 +35,6 @@ export interface QueryParams {
   conversations?: string;
 }
 
-// Runtime adapter related types
 export interface AdapterRequestBody {
   query: string;
   prompt?: string;
@@ -45,11 +49,11 @@ export interface AdapterRequest {
   method: string;
 }
 
-export interface AdapterResponse {
-  handler: unknown;
-  status(code: number): AdapterResponse;
-  json(data: unknown): void;
-}
+// Define handler type for clarity
+export type AdapterHandler = (req: unknown, res: unknown, next?: unknown) => Promise<void>;
+
+// Updated to directly return handler function
+export type AdapterResponse = AdapterHandler;
 
 export interface RuntimeAdapter {
   createHandler(config: RuntimeAdapterConfig): Promise<AdapterResponse>;
@@ -59,19 +63,16 @@ export interface RuntimeAdapter {
   };
 }
 
-// Base interface for Runtime implementation
 export interface RuntimeBase {
   readonly debug: boolean;
   query(params: QueryParams): Promise<CompletionResponse>;
 }
 
-// Configuration for creating a runtime instance
 export interface RuntimeConfig {
   provider: BaseLLMProvider;
   debug?: boolean;
 }
 
-// Configuration for runtime adapters
 export interface RuntimeAdapterConfig {
   runtime: RuntimeBase;
   endpoint?: string;

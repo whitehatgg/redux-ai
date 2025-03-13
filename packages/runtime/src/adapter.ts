@@ -3,87 +3,23 @@ import type {
   AdapterResponse as AdapterResponseType,
   RuntimeAdapter,
   RuntimeAdapterConfig,
-  RuntimeBase,
 } from './types';
 
 export abstract class BaseAdapter implements RuntimeAdapter {
   public handleError(error: unknown): {
     status: number;
-    body: { error: string; status: string; isConfigured: boolean };
+    body: { error: string; status: string };
   } {
-    if (error instanceof Error) {
-      const errorMessage = error.message.toLowerCase();
-
-      // API key related errors
-      if (
-        errorMessage.includes('api key') ||
-        errorMessage.includes('apikey') ||
-        errorMessage.includes('authentication')
-      ) {
-        return {
-          status: 401,
-          body: {
-            error: 'Invalid or missing API key',
-            status: 'error',
-            isConfigured: false,
-          },
-        };
-      }
-
-      // Authorization errors
-      if (errorMessage.includes('does not have access to model')) {
-        return {
-          status: 403,
-          body: {
-            error: 'Your API key does not have access',
-            status: 'error',
-            isConfigured: false,
-          },
-        };
-      }
-
-      // Rate limit errors
-      if (errorMessage.includes('rate limit')) {
-        return {
-          status: 429,
-          body: {
-            error: 'Rate limit exceeded',
-            status: 'error',
-            isConfigured: false,
-          },
-        };
-      }
-
-      // Check for provider errors first
-      if (errorMessage === 'provider error') {
-        return {
-          status: 500,
-          body: {
-            error: 'Runtime error',
-            status: 'error',
-            isConfigured: false,
-          },
-        };
-      }
-
-      // All other errors
-      return {
-        status: 500,
-        body: {
-          error: error.message || 'Unknown error',
-          status: 'error',
-          isConfigured: false,
-        },
-      };
-    }
-
+    // Pass through the original error message
     return {
-      status: 500,
+      status: error instanceof Error ? 
+        // Use standard HTTP status codes but let original error propagate
+        (error.message.toLowerCase().includes('api key') ? 401 :
+         error.message.toLowerCase().includes('rate limit') ? 429 : 500) : 500,
       body: {
-        error: 'Unknown error',
-        status: 'error',
-        isConfigured: false,
-      },
+        error: error instanceof Error ? error.message : String(error),
+        status: 'error'
+      }
     };
   }
 

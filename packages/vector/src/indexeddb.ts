@@ -15,28 +15,21 @@ export class IndexedDBStorage {
       return;
     }
 
-    try {
-      console.debug('[IndexedDB] Starting initialization');
-      const request = indexedDB.open(this.dbName, 1);
+    const request = indexedDB.open(this.dbName, 1);
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          db.createObjectStore(this.storeName, { keyPath: 'id' });
-        }
-      };
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(this.storeName)) {
+        db.createObjectStore(this.storeName, { keyPath: 'id' });
+      }
+    };
 
-      this.db = await new Promise((resolve, reject) => {
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
+    this.db = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(new Error('Failed to initialize IndexedDB'));
+    });
 
-      this.initialized = true;
-      console.debug('[IndexedDB] Initialization complete');
-    } catch (error) {
-      console.error('[IndexedDB] Initialization failed:', error);
-      throw new Error('Failed to initialize IndexedDB');
-    }
+    this.initialized = true;
   }
 
   private getStore(mode: IDBTransactionMode = 'readonly'): IDBObjectStore {
@@ -48,52 +41,34 @@ export class IndexedDBStorage {
   }
 
   async addEntry(entry: VectorEntry): Promise<void> {
-    try {
-      const store = this.getStore('readwrite');
-      await new Promise<void>((resolve, reject) => {
-        const request = store.put(entry);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    } catch (error) {
-      console.error('[IndexedDB] Failed to add entry:', error);
-      throw error;
-    }
+    const store = this.getStore('readwrite');
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(entry);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   }
 
   async getAllEntries(): Promise<VectorEntry[]> {
-    try {
-      const store = this.getStore('readonly');
-      return new Promise<VectorEntry[]>((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    } catch (error) {
-      console.error('[IndexedDB] Failed to get entries:', error);
-      throw error;
-    }
+    const store = this.getStore('readonly');
+    return new Promise<VectorEntry[]>((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
   }
 
   async cleanup(): Promise<void> {
-    try {
-      if (this.db) {
-        this.db.close();
-        this.db = null;
-      }
-      this.initialized = false;
-
-      await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase(this.dbName);
-        request.onsuccess = () => {
-          console.debug('[IndexedDB] Cleanup complete');
-          resolve();
-        };
-        request.onerror = () => reject(request.error);
-      });
-    } catch (error) {
-      console.error('[IndexedDB] Cleanup failed:', error);
-      throw error;
+    if (this.db) {
+      this.db.close();
+      this.db = null;
     }
+    this.initialized = false;
+
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(this.dbName);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   }
 }

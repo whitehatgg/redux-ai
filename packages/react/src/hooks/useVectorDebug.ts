@@ -9,6 +9,9 @@ export function useVectorDebug() {
   const [error, setError] = useState<string | null>(null);
   const { storage } = useReduxAIContext();
 
+  // This effect handles fetching vector entries when storage is available
+  // The storage dependency is sufficient as it's the only external dependency
+  // that affects the data fetching functionality
   useEffect(() => {
     async function fetchEntries() {
       if (!storage) {
@@ -29,7 +32,7 @@ export function useVectorDebug() {
     }
 
     fetchEntries();
-  }, [storage]);
+  }, [storage]); // storage is the only required dependency
 
   return { entries, isLoading, error };
 }

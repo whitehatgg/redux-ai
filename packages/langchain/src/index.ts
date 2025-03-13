@@ -32,22 +32,8 @@ export class LangChainProvider extends BaseLLMProvider {
   }
 
   protected async completeRaw(messages: Message[]): Promise<unknown> {
-    if (this.debug) {
-      console.debug('[LangChain] Converting messages:', messages);
-    }
-
     const langChainMessages = messages.map(msg => this.convertMessage(msg));
-
-    if (this.debug) {
-      console.debug('[LangChain] Sending request with messages:', langChainMessages);
-    }
-
     const response = await this.model.invoke(langChainMessages);
-
-    if (this.debug) {
-      console.debug('[LangChain] Received response:', response.content);
-    }
-
     return response.content;
   }
 

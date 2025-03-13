@@ -11,22 +11,28 @@ Core runtime engine for Redux AI toolkit that provides base functionality and ut
 - Core state management primitives
 - Extensible provider system for LLM integrations
 - Built-in testing utilities and mocks
-- Standardized error handling
+- Direct error propagation with original LLM messages
 - Provider-agnostic abstractions
 
 ## Recent Improvements
 
 ### Enhanced Chain-of-Thought Reasoning
 - Structured reasoning format for all operations
-- Detailed decision-making process logging
-- Consistent reasoning steps across all intents
-- Comprehensive context tracking
+- Multi-step workflow detection and processing
+- Step-by-step workflow execution with context preservation
+- Comprehensive intent tracking and analysis
 
-### Activity Logging Enhancements
-- Rich context capture in every interaction
-- Detailed operation tracing
-- Structured logging format
-- Real-time decision tracking
+### Direct Error Propagation
+- Raw error messages from LLMs preserved
+- No message transformation or wrapping
+- Original context maintained for debugging
+- Standardized HTTP status codes
+
+### Advanced Workflow Intent
+- Automatic multi-step query detection
+- Dynamic workflow step splitting
+- Context preservation between steps
+- Intent-based routing (action/state/conversation)
 
 ## Installation
 
@@ -65,6 +71,7 @@ class CustomProvider implements LLMProvider {
     return {
       message: 'Response from custom provider',
       action: { type: 'CUSTOM_ACTION' },
+      intent: 'action',
       reasoning: [
         'Initial observation: Analyzing request context',
         'Analysis: Processing request parameters',
@@ -96,6 +103,8 @@ interface CompletionResponse {
   message: string;
   action: { type: string } | null;
   reasoning: string[];
+  intent: 'action' | 'state' | 'conversation' | 'workflow';
+  workflow?: CompletionResponse[]; // For multi-step operations
 }
 ```
 
@@ -122,6 +131,7 @@ const mockProvider = createMockProvider({
     {
       message: 'Mock response with reasoning',
       action: { type: 'TEST_ACTION' },
+      intent: 'action',
       reasoning: [
         'Initial observation: Analyzing test request',
         'Analysis: Processing test parameters',
@@ -140,18 +150,21 @@ const result = await runtime.process([
 
 ## Error Handling
 
-The runtime provides standardized error types:
+The runtime provides direct error propagation from LLMs:
 
 ```typescript
-import { RuntimeError, ProviderError } from '@redux-ai/runtime';
+import { createRuntime } from '@redux-ai/runtime';
 
 try {
   await runtime.process(messages);
 } catch (error) {
-  if (error instanceof ProviderError) {
-    // Handle provider-specific errors
-  } else if (error instanceof RuntimeError) {
-    // Handle runtime errors
+  // Error message is preserved directly from the LLM
+  console.error('LLM Error:', error.message);
+  // HTTP status codes are standardized but messages are unchanged
+  if (error.message.toLowerCase().includes('api key')) {
+    // Handle 401 Unauthorized
+  } else if (error.message.toLowerCase().includes('rate limit')) {
+    // Handle 429 Too Many Requests
   }
 }
 ```

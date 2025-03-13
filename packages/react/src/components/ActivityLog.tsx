@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import {
   ArrowRight,
+  Brain,
   ChevronDown,
   ChevronRight,
   MessageSquare,
   Settings,
   X,
   Zap,
-  Brain,
 } from 'lucide-react';
 
 import { useActivityLog } from '../hooks/useActivityLog';
@@ -18,8 +18,11 @@ interface ActivityLogProps {
   onClose?: () => void;
 }
 
-const formatActionType = (type: string): string => {
-  const parts = type.includes('/') ? type.split('/') : type.toLowerCase().split('_');
+const formatActionType = (action: { type?: unknown } | null | undefined): string => {
+  if (!action?.type || typeof action.type !== 'string') return 'Unknown Action';
+  const parts = action.type.includes('/')
+    ? action.type.split('/')
+    : action.type.toLowerCase().split('_');
   return parts.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' › ');
 };
 
@@ -27,7 +30,7 @@ const intentConfig = {
   action: { icon: Zap, label: 'Action', color: 'text-blue-500' },
   state: { icon: Settings, label: 'State', color: 'text-green-500' },
   conversation: { icon: MessageSquare, label: 'Conversation', color: 'text-primary' },
-};
+} as const;
 
 export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
   const { entries, isLoading, error } = useActivityLog();
@@ -75,7 +78,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
               entries.map(entry => {
                 const isExpanded = expandedEntries.has(entry.id);
                 const intent = entry.metadata.intent || 'conversation';
-                const config = intentConfig[intent as keyof typeof intentConfig] || intentConfig.conversation;
+                const config =
+                  intentConfig[intent as keyof typeof intentConfig] || intentConfig.conversation;
                 const IntentIcon = config.icon;
 
                 return (
@@ -84,9 +88,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <IntentIcon className={`h-4 w-4 ${config.color}`} />
-                          <span className="text-sm font-medium">
-                            {config.label}
-                          </span>
+                          <span className="text-sm font-medium">{config.label}</span>
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {new Date(entry.metadata.timestamp).toLocaleTimeString()}
@@ -97,12 +99,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                         <div className="mt-2 rounded-md bg-muted/50 p-2">
                           <div className="flex items-center gap-2 text-xs">
                             <ArrowRight className={`h-4 w-4 ${config.color}`} />
-                            <span>{formatActionType(entry.metadata.action.type as string)}</span>
+                            <span>{formatActionType(entry.metadata.action)}</span>
                           </div>
                         </div>
                       )}
 
-                      {(entry.metadata.query || entry.metadata.response || entry.metadata.reasoning) && (
+                      {(entry.metadata.query ||
+                        entry.metadata.response ||
+                        entry.metadata.reasoning) && (
                         <button
                           onClick={() => toggleEntry(entry.id)}
                           className="mt-2 flex w-full items-center gap-2 rounded-md p-1 text-xs text-muted-foreground hover:bg-muted"
@@ -131,19 +135,21 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                               {entry.metadata.response}
                             </div>
                           )}
-                          {entry.metadata.reasoning && entry.metadata.reasoning.length > 0 && (
-                            <div className="mt-2 border-t border-border/50 pt-2">
-                              <div className="flex items-center gap-1 font-medium text-muted-foreground">
-                                <Brain className="h-3 w-3" />
-                                <span>Reasoning:</span>
+                          {entry.metadata.reasoning &&
+                            Array.isArray(entry.metadata.reasoning) &&
+                            entry.metadata.reasoning.length > 0 && (
+                              <div className="mt-2 border-t border-border/50 pt-2">
+                                <div className="flex items-center gap-1 font-medium text-muted-foreground">
+                                  <Brain className="h-3 w-3" />
+                                  <span>Reasoning:</span>
+                                </div>
+                                <ul className="mt-1 list-inside list-disc space-y-1 text-muted-foreground">
+                                  {entry.metadata.reasoning.map((reason, index) => (
+                                    <li key={index}>{reason}</li>
+                                  ))}
+                                </ul>
                               </div>
-                              <ul className="mt-1 list-inside list-disc space-y-1 text-muted-foreground">
-                                {entry.metadata.reasoning.map((reason, index) => (
-                                  <li key={index}>{reason}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                            )}
                         </div>
                       )}
                     </div>

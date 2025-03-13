@@ -12,6 +12,8 @@ React components and hooks for the Redux AI state management system, providing d
 - 💎 TypeScript-first component library
 - 🎨 Theme-aware components with Tailwind CSS
 - ♿ Accessibility-first design
+- 🔄 Direct LLM message display
+- ❌ Transparent error propagation
 
 ## Installation
 
@@ -89,11 +91,13 @@ const VectorViewer = () => {
     entries,
     isLoading,
     search,
-    refresh
+    refresh,
+    error // Direct error message from LLM
   } = useVectorDebug();
 
-  const { suggestions, confidence } = useAIActions();
+  const { suggestions, confidence, error: aiError } = useAIActions();
 
+  if (error) return <ErrorDisplay message={error} />;
   if (isLoading) return <LoadingSpinner />;
 
   return (
@@ -110,7 +114,6 @@ const VectorViewer = () => {
 ```
 
 ## Components
-
 ### `<ReduxAIProvider>`
 
 Root provider component that sets up the Redux AI context.

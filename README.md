@@ -7,7 +7,7 @@ A sophisticated augmentation layer for Redux that enhances your existing state m
 - 🧠 Intelligent Redux augmentation with modern TypeScript patterns
 - 🌐 Advanced multilingual support with consistent language detection
 - 🔄 Chain-of-thought reasoning with comprehensive activity logging
-- 🐛 Advanced error detection and resolution with comprehensive logging
+- 🐛 Direct error propagation with transparent LLM error messages
 - 📊 Dynamic state visualization and debugging tools with React components
 - ⚡ Optimized performance monitoring and caching strategies
 - 📦 Robust vector storage and indexing with efficient similarity search
@@ -15,19 +15,57 @@ A sophisticated augmentation layer for Redux that enhances your existing state m
 - 🤖 OpenAI and LangChain integrations with streaming support
 - 🔍 Vector-based state retrieval with real-time updates
 
+## Privacy and Security
+
+Redux AI is designed with privacy-first principles:
+
+- 🔒 Stateless Processing: All requests are processed without server-side storage
+- 💾 Local-First: Vector storage and state management happen entirely client-side
+- 🚫 No Data Persistence: No user data or queries are stored on servers
+- 🔐 Secure by Design: Direct integrations with your existing auth systems
+- 📱 Client-Side State: All state and vector operations remain in the browser
+- 🔍 Transparent Processing: Clear visibility into data handling and operations
+
+### Client-Side Architecture
+
+```typescript
+// Example showing local vector storage
+const vectorStore = await createReduxAIVector({
+  // All vectors stored in IndexedDB
+  storage: 'indexeddb',
+  // No server sync
+  sync: false 
+});
+
+// Example showing stateless request processing
+const runtime = createRuntime({
+  provider: new OpenAIProvider({
+    apiKey: process.env.OPENAI_API_KEY,
+  }),
+  // No state persistence
+  stateless: true
+});
+```
+
 ## Recent Improvements
 
 ### Enhanced Chain-of-Thought Reasoning
-- Comprehensive reasoning steps for all operations (action, state, conversation)
-- Detailed activity logging with structured reasoning chains
+- Comprehensive reasoning steps for all operations
+- Transparent workflow intent detection and processing
 - Real-time tracking of decision-making processes
 - Clear reasoning breakdown in API responses
 
-### Improved Activity Logging
-- Structured logging of all runtime activities
-- Rich context capture in every interaction
-- Detailed reasoning chains for debugging
-- Comprehensive tracking of state changes
+### Improved Error Handling
+- Direct error propagation from LLM responses
+- Transparent error messaging without transformation
+- Standardized HTTP status codes for common errors
+- Full error context preservation for debugging
+
+### Advanced Workflow Intent
+- Automatic detection of multi-step queries
+- Seamless workflow step splitting and processing
+- Contextual state preservation between steps
+- Intelligent intent categorization (action, state, conversation)
 
 ## Architecture
 
@@ -39,7 +77,7 @@ Core runtime engine providing base functionality:
 
 - Standardized adapter interface with TypeScript types
 - Chain-of-thought reasoning with activity logging
-- Advanced error handling and logging
+- Direct error propagation with full context
 - Type-safe configuration management
 
 ### @redux-ai/express
@@ -47,7 +85,7 @@ Core runtime engine providing base functionality:
 Express.js adapter implementation:
 
 - Minimal Express.js integration with middleware support
-- Robust request handling and error management
+- Direct error propagation from runtime
 - Runtime configuration with environment variables
 - Framework-agnostic AI query processing
 
@@ -56,7 +94,7 @@ Express.js adapter implementation:
 Next.js adapter implementation:
 
 - Full server-side rendering support
-- API route handlers with streaming capabilities
+- Direct error propagation in API routes
 - Edge runtime compatibility
 - Optimized streaming SSR
 

@@ -6,7 +6,7 @@ import type {
   Message,
   QueryParams,
   RuntimeBase,
-  RuntimeConfig,
+  RuntimeConfig
 } from './types';
 
 export class RuntimeImpl implements RuntimeBase {
@@ -18,90 +18,78 @@ export class RuntimeImpl implements RuntimeBase {
     this.debug = config.debug ?? false;
   }
 
-  private async processIntent(params: QueryParams): Promise<IntentCompletionResponse> {
-    if (this.debug) {
-      console.debug('[Runtime Debug] Processing intent:', {
-        query: params.query,
-        hasActions: !!params.actions,
-        hasState: !!params.state,
-        params
-      });
-    }
-
-    const messages: Message[] = [
-      { role: 'system', content: generatePrompt('intent', params) },
-      { role: 'user', content: params.query }
-    ];
-
-    const response = await this.provider.createCompletion(messages);
-
-    if (!('intent' in response)) {
-      throw new Error('Invalid intent response format');
-    }
-
-    // Validate intent based on available context
-    const intent = response.intent;
-    if (intent === 'action' && !params.actions) {
-      return { 
-        intent: 'conversation',
-        message: 'Defaulting to conversation - no actions schema available',
-        reasoning: ['Action intent requires actions schema']
-      };
-    }
-    if (intent === 'state' && !params.state) {
-      return {
-        intent: 'conversation',
-        message: 'Defaulting to conversation - no state data available',
-        reasoning: ['State intent requires state data']
-      };
-    }
-
-    return response as IntentCompletionResponse;
-  }
-
   async query(params: QueryParams): Promise<CompletionResponse> {
-    if (this.debug) {
-      console.debug('[Runtime Debug] Processing query:', {
-        query: params.query,
-        hasActions: !!params.actions,
-        hasState: !!params.state,
-        params
-      });
+    try {
+      // First determine intent
+      const messages: Message[] = [
+        { role: 'system', content: generatePrompt('intent', params) },
+        { role: 'user', content: params.query }
+      ];
+
+      const response = await this.provider.createCompletion(messages);
+
+      // For conversation intent, include full context
+      if (!response.action && (!response.intent || response.intent === 'conversation')) {
+        const conversationMessages: Message[] = [
+          { role: 'system', content: generatePrompt('conversation', params) },
+          { role: 'user', content: params.query }
+        ];
+
+        const conversationResponse = await this.provider.createCompletion(conversationMessages);
+        return {
+          message: conversationResponse.message,
+          action: null,
+          reasoning: conversationResponse.reasoning || [],
+          intent: 'conversation'
+        };
+      }
+
+      // For workflow intent, handle multi-step processing
+      if (response.intent === 'workflow' || 
+          params.query.toLowerCase().includes(' and then ')) {
+        const workflowMessages: Message[] = [
+          { role: 'system', content: generatePrompt('workflow', params) },
+          { role: 'user', content: params.query }
+        ];
+
+        const workflowResponse = await this.provider.createCompletion(workflowMessages);
+
+        // Process workflow steps
+        if (!workflowResponse?.steps || !Array.isArray(workflowResponse.steps)) {
+          throw new Error('Invalid workflow step splitting response');
+        }
+
+        return {
+          message: workflowResponse.message || response.message,
+          action: null,
+          reasoning: workflowResponse.reasoning || response.reasoning || [],
+          intent: 'workflow',
+          workflow: workflowResponse.steps.map(step => ({
+            message: step.message,
+            intent: step.intent,
+            action: step.action,
+            reasoning: step.reasoning
+          }))
+        };
+      }
+
+      // For single-step actions/state queries
+      const actionMessages: Message[] = [
+        { role: 'system', content: generatePrompt(response.intent || 'state', params) },
+        { role: 'user', content: params.query }
+      ];
+
+      const actionResponse = await this.provider.createCompletion(actionMessages);
+
+      return {
+        message: actionResponse.message,
+        action: actionResponse.action,
+        reasoning: actionResponse.reasoning || [],
+        intent: response.intent || 'state'
+      };
+    } catch (error) {
+      throw error;
     }
-
-    const intentResponse = await this.processIntent(params);
-
-    // Additional validation to ensure we have required context
-    let intent = intentResponse.intent;
-    if (intent === 'action' && !params.actions) {
-      intent = 'conversation';
-    } else if (intent === 'state' && !params.state) {
-      intent = 'conversation';
-    }
-
-    const messages: Message[] = [
-      { role: 'system', content: generatePrompt(intent, params) },
-      { role: 'user', content: params.query }
-    ];
-
-    if (this.debug) {
-      console.debug('[Runtime Debug] Action request:', {
-        intent,
-        messages
-      });
-    }
-
-    const response = await this.provider.createCompletion(messages);
-    if (!response || !('message' in response)) {
-      throw new Error('Invalid response format');
-    }
-
-    return {
-      message: response.message,
-      action: 'action' in response ? response.action : null,
-      reasoning: response.reasoning || [],
-      intent
-    };
   }
 }
 
@@ -110,15 +98,12 @@ export function createRuntime(config: RuntimeConfig): RuntimeBase {
 }
 
 export type {
-  RuntimeBase as Runtime,
-  RuntimeConfig,
   CompletionResponse,
   IntentCompletionResponse,
   Message,
   QueryParams,
+  RuntimeBase,
 };
 
 export { BaseLLMProvider };
-export type LLMProvider = BaseLLMProvider;
-
 export { BaseAdapter } from './adapter';
