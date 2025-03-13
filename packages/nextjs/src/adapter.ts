@@ -8,27 +8,34 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 export class NextjsAdapter extends BaseAdapter {
   public async createHandler(config: RuntimeAdapterConfig): Promise<AdapterResponse> {
     const runtime = config.runtime;
-    const path = config.endpoint ?? '/api/query';
+    const path = config.endpoint ?? '/api/ai';
     const self = this;
 
-    async function handler(req: NextApiRequest, res: NextApiResponse) {
+    return async function handler(req: NextApiRequest, res: NextApiResponse) {
+      // Only accept POST requests
       if (req.method !== 'POST') {
-        return res.status(405).json({ error: req.method + ' not allowed' });
+        return res.status(405).json({
+          status: 'error',
+          error: 'Method not allowed'
+        });
+      }
+
+      // Verify endpoint path
+      if (req.url !== path) {
+        return res.status(404).json({
+          status: 'error',
+          error: 'Not found'
+        });
       }
 
       try {
-        // Then check endpoint
-        if (req.url !== path) {
-          return res.status(404).json({ error: 'Not found: ' + req.url });
-        }
+        const { query, state, actions } = req.body;
 
-        const { query, state, actions, conversations } = req.body;
-
+        // Process request through runtime
         const response = await runtime.query({
           query,
           state,
-          actions,
-          conversations,
+          actions
         });
 
         return res.json(response);
@@ -36,9 +43,7 @@ export class NextjsAdapter extends BaseAdapter {
         const errorResult = self.handleError(error);
         return res.status(errorResult.status).json(errorResult.body);
       }
-    }
-
-    return handler;
+    };
   }
 }
 

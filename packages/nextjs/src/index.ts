@@ -6,6 +6,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
  * Next.js adapter for Redux AI runtime
  */
 export { NextjsAdapter } from './adapter';
+export type { AdapterResponse, RuntimeAdapterConfig };
 
-// Re-export default adapter from the same module
+// Default export
 export { NextjsAdapter as default } from './adapter';

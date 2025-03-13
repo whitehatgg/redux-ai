@@ -1,5 +1,5 @@
 import { BaseLLMProvider } from '@redux-ai/runtime';
-import type { Message, ProviderConfig, CompletionResponse } from '@redux-ai/runtime/dist/types';
+import type { Message, ProviderConfig, IntentCompletionResponse } from '@redux-ai/runtime/dist/types';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
@@ -31,16 +31,49 @@ export class LangChainProvider extends BaseLLMProvider {
     }
   }
 
-  protected async completeRaw(messages: Message[]): Promise<unknown> {
-    const langChainMessages = messages.map(msg => this.convertMessage(msg));
-    const response = await this.model.invoke(langChainMessages);
-    return response.content;
+  protected async completeRaw(messages: Message[]): Promise<IntentCompletionResponse> {
+    try {
+      const langChainMessages = messages.map(msg => this.convertMessage(msg));
+      const response = await this.model.invoke(langChainMessages);
+      const content = response.content.toString();
+
+      // Basic intent classification
+      if (content.toLowerCase().includes('show') || content.toLowerCase().includes('get')) {
+        return {
+          intent: 'state',
+          message: content,
+          reasoning: ['State request detected'],
+          action: null
+        };
+      }
+
+      if (content.toLowerCase().includes('create') || content.toLowerCase().includes('add')) {
+        return {
+          intent: 'action',
+          message: content,
+          reasoning: ['Action request detected'],
+          action: { type: 'create' }
+        };
+      }
+
+      return {
+        intent: 'conversation',
+        message: content,
+        reasoning: ['General conversation'],
+        action: null
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw error;
+    }
   }
 
   public async complete(messages: Message[]): Promise<string> {
     try {
       const response = await this.completeRaw(messages);
-      return response as string;
+      return response.message;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
