@@ -1,5 +1,12 @@
 # @redux-ai/openai
 
+## 2.4.0
+
+### Patch Changes
+
+- Updated dependencies [708c35e]
+  - @redux-ai/runtime@2.4.0
+
 ## 2.3.0
 
 ### Patch Changes

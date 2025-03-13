@@ -1,7 +1,5 @@
-import { BaseAdapter } from '@redux-ai/runtime';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { NextjsAdapter } from '../adapter';
 
 describe('NextjsAdapter', () => {
@@ -25,20 +23,19 @@ describe('NextjsAdapter', () => {
       })),
     };
 
+    mockRes = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+
     mockReq = {
       method: 'POST',
-      url: '/api/query',
+      url: '/api/ai',
       body: {
         query: 'test query',
         state: {},
         actions: {},
-        conversations: '',
       },
-    };
-
-    mockRes = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
     };
   });
 
@@ -51,8 +48,8 @@ describe('NextjsAdapter', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: errorMessage,
-      status: 'error'
+      status: 'error',
+      error: errorMessage
     });
   });
 
@@ -64,8 +61,8 @@ describe('NextjsAdapter', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(405);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'GET not allowed',
-      status: 'error'
+      status: 'error',
+      error: 'Method not allowed'
     });
   });
 
@@ -78,8 +75,8 @@ describe('NextjsAdapter', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: errorMessage,
-      status: 'error'
+      status: 'error',
+      error: errorMessage
     });
   });
 
@@ -91,8 +88,8 @@ describe('NextjsAdapter', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(404);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Not found: /wrong/path',
-      status: 'error'
+      status: 'error',
+      error: 'Not found'
     });
   });
 });

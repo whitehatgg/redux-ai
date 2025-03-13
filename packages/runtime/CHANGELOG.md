@@ -1,5 +1,14 @@
 # @redux-ai/runtime
 
+## 2.4.0
+
+### Minor Changes
+
+- 708c35e: refactor: simplify tests and align implementations with standards
+  - Remove workflow-related tests from runtime package
+  - Update LangChain provider to match runtime patterns and error handling
+  - Align NextJS adapter with express adapter implementation standards
+
 ## 2.3.0
 
 ### Minor Changes
