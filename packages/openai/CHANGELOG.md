@@ -1,5 +1,38 @@
 # @redux-ai/openai
 
+## 2.3.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @redux-ai/runtime@2.3.0
+
+## 2.2.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @redux-ai/runtime@2.2.0
+
+## 2.1.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @redux-ai/runtime@2.1.0
+
+## 2.0.0
+
+### Major Changes
+
+- f552a34: release packages
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [f552a34]
+  - @redux-ai/runtime@2.0.0
+
 ## 1.0.0
 
 ### Major Changes

@@ -1,5 +1,17 @@
 # @redux-ai/state
 
+## 2.0.0
+
+### Major Changes
+
+- f552a34: release packages
+
+### Patch Changes
+
+- Updated dependencies [f552a34]
+  - @redux-ai/schema@2.0.0
+  - @redux-ai/vector@2.0.0
+
 ## 1.0.0
 
 ### Major Changes

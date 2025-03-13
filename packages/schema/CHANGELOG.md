@@ -1,5 +1,11 @@
 # @redux-ai/schema
 
+## 2.0.0
+
+### Major Changes
+
+- f552a34: release packages
+
 ## 1.0.0
 
 ### Major Changes

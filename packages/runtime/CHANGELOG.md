@@ -1,5 +1,51 @@
 # @redux-ai/runtime
 
+## 2.3.0
+
+### Minor Changes
+
+- feat: simplify tests and align implementations
+
+  - Remove workflow-related tests from runtime to match current implementation
+  - Update LangChain provider to follow runtime patterns and standards
+  - Align NextJS adapter with express adapter implementation standards
+
+## 2.2.0
+
+### Minor Changes
+
+- refactor: simplify tests and align implementations
+  - Simplified runtime tests to focus on core functionality
+  - Updated LangChain provider to match runtime standards
+  - Aligned NextJS adapter implementation with express adapter patterns
+
+## 2.1.0
+
+### Minor Changes
+
+- Simplified runtime tests and aligned implementations:
+  - Removed workflow-related tests from runtime
+  - Updated LangChain provider to match runtime patterns
+  - Aligned NextJS adapter with express adapter implementation
+
+## 2.0.0
+
+### Major Changes
+
+- f552a34: release packages
+
+### Minor Changes
+
+- Simplified runtime tests and aligned implementations:
+  - Removed workflow-related tests from runtime
+  - Updated LangChain provider to match runtime patterns
+  - Aligned NextJS adapter with express adapter implementation
+
+### Patch Changes
+
+- Updated dependencies [f552a34]
+  - @redux-ai/schema@2.0.0
+
 ## 1.0.0
 
 ### Major Changes
