@@ -86,17 +86,20 @@ function Wrapper({ children }: WrapperProps) {
   return children;
 }
 
-type CustomRenderResult = RenderResult & {
+interface CustomRenderResult extends RenderResult {
   mockStore: typeof mockStore;
-};
+}
 
 const customRender = (
   ui: React.ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>
-): CustomRenderResult => ({
-  ...render(ui, { wrapper: Wrapper, ...options }),
-  mockStore,
-});
+): CustomRenderResult => {
+  const renderResult = render(ui, { wrapper: Wrapper, ...options });
+  return {
+    ...renderResult,
+    mockStore,
+  };
+};
 
 const customRenderHook = <Result, Props>(
   hook: (props: Props) => Result,
@@ -105,5 +108,5 @@ const customRenderHook = <Result, Props>(
 
 export { customRender as render, customRenderHook as renderHook, mockStore, mockActions };
 export { createTestActor };
-export type { TestActor, ActorSnapshot, ActorEvent };
+export type { TestActor, ActorSnapshot, ActorEvent, CustomRenderResult };
 export * from '@testing-library/react';

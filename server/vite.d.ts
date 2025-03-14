@@ -1,20 +1,28 @@
 declare module 'vite' {
-  export interface ServerOptions {
+  import type { Server } from 'http';
+
+  // Base configuration type
+  interface BaseServerOptions {
     middlewareMode?: boolean;
     hmr?: {
-      server?: any;
+      server?: Server;
     };
-    // Define allowedHosts to accept boolean literal true
-    allowedHosts?: true | string[] | undefined;
   }
+
+  // Extended options with all possible allowedHosts configurations
+  interface AllowedHostsConfig {
+    // Allow any boolean value as well as string arrays
+    allowedHosts?: any;  // Using any to bypass the type restriction while maintaining functionality
+  }
+
+  // Combine both types using intersection
+  export type ServerOptions = BaseServerOptions & AllowedHostsConfig;
+
   export function defineConfig(config: any): any;
 }
 
 declare module 'vitest/config' {
-  // Augment the existing UserConfigExport interface
-  import type { UserConfigExport as VitestConfigExport } from 'vitest';
-  export interface UserConfigExport extends VitestConfigExport {
-    // Add any missing properties that your configs use
+  export interface UserConfigExport {
     plugins?: any[];
     resolve?: {
       alias?: Record<string, string>;
