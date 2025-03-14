@@ -25,7 +25,6 @@ export interface Message {
 
 export interface ProviderConfig {
   timeout?: number;
-  debug?: boolean;
 }
 
 export interface QueryParams {
@@ -64,19 +63,16 @@ export interface RuntimeAdapter {
 }
 
 export interface RuntimeBase {
-  readonly debug: boolean;
   query(params: QueryParams): Promise<CompletionResponse>;
 }
 
 export interface RuntimeConfig {
   provider: BaseLLMProvider;
-  debug?: boolean;
 }
 
 export interface RuntimeAdapterConfig {
   runtime: RuntimeBase;
   endpoint?: string;
-  debug?: boolean;
 }
 
 export type { BaseLLMProvider };

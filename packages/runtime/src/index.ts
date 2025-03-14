@@ -3,6 +3,13 @@ import { BaseLLMProvider } from './provider';
 import { completionResponseSchema } from './schema';
 import type { CompletionResponse, Message, QueryParams, RuntimeBase, RuntimeConfig } from './types';
 
+interface WorkflowStep {
+  intent: string;
+  message: string;
+  reasoning?: string | string[];
+  action?: Record<string, unknown> | null;
+}
+
 export class RuntimeImpl implements RuntimeBase {
   private provider: BaseLLMProvider;
 
@@ -30,7 +37,7 @@ export class RuntimeImpl implements RuntimeBase {
 
       if (workflowResponse.workflow && Array.isArray(workflowResponse.workflow)) {
         // Execute each workflow step
-        const processedSteps = [];
+        const processedSteps: CompletionResponse[] = [];
         for (const step of workflowResponse.workflow) {
           const stepMessages: Message[] = [
             { role: 'system', content: generatePrompt(step.intent, params) },
@@ -38,9 +45,10 @@ export class RuntimeImpl implements RuntimeBase {
           ];
           const stepResponse = await this.provider.createCompletion(stepMessages);
           processedSteps.push({
-            ...step, // Keep original step data
-            message: stepResponse.message, // Update with new message
-            reasoning: stepResponse.reasoning // Update reasoning if provided
+            intent: step.intent,
+            message: stepResponse.message,
+            reasoning: stepResponse.reasoning,
+            action: stepResponse.action
           });
         }
 
@@ -62,7 +70,7 @@ export class RuntimeImpl implements RuntimeBase {
     const response = await this.provider.createCompletion(messages);
     return {
       ...response,
-      intent // Ensure intent is preserved
+      intent
     };
   }
 

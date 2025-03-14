@@ -13,6 +13,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": "../..",
     "paths": {
       "@redux-ai/schema": ["packages/schema/src"],

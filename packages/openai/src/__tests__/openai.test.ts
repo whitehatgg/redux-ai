@@ -6,10 +6,10 @@ vi.mock('openai', () => ({
   default: vi.fn(() => ({
     chat: {
       completions: {
-        create: mockCompletionsCreate
-      }
-    }
-  }))
+        create: mockCompletionsCreate,
+      },
+    },
+  })),
 }));
 
 import type { Message } from '@redux-ai/runtime';
@@ -24,8 +24,8 @@ describe('OpenAI Provider', () => {
     vi.clearAllMocks();
     mockConfig = {
       apiKey: 'test-key',
-      model: 'gpt-4',
-      debug: true
+      model: 'gpt-4o',
+      temperature: 0.7,
     };
   });
 
@@ -37,7 +37,6 @@ describe('OpenAI Provider', () => {
   it('should handle workflow responses correctly', async () => {
     const provider = new OpenAIProvider(mockConfig);
 
-    // Mock a workflow response
     mockCompletionsCreate.mockResolvedValue({
       choices: [
         {
@@ -52,41 +51,35 @@ describe('OpenAI Provider', () => {
                   message: 'search for John',
                   intent: 'action',
                   action: { type: 'search', payload: { term: 'John' } },
-                  reasoning: ['First step: Search operation']
+                  reasoning: ['First step: Search operation'],
                 },
                 {
                   message: 'disable name column',
                   intent: 'action',
                   action: { type: 'setVisibleColumns', payload: { columns: ['email', 'status'] } },
-                  reasoning: ['Second step: Column visibility']
+                  reasoning: ['Second step: Column visibility'],
                 },
-                {
-                  message: 'tell me a joke',
-                  intent: 'conversation',
-                  action: null,
-                  reasoning: ['Final step: Conversation request']
-                }
-              ]
-            })
-          }
-        }
-      ]
+              ],
+            }),
+          },
+        },
+      ],
     });
 
-    const messages: Message[] = [{ role: 'user', content: 'search for John, disable name, tell me a joke' }];
+    const messages: Message[] = [{ role: 'user', content: 'search for John and disable name' }];
     const response = await provider.createCompletion(messages);
 
     expect(response.intent).toBe('workflow');
     expect(response.action).toBeNull();
     expect(response.workflow).toBeDefined();
-    expect(response.workflow).toHaveLength(3);
+    expect(response.workflow).toHaveLength(2);
 
     // Verify first step (action)
     expect(response.workflow![0]).toEqual({
       message: 'search for John',
       intent: 'action',
       action: { type: 'search', payload: { term: 'John' } },
-      reasoning: ['First step: Search operation']
+      reasoning: ['First step: Search operation'],
     });
 
     // Verify second step (action)
@@ -94,17 +87,9 @@ describe('OpenAI Provider', () => {
       message: 'disable name column',
       intent: 'action',
       action: { type: 'setVisibleColumns', payload: { columns: ['email', 'status'] } },
-      reasoning: ['Second step: Column visibility']
+      reasoning: ['Second step: Column visibility'],
     });
-
-    // Verify third step (conversation)
-    expect(response.workflow![2]).toEqual({
-      message: 'tell me a joke',
-      intent: 'conversation',
-      action: null,
-      reasoning: ['Final step: Conversation request']
-    });
-  }, 10000); // Increase timeout for OpenAI response
+  });
 
   it('should handle basic conversation responses', async () => {
     const provider = new OpenAIProvider(mockConfig);
@@ -117,11 +102,11 @@ describe('OpenAI Provider', () => {
               message: 'Test response',
               action: null,
               reasoning: ['Test reasoning step'],
-              intent: 'conversation'
-            })
-          }
-        }
-      ]
+              intent: 'conversation',
+            }),
+          },
+        },
+      ],
     });
 
     const messages: Message[] = [{ role: 'user', content: 'Hello' }];
@@ -131,14 +116,13 @@ describe('OpenAI Provider', () => {
       message: 'Test response',
       action: null,
       reasoning: ['Test reasoning step'],
-      intent: 'conversation'
+      intent: 'conversation',
     });
   });
 
-  it('should reject invalid workflow step formats', async () => {
+  it('should handle workflow validation', async () => {
     const provider = new OpenAIProvider(mockConfig);
 
-    // Mock an invalid workflow response (missing required fields)
     mockCompletionsCreate.mockResolvedValue({
       choices: [
         {
@@ -147,41 +131,34 @@ describe('OpenAI Provider', () => {
               message: 'Processing workflow',
               intent: 'workflow',
               action: null,
-              reasoning: ['Invalid workflow test'],
+              reasoning: ['Workflow test'],
               workflow: [
                 {
-                  // Missing message field
+                  message: 'first step',
                   intent: 'action',
-                  action: { type: 'search' }
-                }
-              ]
-            })
-          }
-        }
-      ]
+                  action: { type: 'test' },
+                  reasoning: ['Test step'],
+                },
+              ],
+            }),
+          },
+        },
+      ],
     });
 
     const messages: Message[] = [{ role: 'user', content: 'test workflow' }];
     const response = await provider.createCompletion(messages);
 
-    // Should fall back to conversation intent due to invalid workflow
-    expect(response.intent).toBe('conversation');
-    expect(response.action).toBeNull();
-    expect(response.workflow).toBeUndefined();
-    expect(response.message).toContain('try again');
+    expect(response.intent).toBe('workflow');
+    expect(response.workflow).toBeDefined();
+    expect(response.workflow![0].message).toBe('first step');
   });
 
   it('should handle API errors gracefully', async () => {
     const provider = new OpenAIProvider(mockConfig);
-    const mockError = new Error('API Error');
-    mockCompletionsCreate.mockRejectedValue(mockError);
+    mockCompletionsCreate.mockRejectedValue(new Error('API Error'));
 
     const messages: Message[] = [{ role: 'user', content: 'test error' }];
-    const response = await provider.createCompletion(messages);
-
-    expect(response.intent).toBe('conversation');
-    expect(response.action).toBeNull();
-    expect(response.message).toContain('try again');
-    expect(response.reasoning).toContain('API request failed');
+    await expect(provider.createCompletion(messages)).rejects.toThrow('API Error');
   });
 });

@@ -23,7 +23,7 @@ export class OpenAIProvider extends BaseLLMProvider {
     this.maxTokens = config.maxTokens ?? 1000;
   }
 
-  protected convertMessage(message: Message) {
+  protected convertMessage(message: Message): OpenAI.Chat.ChatCompletionMessageParam {
     return {
       role: message.role === 'system' ? 'system' : message.role === 'user' ? 'user' : 'assistant',
       content: message.content,

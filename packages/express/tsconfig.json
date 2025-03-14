@@ -12,6 +12,8 @@
     "noEmit": false,
     "emitDeclarationOnly": false,
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler",
     "paths": {
       "@redux-ai/runtime": ["../runtime/src"]
     }

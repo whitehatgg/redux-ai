@@ -5,209 +5,162 @@ A sophisticated augmentation layer for Redux that enhances your existing state m
 ## Features
 
 - 🧠 Intelligent Redux augmentation with modern TypeScript patterns
-- 🌐 Advanced multilingual support with consistent language detection
 - 🔄 Chain-of-thought reasoning with comprehensive activity logging
 - 🐛 Direct error propagation with transparent LLM error messages
-- 📊 Dynamic state visualization and debugging tools with React components
-- ⚡ Optimized performance monitoring and caching strategies
-- 📦 Robust vector storage and indexing with efficient similarity search
-- 🔄 Framework adapters (Express.js, Next.js) with standardized APIs
-- 🤖 OpenAI and LangChain integrations with streaming support
-- 🔍 Vector-based state retrieval with real-time updates
+- 📦 Framework adapters (Express.js, Next.js) with standardized APIs
+- 🤖 OpenAI and LangChain integrations with JSON format support
 
-## Privacy and Security
+## Quick Start
 
-Redux AI is designed with privacy-first principles:
-
-- 🔒 Stateless Processing: All requests are processed without server-side storage
-- 💾 Local-First: Vector storage and state management happen entirely client-side
-- 🚫 No Data Persistence: No user data or queries are stored on servers
-- 🔐 Secure by Design: Direct integrations with your existing auth systems
-- 📱 Client-Side State: All state and vector operations remain in the browser
-- 🔍 Transparent Processing: Clear visibility into data handling and operations
-
-### Client-Side Architecture
-
-```typescript
-// Example showing local vector storage
-const vectorStore = await createReduxAIVector({
-  // All vectors stored in IndexedDB
-  storage: 'indexeddb',
-  // No server sync
-  sync: false 
-});
-
-// Example showing stateless request processing
-const runtime = createRuntime({
-  provider: new OpenAIProvider({
-    apiKey: process.env.OPENAI_API_KEY,
-  }),
-  // No state persistence
-  stateless: true
-});
-```
-
-## Recent Improvements
-
-### Enhanced Chain-of-Thought Reasoning
-- Comprehensive reasoning steps for all operations
-- Transparent workflow intent detection and processing
-- Real-time tracking of decision-making processes
-- Clear reasoning breakdown in API responses
-
-### Improved Error Handling
-- Direct error propagation from LLM responses
-- Transparent error messaging without transformation
-- Standardized HTTP status codes for common errors
-- Full error context preservation for debugging
-
-### Advanced Workflow Intent
-- Automatic detection of multi-step queries
-- Seamless workflow step splitting and processing
-- Contextual state preservation between steps
-- Intelligent intent categorization (action, state, conversation)
-
-## Architecture
-
-The project is structured as a monorepo with the following packages:
-
-### @redux-ai/runtime (Core)
-
-Core runtime engine providing base functionality:
-
-- Standardized adapter interface with TypeScript types
-- Chain-of-thought reasoning with activity logging
-- Direct error propagation with full context
-- Type-safe configuration management
-
-### @redux-ai/express
-
-Express.js adapter implementation:
-
-- Minimal Express.js integration with middleware support
-- Direct error propagation from runtime
-- Runtime configuration with environment variables
-- Framework-agnostic AI query processing
-
-### @redux-ai/nextjs
-
-Next.js adapter implementation:
-
-- Full server-side rendering support
-- Direct error propagation in API routes
-- Edge runtime compatibility
-- Optimized streaming SSR
-
-### @redux-ai/vector
-
-Vector storage and similarity search:
-
-- Efficient vector storage with indexing
-- Real-time cosine similarity search
-- Subscription-based state tracking
-- Automatic garbage collection
-
-### @redux-ai/state
-
-Core state management:
-
-- AI-powered state tracking and prediction
-- Automatic action suggestions based on state
-- Seamless vector storage integration
-- XState machine integration for complex flows
-
-### @redux-ai/react
-
-React integration:
-
-- Debug components for Redux inspection
-- Vector similarity search visualization
-- Real-time activity monitoring
-- AI-powered state inspection tools
-
-### @redux-ai/langchain
-
-LangChain integration:
-
-- Seamless LangChain.js compatibility
-- Streaming chat completions
-- RAG-enabled state management
-- Custom chain development utilities
-
-### @redux-ai/openai
-
-OpenAI integration:
-
-- Direct OpenAI API integration
-- Streaming response support
-- Token usage optimization
-- Rate limiting and error handling
-
-## Installation
+### Install Dependencies
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
 ```
-
-## Usage
 
 ### Basic Setup
 
 ```typescript
-import { createRuntime } from '@redux-ai/runtime';
-import { ExpressAdapter } from '@redux-ai/express';
+// server/config.ts
 import { OpenAIProvider } from '@redux-ai/openai';
+import { createRuntime } from '@redux-ai/runtime';
 
-// Create runtime with OpenAI provider
-const runtime = createRuntime({
-  provider: new OpenAIProvider({
-    apiKey: process.env.OPENAI_API_KEY,
-  }),
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY environment variable is required');
+}
+
+const provider = new OpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY,
+  model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+  temperature: 0.7,
+  maxTokens: 1000
 });
 
-// Create Express adapter
-const adapter = new ExpressAdapter();
-const handler = adapter.createHandler({ runtime });
+export const runtime = createRuntime({
+  provider
+});
+```
 
-// Set up Express routes
-app.post('/api/query', validateQuery, checkAIConfig, logAIRequest, handler);
+### Express Integration
+
+```typescript
+// server/routes.ts
+import express from 'express';
+import { ExpressAdapter } from '@redux-ai/express';
+import { runtime } from './config';
+
+const adapter = new ExpressAdapter();
+const handler = await adapter.createHandler({ runtime });
+
+app.post('/api/query', handler);
 ```
 
 ### Next.js Integration
 
 ```typescript
-import { createRuntime } from '@redux-ai/runtime';
+// pages/api/ai.ts
 import { NextjsAdapter } from '@redux-ai/nextjs';
+import { runtime } from '@/server/config';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const adapter = new NextjsAdapter();
-  const handler = adapter.createHandler({
+  const handler = await adapter.createHandler({
     runtime,
-    endpoint: '/api/query',
+    endpoint: '/api/ai'
   });
 
   return handler(req, res);
 }
 ```
 
-### Debug Components
+### Using Multiple Providers
+
+You can use different LLM providers like OpenAI or LangChain:
 
 ```typescript
-import { VectorDebugger, ActivityLog } from '@redux-ai/react';
+// OpenAI Provider
+const openaiProvider = new OpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY,
+  model: 'gpt-4o',
+  temperature: 0.7
+});
 
-const DebugPanel = () => {
-  return (
-    <div className="debug-panel">
-      <VectorDebugger />
-      <ActivityLog />
-    </div>
-  );
-};
+// LangChain Provider
+import { ChatOpenAI } from '@langchain/openai';
+const model = new ChatOpenAI({ 
+  openAIApiKey: process.env.OPENAI_API_KEY,
+  modelName: 'gpt-4o'
+});
+
+const langchainProvider = new LangChainProvider({
+  model,
+  timeout: 30000
+});
 ```
+
+### Making Queries
+
+The runtime supports different types of queries:
+
+```typescript
+// Action Query
+const actionResult = await runtime.query({
+  query: 'create a new task called "Review PR"',
+  actions: {
+    createTask: {
+      type: 'task/create',
+      params: ['title']
+    }
+  }
+});
+
+// State Query
+const stateResult = await runtime.query({
+  query: 'show me all completed tasks',
+  state: {
+    tasks: [
+      { id: 1, title: 'Review PR', completed: true },
+      { id: 2, title: 'Update docs', completed: false }
+    ]
+  }
+});
+
+// Multi-step Workflow
+const workflowResult = await runtime.query({
+  query: 'search for John and disable the name column',
+  actions: {
+    search: {
+      type: 'search',
+      params: ['term']
+    },
+    setVisibleColumns: {
+      type: 'setVisibleColumns',
+      params: ['columns']
+    }
+  }
+});
+```
+
+## Architecture
+
+The project uses a monorepo structure with the following packages:
+
+### @redux-ai/runtime (Core)
+- Standardized adapter interface with TypeScript types
+- Chain-of-thought reasoning with activity logging
+- Direct error propagation with full context
+- Workflow processing for multi-step operations
+
+### @redux-ai/express & @redux-ai/nextjs
+- Framework-specific adapters with minimal integration code
+- Direct error propagation from runtime
+- Runtime configuration with environment variables
+
+### @redux-ai/langchain & @redux-ai/openai
+- Provider implementations for different LLM services
+- JSON response format support
+- Streaming capabilities where supported
 
 ## Development
 
@@ -226,39 +179,6 @@ cd packages/<package-name> && pnpm build
 ```bash
 pnpm test
 ```
-
-### Type Checking
-
-```bash
-pnpm typecheck
-```
-
-## Technical Details
-
-### Framework Adapters
-
-The adapter system provides a standardized way to integrate with different frameworks:
-
-- Common error handling through `BaseAdapter`
-- Consistent runtime configuration
-- Framework-specific optimizations
-- Type-safe request/response handling
-
-### Vector Storage
-
-The vector storage system implements:
-
-- Efficient text-to-vector encoding
-- Cosine similarity matching
-- Real-time subscription system
-- Automatic garbage collection
-
-### Performance Optimization
-
-- Efficient vector calculations with WebAssembly
-- Batch updates for storage operations
-- Memoized React components
-- Framework-specific optimizations
 
 ## Contributing
 

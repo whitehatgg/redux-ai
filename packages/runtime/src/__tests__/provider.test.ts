@@ -12,7 +12,8 @@ class MockProvider extends BaseLLMProvider {
     return {
       message: `Processed ${messages.length} messages`,
       action: { type: 'test_action' },
-      reasoning: ['Test reasoning']
+      reasoning: ['Test reasoning'],
+      intent: 'action'
     };
   }
 }
@@ -35,7 +36,8 @@ describe('LLMProvider', () => {
     expect(response).toEqual({
       message: 'Processed 2 messages',
       action: { type: 'test_action' },
-      reasoning: ['Test reasoning']
+      reasoning: ['Test reasoning'],
+      intent: 'action'
     });
   });
 
@@ -45,7 +47,8 @@ describe('LLMProvider', () => {
     expect(response).toEqual({
       message: 'Processed 0 messages',
       action: { type: 'test_action' },
-      reasoning: ['Test reasoning']
+      reasoning: ['Test reasoning'],
+      intent: 'action'
     });
   });
 });

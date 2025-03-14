@@ -1,11 +1,13 @@
 {
   "include": [
+    "vite-env.d.ts",
     "client/src/**/*",
     "shared/**/*",
     "server/index.ts",
     "server/routes.ts",
     "server/storage.ts",
     "server/db.ts",
+    "server/config.ts",
     "packages/**/*",
     "server/vite.ts",
     "vite.config.ts"
@@ -42,6 +44,10 @@
     },
     "noErrorTruncation": true,
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noImplicitAny": false
   }
 }

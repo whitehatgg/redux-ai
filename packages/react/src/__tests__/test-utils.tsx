@@ -16,8 +16,32 @@ const mockActions = {
   testAction: vi.fn(),
 } as Record<string, unknown>;
 
+interface TestActor {
+  getSnapshot: () => {
+    value: string;
+    context: { messages: any[] };
+    matches: () => boolean;
+    can: () => boolean;
+    hasTag: () => boolean;
+    events: any[];
+  };
+  logic: {
+    getInitialSnapshot: () => {
+      value: string;
+      context: { messages: any[] };
+      matches: () => boolean;
+      can: () => boolean;
+      hasTag: () => boolean;
+      events: any[];
+    };
+  };
+  start: () => void;
+  stop: () => void;
+  send: () => void;
+}
+
 // Create a minimal test actor factory
-export const createTestActor = () => ({
+const createTestActor = (): TestActor => ({
   getSnapshot: () => ({
     value: 'idle',
     context: { messages: [] },
@@ -62,5 +86,6 @@ const customRenderHook = <Result, Props>(
   options?: Omit<RenderOptions, 'wrapper'>
 ) => renderHook(hook, { wrapper: Wrapper, ...options });
 
-export { customRender as render, customRenderHook as renderHook, mockStore, mockActions, createTestActor };
+export { customRender as render, customRenderHook as renderHook, mockStore, mockActions };
+export { createTestActor };
 export * from '@testing-library/react';

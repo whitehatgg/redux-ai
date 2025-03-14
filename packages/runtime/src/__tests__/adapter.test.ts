@@ -4,8 +4,6 @@ import { BaseAdapter, type RuntimeAdapterConfig } from '../adapter';
 import type { CompletionResponse, Message, QueryParams, RuntimeBase } from '../types';
 
 class MockRuntime implements RuntimeBase {
-  readonly debug: boolean = false;
-
   async query(params: QueryParams): Promise<CompletionResponse> {
     return {
       message: 'Test response',

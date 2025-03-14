@@ -1,5 +1,15 @@
 # @redux-ai/runtime
 
+## 2.5.0
+
+### Minor Changes
+
+- refactor: remove debug functionality for more consistent error handling
+  - Remove debug property from RuntimeBase interface
+  - Remove debug functionality from provider
+  - Simplify error propagation
+  - Update tests to remove debug references
+
 ## 2.4.0
 
 ### Minor Changes
@@ -14,7 +24,6 @@
 ### Minor Changes
 
 - feat: simplify tests and align implementations
-
   - Remove workflow-related tests from runtime to match current implementation
   - Update LangChain provider to follow runtime patterns and standards
   - Align NextJS adapter with express adapter implementation standards
