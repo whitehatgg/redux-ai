@@ -1,50 +1,57 @@
-// Reasoning: The edited `generateConversationPrompt` function replaces the original function entirely, aligning with the intention of creating a more task-focused and action-oriented conversation prompt.
-// Reasoning:  All other functions remain unchanged because the intention only specified modifications to the conversation prompt.
+// Reasoning: The edited `generateWorkflowPrompt` function replaces the original function entirely, aligning with the intention of creating a more robust prompt for multi-step queries.  The new prompt focuses on breaking down the query into executable actions with detailed specifications, improving the structure and clarity of the workflow response.
+// Reasoning: The rest of the functions (`generateIntentPrompt`, `generateActionPrompt`, `generateStatePrompt`, `generateConversationPrompt`, `generatePrompt`) remain unchanged because the intention only focuses on improving the workflow prompt generation.
 
 import type { QueryParams } from './types';
 
 function generateWorkflowPrompt(params: QueryParams): string {
   const hasActions = !!params.actions;
   const hasState = !!params.state;
-  const hasConversations = !!params.conversations;
 
-  return `Analyze and decompose the following user query into atomic operations:
+  return `Break down this multi-step request into a sequence of executable actions:
 
 USER QUERY: "${params.query}"
 ${hasActions ? `AVAILABLE ACTIONS: ${JSON.stringify(params.actions, null, 2)}` : ''}
 ${hasState ? `CURRENT STATE: ${JSON.stringify(params.state, null, 2)}` : ''}
-${hasConversations ? `CONVERSATION HISTORY:\n${params.conversations}` : ''}
 
-TASK:
-Decompose the query into independent operations that can be processed sequentially.
-Consider any references to previous conversations when identifying operations.
-
-ANALYSIS GUIDELINES:
-1. Identify distinct operations regardless of their type or complexity
-2. Consider context from previous conversations when relevant
-3. Preserve exact query text for each operation
-4. Maintain the original sequence of operations
-5. Do not interpret or modify the operations - only split them
-6. Handle references to previous conversation context
+Your task is to:
+1. Break down the request into individual steps
+2. For each step, determine if it's an action, state query, or conversation
+3. If it's an action, specify the exact action type and parameters from the available actions
+4. Include clear reasoning for each step
 
 RESPONSE FORMAT:
 {
-  "message": "Summary describing the identified sequence of operations",
-  "steps": [
+  "message": "Brief description of the overall workflow",
+  "intent": "workflow",
+  "action": null,
+  "reasoning": ["Why this needs to be a workflow"],
+  "workflow": [
     {
-      "query": "exact text from original query representing a single operation"
+      "message": "Description of step 1",
+      "intent": "action",
+      "action": {
+        "type": "exact_action_type",
+        "payload": {
+          "param1": "value1"
+        }
+      },
+      "reasoning": ["Why this step is needed"]
+    },
+    {
+      "message": "Description of step 2",
+      "intent": "action",
+      "action": {
+        "type": "exact_action_type",
+        "payload": {
+          "param2": "value2"
+        }
+      },
+      "reasoning": ["Why this step is needed"]
     }
   ]
 }
 
-VALIDATION REQUIREMENTS:
-1. Each step must contain only one operation
-2. Step queries must use exact text from the original query
-3. Steps must be ordered as they appear in the query
-4. Message must clearly describe the decomposition performed
-5. Consider conversation context when splitting operations
-
-Respond only with a valid JSON object following this exact format.`;
+Respond with a JSON object matching this exact format. Each action must match the schema in AVAILABLE_ACTIONS.`;
 }
 
 function generateIntentPrompt(params: QueryParams): string {
@@ -60,18 +67,18 @@ ${hasState ? `CURRENT STATE: ${JSON.stringify(params.state, null, 2)}` : ''}
 ${hasConversations ? `CONVERSATION HISTORY:\n${params.conversations}` : ''}
 
 TASK:
-Classify the query into one of the following intents, considering both the immediate query and conversation context:
-- workflow: Multiple distinct operations that need to be processed separately
-- action: Single operation that modifies system state
-- state: Request for current system state or information
+Classify the query into one of the following intents:
+- workflow: Multiple operations that need separate processing
+- action: Single operation modifying system state
+- state: Request for current system state/information
 - conversation: Natural language interaction or query
 
 CLASSIFICATION GUIDELINES:
 1. WORKFLOW intent if:
    - Query contains multiple distinct operations
-   - Operations need different handling approaches
-   - Operations are connected by conjunctions or sequences
-   Example: "search for X and tell me about Y"
+   - Operations have different intents or targets
+   - Operations need sequential processing
+   Example: "search for X and then disable Y" 
 
 2. ACTION intent if:
    - Query represents a single operation
@@ -98,7 +105,7 @@ RESPONSE FORMAT:
   "action": null
 }
 
-Respond only with a valid JSON object following this exact format.`;
+Respond ONLY with a valid JSON object following this exact format.`;
 }
 
 function generateActionPrompt(params: QueryParams): string {

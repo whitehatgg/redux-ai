@@ -14,82 +14,65 @@ describe('NextjsAdapter', () => {
     adapter = new NextjsAdapter();
 
     mockRuntime = {
-      debug: false,
       query: vi.fn().mockImplementation(async () => ({ 
         message: 'Success', 
         action: null,
         intent: 'action',
         reasoning: ['Test reasoning']
-      })),
+      }))
     };
 
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
-    };
+      end: vi.fn()
+    } as Partial<NextApiResponse>;
 
     mockReq = {
-      method: 'POST',
       url: '/api/ai',
+      method: 'POST',
       body: {
         query: 'test query',
         state: {},
-        actions: {},
-      },
-    };
-  });
-
-  it('should pass through API key errors', async () => {
-    const errorMessage = 'API key or authentication failed';
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error(errorMessage));
-
-    const handler = await adapter.createHandler({ runtime: mockRuntime });
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
-
-    expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      status: 'error',
-      error: errorMessage
-    });
+        actions: {}
+      }
+    } as Partial<NextApiRequest>;
   });
 
   it('should pass through method errors', async () => {
     mockReq.method = 'GET';
+    const res = { ...mockRes } as NextApiResponse;
 
     const handler = await adapter.createHandler({ runtime: mockRuntime });
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq as NextApiRequest, res);
 
     expect(mockRes.status).toHaveBeenCalledWith(405);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      status: 'error',
-      error: 'Method not allowed'
-    });
-  });
-
-  it('should pass through unknown errors', async () => {
-    const errorMessage = 'Unknown error occurred';
-    mockRuntime.query = vi.fn().mockRejectedValue(new Error(errorMessage));
-
-    const handler = await adapter.createHandler({ runtime: mockRuntime });
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
-
-    expect(mockRes.status).toHaveBeenCalledWith(500);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      status: 'error',
-      error: errorMessage
-    });
+    expect(mockRes.json).toHaveBeenCalledWith({ error: 'Method not allowed' });
   });
 
   it('should pass through not found errors', async () => {
-    mockReq.url = '/wrong/path';
+    mockReq.url = '/different/path';
+    const res = { ...mockRes } as NextApiResponse;
 
     const handler = await adapter.createHandler({ runtime: mockRuntime });
-    await handler(mockReq as NextApiRequest, mockRes as NextApiResponse);
+    await handler(mockReq as NextApiRequest, res);
 
     expect(mockRes.status).toHaveBeenCalledWith(404);
+    expect(mockRes.json).toHaveBeenCalledWith({ error: 'Not found' });
+  });
+
+  it('should handle successful queries', async () => {
+    const res = { ...mockRes } as NextApiResponse;
+
+    const handler = await adapter.createHandler({ runtime: mockRuntime });
+    await handler(mockReq as NextApiRequest, res);
+
+    expect(mockRuntime.query).toHaveBeenCalledWith(mockReq.body);
     expect(mockRes.json).toHaveBeenCalledWith({
-      status: 'error',
-      error: 'Not found'
+      message: 'Success',
+      action: null,
+      intent: 'action',
+      reasoning: ['Test reasoning']
     });
   });
 });

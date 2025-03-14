@@ -10,7 +10,8 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@redux-ai/schema": "workspace:*"
+    "@redux-ai/schema": "workspace:*",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

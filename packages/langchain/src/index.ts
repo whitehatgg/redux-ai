@@ -1,25 +1,23 @@
 import { BaseLLMProvider } from '@redux-ai/runtime';
-import type { Message, ProviderConfig, IntentCompletionResponse } from '@redux-ai/runtime/dist/types';
+import type { Message, CompletionResponse } from '@redux-ai/runtime/dist/types';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { BaseMessage } from '@langchain/core/messages';
 
-export interface LangChainConfig extends ProviderConfig {
+export interface LangChainConfig {
   model: BaseChatModel;
+  timeout?: number;
+  debug?: boolean;
 }
 
 export class LangChainProvider extends BaseLLMProvider {
   private model: BaseChatModel;
 
   constructor(config: LangChainConfig) {
-    super({
-      timeout: config.timeout,
-      debug: config.debug,
-    });
+    super();
     this.model = config.model;
   }
 
-  protected convertMessage(message: Message): BaseMessage {
+  protected convertMessage(message: Message) {
     switch (message.role) {
       case 'system':
         return new SystemMessage(message.content);
@@ -31,55 +29,16 @@ export class LangChainProvider extends BaseLLMProvider {
     }
   }
 
-  protected async completeRaw(messages: Message[]): Promise<IntentCompletionResponse> {
-    try {
-      const langChainMessages = messages.map(msg => this.convertMessage(msg));
-      const response = await this.model.invoke(langChainMessages);
-      const content = response.content.toString();
-
-      // Basic intent classification
-      if (content.toLowerCase().includes('show') || content.toLowerCase().includes('get')) {
-        return {
-          intent: 'state',
-          message: content,
-          reasoning: ['State request detected'],
-          action: null
-        };
-      }
-
-      if (content.toLowerCase().includes('create') || content.toLowerCase().includes('add')) {
-        return {
-          intent: 'action',
-          message: content,
-          reasoning: ['Action request detected'],
-          action: { type: 'create' }
-        };
-      }
-
-      return {
-        intent: 'conversation',
-        message: content,
-        reasoning: ['General conversation'],
-        action: null
-      };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
-      throw error;
-    }
+  protected async completeRaw(messages: Message[]): Promise<CompletionResponse> {
+    const langChainMessages = messages.map(msg => this.convertMessage(msg));
+    const response = await this.model.invoke(langChainMessages);
+    const content = response.content.toString();
+    return JSON.parse(content);
   }
 
   public async complete(messages: Message[]): Promise<string> {
-    try {
-      const response = await this.completeRaw(messages);
-      return response.message;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
-      throw error;
-    }
+    const response = await this.completeRaw(messages);
+    return response.message;
   }
 }
 

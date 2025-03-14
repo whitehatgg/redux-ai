@@ -1,29 +1,46 @@
-import type React from 'react';
-import { type ReactElement } from 'react';
 import { configureStore } from '@reduxjs/toolkit';
-import { render, renderHook, type RenderOptions, type RenderResult } from '@testing-library/react';
-import { vi } from 'vitest';
+import { render, renderHook, type RenderOptions } from '@testing-library/react';
 
-// Create and export mock hooks
-export const mockUseReduxAI = vi.fn().mockReturnValue({
-  sendQuery: vi.fn(),
-  isProcessing: false,
-  error: null,
-});
+// Set up fake IndexedDB
+import 'fake-indexeddb/auto';
 
-// Mock store
+// Create a mock store
 const mockStore = configureStore({
   reducer: {
-    test: (state = {}, _action) => state,
+    test: (_state = {}, _action) => _state,
   },
 });
 
-// Mock essential DOM APIs
-if (typeof window !== 'undefined') {
-  window.HTMLElement.prototype.scrollIntoView = vi.fn();
-}
+// Mock actions
+const mockActions = {
+  testAction: vi.fn(),
+} as Record<string, unknown>;
 
-// Wrap components with necessary providers
+// Create a minimal test actor factory
+export const createTestActor = () => ({
+  getSnapshot: () => ({
+    value: 'idle',
+    context: { messages: [] },
+    matches: () => true,
+    can: () => true,
+    hasTag: () => false,
+    events: []
+  }),
+  logic: {
+    getInitialSnapshot: () => ({
+      value: 'idle',
+      context: { messages: [] },
+      matches: () => true,
+      can: () => true,
+      hasTag: () => false,
+      events: []
+    })
+  },
+  start: () => {},
+  stop: () => {},
+  send: () => {}
+});
+
 interface WrapperProps {
   children: React.ReactNode;
 }
@@ -32,29 +49,18 @@ function Wrapper({ children }: WrapperProps) {
   return children;
 }
 
-// Add explicit return type annotation to avoid inference issues
-type CustomRenderResult = RenderResult & { mockStore: typeof mockStore };
-
 const customRender = (
-  ui: ReactElement,
+  ui: React.ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>
-): CustomRenderResult => {
-  return {
-    ...render(ui, { wrapper: Wrapper, ...options }),
-    mockStore,
-  };
-};
+) => ({
+  ...render(ui, { wrapper: Wrapper, ...options }),
+  mockStore,
+});
 
 const customRenderHook = <Result, Props>(
   hook: (props: Props) => Result,
   options?: Omit<RenderOptions, 'wrapper'>
-) => {
-  return renderHook(hook, {
-    wrapper: Wrapper,
-    ...options,
-  });
-};
+) => renderHook(hook, { wrapper: Wrapper, ...options });
 
-// Re-export everything
+export { customRender as render, customRenderHook as renderHook, mockStore, mockActions, createTestActor };
 export * from '@testing-library/react';
-export { customRender as render, customRenderHook as renderHook, mockStore };

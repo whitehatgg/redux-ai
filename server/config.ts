@@ -7,13 +7,11 @@ if (!process.env.OPENAI_API_KEY) {
 
 const provider = new OpenAIProvider({
   apiKey: process.env.OPENAI_API_KEY,
-  model: 'gpt-4o',  // Restore to gpt-4o as requested
+  model: 'gpt-4o',  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
   temperature: 0.7,
-  maxTokens: 1000,
-  debug: true // Enable debug logging to see what's happening
+  maxTokens: 1000
 });
 
 export const runtime = createRuntime({
-  provider,
-  debug: true // Enable runtime debug logging as well
+  provider
 });

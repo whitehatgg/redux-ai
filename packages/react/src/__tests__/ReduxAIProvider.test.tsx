@@ -1,66 +1,100 @@
-import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { ReduxAIProvider } from '../components/ReduxAIProvider';
+import { createMachine } from 'xstate';
+import 'fake-indexeddb/auto';
 
-// Mock vector creation
+/**
+ * Testing approach:
+ * We use a minimal test machine to avoid complex XState actor lifecycle management.
+ * This machine provides just enough functionality to test the ReduxAIProvider's 
+ * core behaviors (loading, initialization, error handling) without getting into
+ * the details of XState's internal implementation.
+ */
+const testMachine = createMachine({
+  id: 'test',
+  initial: 'idle',
+  context: {
+    messages: []
+  },
+  states: {
+    idle: {
+      on: {
+        SEND: 'processing'
+      }
+    },
+    processing: {
+      on: {
+        COMPLETE: 'idle'
+      }
+    }
+  }
+});
+
+// Mock state management with our test machine
+vi.mock('@redux-ai/state', () => ({
+  createReduxAIState: vi.fn(),
+  createConversationMachine: vi.fn(() => testMachine)
+}));
+
+// Mock vector store creation with a minimal implementation
 vi.mock('@redux-ai/vector', () => ({
-  createReduxAIVector: vi.fn(() =>
+  createReduxAIVector: vi.fn(() => 
     Promise.resolve({
       addEntry: vi.fn(),
       retrieveSimilar: vi.fn(),
       getAllEntries: vi.fn(),
       storeInteraction: vi.fn(),
-      subscribe: vi.fn(() => vi.fn()),
+      subscribe: vi.fn(() => () => {})
     })
-  ),
+  )
 }));
-
-// Create a mock store
-const mockStore = configureStore({
-  reducer: {
-    test: (_state = {}, _action) => _state,
-  },
-});
-
-// Define interfaces for type safety
-interface MockAction {
-  type: string;
-  payload?: any;
-}
 
 describe('ReduxAIProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(console, 'debug').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('renders loading state initially', () => {
-    render(
-      <ReduxAIProvider store={mockStore} actions={{} as MockAction} endpoint="/api/ai">
+  it('renders loading state initially', async () => {
+    const { container } = render(
+      <ReduxAIProvider store={{} as any} actions={{} as any} endpoint="/api/ai">
         <div>Child content</div>
       </ReduxAIProvider>
     );
 
-    expect(screen.getByText(/Initializing ReduxAI/i)).toBeDefined();
+    // Check for loading state container
+    await waitFor(() => {
+      const loadingContainer = container.querySelector('.min-h-screen');
+      expect(loadingContainer).toBeInTheDocument();
+      expect(loadingContainer?.textContent).toContain('Initializing ReduxAI');
+    });
   });
 
   it('renders children when initialized', async () => {
+    const { createReduxAIVector } = await import('@redux-ai/vector');
+    const mockVector = {
+      addEntry: vi.fn(),
+      retrieveSimilar: vi.fn(),
+      getAllEntries: vi.fn(),
+      storeInteraction: vi.fn(),
+      subscribe: vi.fn(() => vi.fn()),
+    };
+
+    vi.mocked(createReduxAIVector).mockResolvedValueOnce(mockVector);
+
     render(
-      <ReduxAIProvider store={mockStore} actions={{} as MockAction} endpoint="/api/ai">
+      <ReduxAIProvider store={{} as any} actions={{} as any} endpoint="/api/ai">
         <div data-testid="child">Child content</div>
       </ReduxAIProvider>
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('child')).toBeDefined();
-      expect(screen.getByText('Child content')).toBeDefined();
+      expect(screen.getByTestId('child')).toBeInTheDocument();
+      expect(screen.getByText('Child content')).toBeInTheDocument();
     });
   });
 
@@ -69,14 +103,14 @@ describe('ReduxAIProvider', () => {
     vi.mocked(createReduxAIVector).mockRejectedValueOnce(new Error('Initialization failed'));
 
     render(
-      <ReduxAIProvider store={mockStore} actions={{} as MockAction} endpoint="/api/ai">
+      <ReduxAIProvider store={{} as any} actions={{} as any} endpoint="/api/ai">
         <div>Child content</div>
       </ReduxAIProvider>
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/ReduxAI Initialization Error/i)).toBeDefined();
-      expect(screen.getByText(/Initialization failed/i)).toBeDefined();
+      expect(screen.getByText(/ReduxAI Initialization Error/i)).toBeInTheDocument();
+      expect(screen.getByText(/Initialization failed/i)).toBeInTheDocument();
     });
   });
 });

@@ -1,6 +1,6 @@
 import { BaseAdapter } from '@redux-ai/runtime';
-import type { AdapterResponse, RuntimeAdapterConfig, AdapterHandler } from '@redux-ai/runtime/dist/types';
-import type { NextFunction, Request, Response } from 'express';
+import type { AdapterHandler, RuntimeAdapterConfig } from '@redux-ai/runtime/dist/types';
+import type { Request, Response } from 'express';
 
 /**
  * Express adapter for Redux AI runtime
@@ -9,42 +9,25 @@ export class ExpressAdapter extends BaseAdapter {
   public async createHandler(config: RuntimeAdapterConfig): Promise<AdapterHandler> {
     const runtime = config.runtime;
     const path = config.endpoint ?? '/api/query';
-    const self = this;
 
-    return (async (request: unknown) => {
+    return (async function handler(request: Request) {
       const req = request as any;
       const res = req.res as Response;
 
       if (req.method !== 'POST') {
-        res.status(405).json({
-          status: 'error',
-          error: 'Method not allowed'
-        });
+        res.status(405).json({ error: 'Method not allowed' });
         return;
       }
 
       if (req.path !== path) {
-        res.status(404).json({
-          status: 'error',
-          error: 'Not found'
-        });
+        res.status(404).json({ error: 'Not found' });
         return;
       }
 
-      try {
-        const { query, state, actions } = req.body;
-        const response = await runtime.query({
-          query,
-          state,
-          actions
-        });
+      const response = await runtime.query(req.body);
+      res.json(response);
 
-        res.json(response);
-      } catch (error) {
-        const errorResult = self.handleError(error);
-        res.status(errorResult.status).json(errorResult.body);
-      }
-    }) as AdapterHandler;
+    }) as unknown as AdapterHandler;
   }
 }
 
