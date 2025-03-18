@@ -18,12 +18,17 @@ import {
   setSortOrder,
   setVisibleColumns,
   toggleSearch,
+  selectApplicant,
 } from '@/store/slices/applicantSlice';
+import { useNavigation } from '@/hooks/useNavigation';
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
   const applicantState = useSelector((state: RootState) => state.applicant);
   const { applicants, tableConfig } = applicantState;
+
+  // Add navigation hook
+  useNavigation();
 
   // Type-safe column definitions
   const allColumns: Array<{ key: VisibleColumnKey; label: string }> = [
@@ -59,6 +64,10 @@ export function ApplicantTable() {
     const direction =
       column === tableConfig.sortBy && tableConfig.sortOrder === 'asc' ? 'desc' : 'asc';
     dispatch(setSortOrder({ column, direction }));
+  };
+
+  const handleRowClick = (applicant: Applicant) => {
+    dispatch(selectApplicant(applicant.id));
   };
 
   const sortedApplicants = [...filteredApplicants].sort((a: Applicant, b: Applicant) => {
@@ -142,7 +151,11 @@ export function ApplicantTable() {
                 </TableRow>
               ) : (
                 sortedApplicants.map((applicant: Applicant) => (
-                  <TableRow key={applicant.id}>
+                  <TableRow 
+                    key={applicant.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleRowClick(applicant)}
+                  >
                     {allColumns.map(
                       ({ key }) =>
                         tableConfig.visibleColumns.includes(key) && (

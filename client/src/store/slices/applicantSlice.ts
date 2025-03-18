@@ -45,6 +45,7 @@ const initialState: ApplicantState = {
     sortBy: null,
     sortOrder: null,
   },
+  selectedId: null
 };
 
 const applicantSlice = createSlice({
@@ -67,9 +68,36 @@ const applicantSlice = createSlice({
       state.tableConfig.sortBy = action.payload.column;
       state.tableConfig.sortOrder = action.payload.direction;
     },
+    selectApplicant(state, action: PayloadAction<string>) {
+      state.selectedId = action.payload;
+    },
+    clearSelection(state) {
+      state.selectedId = null;
+    },
+    updateApplicantStatus(state, action: PayloadAction<{ id: string; status: string }>) {
+      const applicant = state.applicants.find(a => a.id === action.payload.id);
+      if (applicant) {
+        applicant.status = action.payload.status;
+      }
+    },
+    archiveApplicant(state, action: PayloadAction<string>) {
+      state.applicants = state.applicants.filter(a => a.id !== action.payload);
+      if (state.selectedId === action.payload) {
+        state.selectedId = null;
+      }
+    }
   },
 });
 
-export const { setSearchTerm, toggleSearch, setVisibleColumns, setSortOrder } =
-  applicantSlice.actions;
+export const { 
+  setSearchTerm, 
+  toggleSearch, 
+  setVisibleColumns, 
+  setSortOrder,
+  selectApplicant,
+  clearSelection,
+  updateApplicantStatus,
+  archiveApplicant
+} = applicantSlice.actions;
+
 export default applicantSlice.reducer;

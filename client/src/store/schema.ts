@@ -28,6 +28,7 @@ export const tableConfigSchema = z.object({
 export const applicantStateSchema = z.object({
   applicants: z.array(applicantSchema),
   tableConfig: tableConfigSchema,
+  selectedId: z.string().nullable(),
 });
 
 // Define the action payload schemas
@@ -38,10 +39,10 @@ export const setSortOrderSchema = z.object({
   direction: z.enum(['asc', 'desc']),
 });
 
-// State query action schema
-export const stateQuerySchema = z.object({
-  query: z.string(),
-  state: z.record(z.unknown()),
+// Status update schema
+export const updateStatusSchema = z.object({
+  id: z.string(),
+  status: z.string(),
 });
 
 // Action schemas defined as discriminated union
@@ -63,8 +64,19 @@ export const actionSchema = z
       payload: setSortOrderSchema,
     }),
     z.object({
-      type: z.literal('state/query'),
-      payload: stateQuerySchema,
+      type: z.literal('applicant/selectApplicant'),
+      payload: z.string(),
+    }),
+    z.object({
+      type: z.literal('applicant/clearSelection'),
+    }),
+    z.object({
+      type: z.literal('applicant/updateApplicantStatus'),
+      payload: updateStatusSchema,
+    }),
+    z.object({
+      type: z.literal('applicant/archiveApplicant'),
+      payload: z.string(),
     }),
   ])
   .nullable();
@@ -80,6 +92,9 @@ export type SetSearchTermAction = Extract<Action, { type: 'applicant/setSearchTe
 export type ToggleSearchAction = Extract<Action, { type: 'applicant/toggleSearch' }>;
 export type SetVisibleColumnsAction = Extract<Action, { type: 'applicant/setVisibleColumns' }>;
 export type SetSortOrderAction = Extract<Action, { type: 'applicant/setSortOrder' }>;
+export type UpdateApplicantStatusAction = Extract<Action, { type: 'applicant/updateApplicantStatus' }>;
+export type ArchiveApplicantAction = Extract<Action, { type: 'applicant/archiveApplicant' }>;
+
 
 // Generate JSON schema
 export const jsonActionSchema = zodToJsonSchema(actionSchema);

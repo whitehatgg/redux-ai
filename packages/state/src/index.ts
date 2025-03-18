@@ -2,9 +2,13 @@ import { type Store, type UnknownAction } from '@reduxjs/toolkit';
 import { type ReduxAIVector } from '@redux-ai/vector';
 import { interpret } from 'xstate';
 import { createConversationMachine } from './machine';
+import { createWorkflowMiddleware } from './middleware';
 import type { AIStateConfig } from './types';
 import type { ActorRefFrom } from 'xstate';
 import type { MessageIntent } from './machine';
+
+// Export middleware first to avoid circular dependencies
+export { createWorkflowMiddleware };
 
 export interface AIResponse {
   message: string;
@@ -133,13 +137,15 @@ export class ReduxAIState {
   }
 }
 
+// Export the factory function
 export const createReduxAIState = (config: AIStateConfigWithService): ReduxAIState => {
   return new ReduxAIState(config);
 };
 
-export type { AIStateConfig };
+// Export conversation machine
 export { createConversationMachine };
 
+// Export types
 export type {
   StepStatus,
   WorkflowStep,
@@ -149,3 +155,5 @@ export type {
   ConversationEvent,
   MessageIntent
 } from './machine';
+
+export type { AIStateConfig } from './types';
