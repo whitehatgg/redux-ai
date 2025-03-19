@@ -1,5 +1,4 @@
 import type { Middleware, AnyAction } from '@reduxjs/toolkit';
-import type { MessageIntent } from './machine';
 
 interface PendingAction {
   type: string;
@@ -14,28 +13,19 @@ interface SideEffect {
 }
 
 interface WorkflowMiddlewareOptions {
-  debug?: boolean;
+  sideEffectTypes?: string[];
   sideEffectTimeout?: number;
-  sideEffectTypes?: string[]; // Action types that represent side effects
 }
 
 export class WorkflowMiddleware {
   private pendingActions: PendingAction[] = [];
   private sideEffects: SideEffect[] = [];
-  private debug: boolean;
   private sideEffectTimeout: number;
   private sideEffectTypes: Set<string>;
 
   constructor(options: WorkflowMiddlewareOptions = {}) {
-    this.debug = options.debug || false;
     this.sideEffectTimeout = options.sideEffectTimeout || 5000;
     this.sideEffectTypes = new Set(options.sideEffectTypes || []);
-  }
-
-  private log(...args: any[]) {
-    if (this.debug) {
-      console.log('[WorkflowMiddleware]', ...args);
-    }
   }
 
   private isSideEffect(action: AnyAction): boolean {
@@ -44,14 +34,12 @@ export class WorkflowMiddleware {
 
   private registerSideEffect(id: string, actionType: string): void {
     this.sideEffects.push({ id, completed: false, action: actionType });
-    this.log('Registered side effect:', id, 'for action:', actionType);
   }
 
   private completeSideEffect(id: string): void {
     const effect = this.sideEffects.find(e => e.id === id);
     if (effect) {
       effect.completed = true;
-      this.log('Completed side effect:', id);
       this.checkPendingActions(effect.action);
     }
   }
@@ -67,19 +55,13 @@ export class WorkflowMiddleware {
         );
         if (index !== -1) {
           this.pendingActions.splice(index, 1);
-          const timeoutError = new Error(`Timeout waiting for action: ${actionType}`);
-          console.error('Side effect timeout:', {
-            action: actionType,
-            timeout: this.sideEffectTimeout,
-            error: timeoutError.message
-          });
-          reject(timeoutError);
+          reject(new Error(`Timeout waiting for action: ${actionType}`));
         }
       }, this.sideEffectTimeout);
     });
   }
 
-  private checkPendingActions(actionType: string) {
+  private checkPendingActions(actionType: string): void {
     const now = Date.now();
     const actionsToResolve = this.pendingActions.filter(action => 
       action.type === actionType && 
@@ -96,61 +78,28 @@ export class WorkflowMiddleware {
   }
 
   createMiddleware(): Middleware {
-    return _store => next => async (action: unknown) => {
-      const workflowAction = action as AnyAction & { 
-        intent?: MessageIntent;
-        sideEffectId?: string;
-      };
+    return () => next => async (action: AnyAction) => {
+      if (this.isSideEffect(action)) {
+        const effectId = `${action.type}_${Date.now()}`;
+        this.registerSideEffect(effectId, action.type);
 
-      this.log('Action received:', workflowAction.type);
-
-      // Track side effects
-      if (this.isSideEffect(workflowAction)) {
-        const effectId = `${workflowAction.type}_${Date.now()}`;
-        this.registerSideEffect(effectId, workflowAction.type);
-
-        // Let the action flow through
-        const result = await next(workflowAction);
-
-        // Mark as completed
+        const result = await next(action);
         this.completeSideEffect(effectId);
         return result;
       }
 
-      // Handle workflow side effects
-      if (workflowAction.sideEffectId) {
-        this.completeSideEffect(workflowAction.sideEffectId);
+      if (action.sideEffectId) {
+        this.completeSideEffect(action.sideEffectId);
       }
 
-      // For workflow actions, ensure all side effects are completed
-      if (workflowAction.intent === 'workflow') {
-        this.log('Workflow action detected, checking side effects...');
-        try {
-          const pendingPromises = this.sideEffects
-            .filter(effect => !effect.completed)
-            .map(effect => this.waitForAction(effect.action));
-
-          if (pendingPromises.length > 0) {
-            this.log('Waiting for pending side effects...');
-            await Promise.all(pendingPromises).catch(error => {
-              console.error('Error waiting for side effects:', {
-                error: error.message,
-                pendingSideEffects: this.sideEffects
-                  .filter(effect => !effect.completed)
-                  .map(effect => effect.action)
-              });
-            });
-            this.log('All side effects completed or timed out');
-          }
-        } catch (error) {
-          console.error('Unexpected error in workflow processing:', error);
-        }
+      const pendingEffects = this.sideEffects.filter(effect => !effect.completed);
+      if (pendingEffects.length > 0) {
+        await Promise.all(
+          pendingEffects.map(effect => this.waitForAction(effect.action))
+        ).catch(() => {});
       }
 
-      // Check if this action completes any pending actions
-      this.checkPendingActions(workflowAction.type);
-
-      return next(workflowAction);
+      return next(action);
     };
   }
 }

@@ -89,7 +89,7 @@ export const createConversationMachine = () =>
                 })),
                 pendingSideEffects: event.steps
                   .filter(step => step.sideEffectId)
-                  .map(step => step.sideEffectId!)
+                  .map(step => step.sideEffectId || '')
               })
             })
           }
@@ -159,12 +159,10 @@ export const createConversationMachine = () =>
           },
           NEXT_STEP: [
             {
-              // Guard to check if we can move to next step
               guard: ({ context }) => {
                 const workflow = context.workflow;
                 if (!workflow) return false;
 
-                // Check if current step has pending side effects
                 const currentStep = workflow.steps[workflow.currentStep];
                 if (currentStep.sideEffectId && 
                     workflow.pendingSideEffects.includes(currentStep.sideEffectId)) {
@@ -193,7 +191,6 @@ export const createConversationMachine = () =>
               })
             },
             {
-              // Guard to check if workflow is complete
               guard: ({ context }) => {
                 const workflow = context.workflow;
                 return workflow 

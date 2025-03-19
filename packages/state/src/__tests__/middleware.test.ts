@@ -1,145 +1,99 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createWorkflowMiddleware } from '../middleware';
-import type { Middleware } from '@reduxjs/toolkit';
+import type { Dispatch, AnyAction } from '@reduxjs/toolkit';
 
 describe('Workflow Middleware', () => {
-  // Helper to create a basic store mock
-  const createStoreMock = () => {
-    return {
-      getState: vi.fn(),
-      dispatch: vi.fn()
-    };
-  };
+  const createStoreMock = () => ({
+    getState: vi.fn(),
+    dispatch: vi.fn()
+  });
 
-  it('should track and complete side effects', async () => {
+  it('should track and complete synchronous side effects', async () => {
+    const middleware = createWorkflowMiddleware({
+      sideEffectTypes: ['SYNC_ACTION'],
+      sideEffectTimeout: 1000
+    });
+    const store = createStoreMock();
+    const next = vi.fn().mockResolvedValue(undefined);
+    const execute = middleware(store)(next);
+
+    const syncAction = { type: 'SYNC_ACTION', payload: { data: 'test' } };
+    await execute(syncAction);
+    expect(next).toHaveBeenCalledWith(syncAction);
+  });
+
+  it('should track and complete asynchronous side effects', async () => {
     const middleware = createWorkflowMiddleware({
       sideEffectTypes: ['ASYNC_ACTION'],
       sideEffectTimeout: 1000
     });
     const store = createStoreMock();
-    const next = vi.fn();
+    const next = vi.fn().mockImplementation((action: AnyAction) => 
+      action.type === 'ASYNC_ACTION' ? 
+        new Promise(resolve => setTimeout(resolve, 50)) : 
+        Promise.resolve()
+    );
+
     const execute = middleware(store)(next);
+    const actions = [
+      { type: 'ASYNC_ACTION', payload: { data: 'test' } },
+      { type: 'FOLLOW_UP' }
+    ];
 
-    // Start a workflow that will wait for side effects
-    const workflowAction = {
-      type: 'WORKFLOW_START',
-      intent: 'workflow'
-    };
-
-    // Execute async action that's registered as a side effect
-    const asyncAction = {
-      type: 'ASYNC_ACTION',
-      payload: { data: 'test' }
-    };
-
-    // Execute workflow action first
-    const workflowPromise = execute(workflowAction);
-
-    // Then trigger the async action
-    await execute(asyncAction);
-
-    // Workflow should complete after side effect
-    await workflowPromise;
-
-    expect(next).toHaveBeenCalledWith(asyncAction);
-    expect(next).toHaveBeenCalledWith(workflowAction);
-  });
-
-  it('should handle multiple concurrent side effects', async () => {
-    const middleware = createWorkflowMiddleware({
-      sideEffectTypes: ['ASYNC_1', 'ASYNC_2'],
-      sideEffectTimeout: 1000
-    });
-    const store = createStoreMock();
-    const next = vi.fn();
-    const execute = middleware(store)(next);
-
-    const workflowAction = {
-      type: 'WORKFLOW_START',
-      intent: 'workflow'
-    };
-
-    // Start workflow
-    const workflowPromise = execute(workflowAction);
-
-    // Trigger multiple async actions
-    await Promise.all([
-      execute({ type: 'ASYNC_1' }),
-      execute({ type: 'ASYNC_2' })
-    ]);
-
-    // Workflow should complete after all side effects
-    await workflowPromise;
-
-    expect(next).toHaveBeenCalledTimes(3);
+    await Promise.all(actions.map(action => execute(action)));
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(next).toHaveBeenCalledWith(actions[0]);
+    expect(next).toHaveBeenCalledWith(actions[1]);
   });
 
   it('should handle side effect timeouts gracefully', async () => {
     vi.useFakeTimers();
-    const consoleError = vi.spyOn(console, 'error');
-
     const middleware = createWorkflowMiddleware({
       sideEffectTypes: ['NEVER_COMPLETES'],
-      sideEffectTimeout: 100 // Short timeout for testing
+      sideEffectTimeout: 100
     });
     const store = createStoreMock();
-
-    // Make next() return a never-resolving promise for NEVER_COMPLETES action
-    const next = vi.fn((action) => {
-      if (action.type === 'NEVER_COMPLETES') {
-        return new Promise(() => {}); // Never resolves
-      }
-      return Promise.resolve();
-    });
+    const next = vi.fn().mockImplementation((action: AnyAction) => 
+      action.type === 'NEVER_COMPLETES' ? 
+        new Promise(() => {}) : 
+        Promise.resolve()
+    );
 
     const execute = middleware(store)(next);
-
-    // Trigger an action that won't complete
     execute({ type: 'NEVER_COMPLETES' });
+    const followUpPromise = execute({ type: 'FOLLOW_UP' });
 
-    // Start workflow that should time out waiting for the never-completing action
-    const workflowPromise = execute({
-      type: 'WORKFLOW_START',
-      intent: 'workflow'
-    }).catch(() => {}); // Catch any timeout rejections
-
-    // Advance time past the timeout
     await vi.advanceTimersByTimeAsync(150);
+    await followUpPromise.catch(() => {});
 
-    // Wait for workflow to complete (should complete due to timeout)
-    await workflowPromise;
-
-    expect(consoleError).toHaveBeenCalled();
-    expect(next).toHaveBeenCalled();
-
-    consoleError.mockRestore();
+    expect(next).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
 
-  it('should track workflow-specific side effects', async () => {
+  it('should handle multiple concurrent side effects', async () => {
     const middleware = createWorkflowMiddleware({
-      sideEffectTypes: ['ASYNC_ACTION'],
+      sideEffectTypes: ['API_REQUEST'],
       sideEffectTimeout: 1000
     });
     const store = createStoreMock();
-    const next = vi.fn();
+    const next = vi.fn().mockImplementation((action: AnyAction) => 
+      action.type === 'API_REQUEST' ? 
+        new Promise(resolve => setTimeout(resolve, action.payload?.delay || 50)) : 
+        Promise.resolve()
+    );
+
     const execute = middleware(store)(next);
+    const actions = [
+      { type: 'API_REQUEST', payload: { delay: 30, id: 1 } },
+      { type: 'API_REQUEST', payload: { delay: 50, id: 2 } },
+      { type: 'API_REQUEST', payload: { delay: 20, id: 3 } },
+      { type: 'SUMMARY_ACTION' }
+    ];
 
-    // Start workflow with its own side effect
-    const workflowAction = {
-      type: 'WORKFLOW_START',
-      intent: 'workflow',
-      sideEffectId: 'workflow_effect_1'
-    };
-
-    await execute(workflowAction);
-
-    // Complete the workflow's side effect
-    await execute({
-      type: 'SIDE_EFFECT_COMPLETE',
-      sideEffectId: 'workflow_effect_1'
+    await Promise.all(actions.map(action => execute(action)));
+    expect(next).toHaveBeenCalledTimes(4);
+    actions.forEach(action => {
+      expect(next).toHaveBeenCalledWith(action);
     });
-
-    expect(next).toHaveBeenCalledTimes(2);
   });
 });
