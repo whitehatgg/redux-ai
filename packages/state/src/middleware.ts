@@ -4,18 +4,32 @@ import type { MessageIntent } from './machine';
 interface PendingAction {
   type: string;
   resolve: () => void;
+  timestamp: number;
+}
+
+interface SideEffect {
+  id: string;
+  completed: boolean;
+  action: string;
 }
 
 interface WorkflowMiddlewareOptions {
   debug?: boolean;
+  sideEffectTimeout?: number;
+  sideEffectTypes?: string[]; // Action types that represent side effects
 }
 
 export class WorkflowMiddleware {
   private pendingActions: PendingAction[] = [];
+  private sideEffects: SideEffect[] = [];
   private debug: boolean;
+  private sideEffectTimeout: number;
+  private sideEffectTypes: Set<string>;
 
   constructor(options: WorkflowMiddlewareOptions = {}) {
     this.debug = options.debug || false;
+    this.sideEffectTimeout = options.sideEffectTimeout || 5000;
+    this.sideEffectTypes = new Set(options.sideEffectTypes || []);
   }
 
   private log(...args: any[]) {
@@ -24,44 +38,117 @@ export class WorkflowMiddleware {
     }
   }
 
-  isPending(actionType: string): boolean {
-    return this.pendingActions.some(action => action.type === actionType);
+  private isSideEffect(action: AnyAction): boolean {
+    return this.sideEffectTypes.has(action.type);
   }
 
-  waitForAction(actionType: string): Promise<void> {
-    return new Promise(resolve => {
-      this.pendingActions.push({ type: actionType, resolve });
-    });
+  private registerSideEffect(id: string, actionType: string): void {
+    this.sideEffects.push({ id, completed: false, action: actionType });
+    this.log('Registered side effect:', id, 'for action:', actionType);
   }
 
-  private resolveAction(actionType: string) {
-    const index = this.pendingActions.findIndex(action => action.type === actionType);
-    if (index !== -1) {
-      const [action] = this.pendingActions.splice(index, 1);
-      action.resolve();
+  private completeSideEffect(id: string): void {
+    const effect = this.sideEffects.find(e => e.id === id);
+    if (effect) {
+      effect.completed = true;
+      this.log('Completed side effect:', id);
+      this.checkPendingActions(effect.action);
     }
   }
 
-  createMiddleware(): Middleware {
-    return _store => next => (action: unknown) => {
-      const workflowAction = action as AnyAction & { intent?: MessageIntent };
+  private waitForAction(actionType: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timestamp = Date.now();
+      this.pendingActions.push({ type: actionType, resolve, timestamp });
 
-      // Log the action if debug is enabled
+      setTimeout(() => {
+        const index = this.pendingActions.findIndex(a => 
+          a.type === actionType && a.timestamp === timestamp
+        );
+        if (index !== -1) {
+          this.pendingActions.splice(index, 1);
+          const timeoutError = new Error(`Timeout waiting for action: ${actionType}`);
+          console.error('Side effect timeout:', {
+            action: actionType,
+            timeout: this.sideEffectTimeout,
+            error: timeoutError.message
+          });
+          reject(timeoutError);
+        }
+      }, this.sideEffectTimeout);
+    });
+  }
+
+  private checkPendingActions(actionType: string) {
+    const now = Date.now();
+    const actionsToResolve = this.pendingActions.filter(action => 
+      action.type === actionType && 
+      now - action.timestamp < this.sideEffectTimeout
+    );
+
+    actionsToResolve.forEach(action => {
+      const index = this.pendingActions.indexOf(action);
+      if (index !== -1) {
+        this.pendingActions.splice(index, 1);
+        action.resolve();
+      }
+    });
+  }
+
+  createMiddleware(): Middleware {
+    return _store => next => async (action: unknown) => {
+      const workflowAction = action as AnyAction & { 
+        intent?: MessageIntent;
+        sideEffectId?: string;
+      };
+
       this.log('Action received:', workflowAction.type);
 
-      // Check if this action completes any pending actions
-      this.resolveAction(workflowAction.type);
+      // Track side effects
+      if (this.isSideEffect(workflowAction)) {
+        const effectId = `${workflowAction.type}_${Date.now()}`;
+        this.registerSideEffect(effectId, workflowAction.type);
 
-      // For workflow actions, wait for all pending actions to complete
-      if (workflowAction.intent === 'workflow') {
-        this.log('Workflow action detected, waiting for pending actions...');
-        return Promise.all(
-          this.pendingActions.map(pending => this.waitForAction(pending.type))
-        ).then(() => {
-          this.log('All pending actions completed');
-          return next(workflowAction);
-        });
+        // Let the action flow through
+        const result = await next(workflowAction);
+
+        // Mark as completed
+        this.completeSideEffect(effectId);
+        return result;
       }
+
+      // Handle workflow side effects
+      if (workflowAction.sideEffectId) {
+        this.completeSideEffect(workflowAction.sideEffectId);
+      }
+
+      // For workflow actions, ensure all side effects are completed
+      if (workflowAction.intent === 'workflow') {
+        this.log('Workflow action detected, checking side effects...');
+        try {
+          const pendingPromises = this.sideEffects
+            .filter(effect => !effect.completed)
+            .map(effect => this.waitForAction(effect.action));
+
+          if (pendingPromises.length > 0) {
+            this.log('Waiting for pending side effects...');
+            await Promise.all(pendingPromises).catch(error => {
+              console.error('Error waiting for side effects:', {
+                error: error.message,
+                pendingSideEffects: this.sideEffects
+                  .filter(effect => !effect.completed)
+                  .map(effect => effect.action)
+              });
+            });
+            this.log('All side effects completed or timed out');
+          }
+        } catch (error) {
+          console.error('Unexpected error in workflow processing:', error);
+        }
+      }
+
+      // Check if this action completes any pending actions
+      this.checkPendingActions(workflowAction.type);
 
       return next(workflowAction);
     };

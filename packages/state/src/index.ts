@@ -91,34 +91,61 @@ export class ReduxAIState {
 
       // For workflow intent, process each step
       if (result.intent === 'workflow' && Array.isArray(result.workflow)) {
-        // Start workflow processing
+        // Start workflow processing with side effect tracking
         this.conversationService.send({ 
           type: 'WORKFLOW_START', 
-          steps: result.workflow.map(step => ({ message: step.message }))
+          steps: result.workflow.map(step => ({ 
+            message: step.message,
+            sideEffectId: step.action ? `${step.action.type}_${Date.now()}` : undefined
+          }))
         });
 
         // Process each step
         for (const step of result.workflow) {
+          const sideEffectId = step.action ? `${step.action.type}_${Date.now()}` : undefined;
+
           await this.storage.storeInteraction(query, step.message, {
             query,
             response: step.message,
             timestamp: Date.now(),
             intent: step.intent as MessageIntent,
             reasoning: step.reasoning || [],
-            action: step.action ? { type: step.action.type } : undefined
+            action: step.action ? { 
+              type: step.action.type,
+              sideEffectId 
+            } : undefined
           });
 
-          // If step has an action, dispatch it
+          // If step has an action, dispatch it with side effect tracking
           if (step.action && 'type' in step.action) {
-            this.store.dispatch(step.action);
+            this.store.dispatch({
+              ...step.action,
+              sideEffectId
+            });
           }
 
           // Send step message to chat
           this.conversationService.send({ 
             type: 'RESPONSE', 
             message: step.message,
-            intent: step.intent as MessageIntent
+            intent: step.intent as MessageIntent,
+            sideEffectId
           });
+
+          // Wait for side effect to complete if present
+          if (sideEffectId) {
+            await new Promise<void>((resolve) => {
+              const checkComplete = () => {
+                const state = this.conversationService.getSnapshot();
+                if (state.context.workflow?.pendingSideEffects.includes(sideEffectId)) {
+                  setTimeout(checkComplete, 100); // Poll every 100ms
+                } else {
+                  resolve();
+                }
+              };
+              checkComplete();
+            });
+          }
 
           // Move to next step
           this.conversationService.send({ type: 'NEXT_STEP' });

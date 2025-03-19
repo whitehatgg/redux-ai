@@ -35,15 +35,15 @@ describe('Conversation Machine', () => {
     service.stop();
   });
 
-  it('should handle workflow transitions', () => {
+  it('should handle workflow with side effects', () => {
     const service = interpret(machine).start();
 
-    // Start workflow
+    // Start workflow with side effects
     service.send({
       type: 'WORKFLOW_START',
       steps: [
-        { message: 'step 1' },
-        { message: 'step 2' }
+        { message: 'step 1', sideEffectId: 'effect1' },
+        { message: 'step 2', sideEffectId: 'effect2' }
       ]
     });
 
@@ -56,14 +56,48 @@ describe('Conversation Machine', () => {
       expect(workflow.steps).toHaveLength(2);
       expect(workflow.steps[0].status).toBe('processing');
       expect(workflow.steps[1].status).toBe('pending');
+      expect(workflow.pendingSideEffects).toEqual(['effect1', 'effect2']);
     }
+
+    // Try to move to next step before side effect completes
+    service.send({ type: 'NEXT_STEP' });
+    expect(service.getSnapshot().context.workflow?.currentStep).toBe(0);
+
+    // Complete first side effect
+    service.send({ type: 'SIDE_EFFECT_COMPLETE', id: 'effect1' });
+    expect(service.getSnapshot().context.workflow?.pendingSideEffects).toEqual(['effect2']);
+
+    // Now we can move to next step
+    service.send({ type: 'NEXT_STEP' });
+    expect(service.getSnapshot().context.workflow?.currentStep).toBe(1);
+
+    // Complete second side effect
+    service.send({ type: 'SIDE_EFFECT_COMPLETE', id: 'effect2' });
+    expect(service.getSnapshot().context.workflow?.pendingSideEffects).toEqual([]);
 
     // Complete workflow
     service.send({ type: 'NEXT_STEP' });
-    service.send({ type: 'NEXT_STEP' });
-
     expect(service.getSnapshot().value).toBe('idle');
     expect(service.getSnapshot().context.workflow).toBeUndefined();
+
+    service.stop();
+  });
+
+  it('should handle side effect timeouts gracefully', () => {
+    const service = interpret(machine).start();
+
+    service.send({
+      type: 'WORKFLOW_START',
+      steps: [
+        { message: 'step with timeout', sideEffectId: 'timeout_effect' }
+      ]
+    });
+
+    expect(service.getSnapshot().context.workflow?.pendingSideEffects).toEqual(['timeout_effect']);
+
+    // Even without completing the side effect, we should be able to complete the workflow
+    // after timeout (handled by middleware)
+    service.send({ type: 'NEXT_STEP' });
 
     service.stop();
   });

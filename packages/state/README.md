@@ -24,6 +24,8 @@ npm install @redux-ai/state
 
 ## Usage
 
+### Basic Setup
+
 ```typescript
 import { createAIStore, type AIState } from '@redux-ai/state';
 import type { RootState } from './types';
@@ -47,20 +49,35 @@ store.subscribe(() => {
   const suggestions = store.getSuggestions();
   console.log('Suggested actions:', suggestions);
 });
+```
 
-// Use the AI middleware
-const aiMiddleware = createAIMiddleware({
-  enablePrediction: true,
-  trackingConfig: {
-    includeMeta: true,
-    storeHistory: true,
-  },
+### Integration with Side Effects
+
+The workflow middleware works with any side effect library by tracking action types:
+
+```typescript
+import { createWorkflowMiddleware } from '@redux-ai/state';
+
+// Create workflow middleware
+const workflowMiddleware = createWorkflowMiddleware({
+  // List any action types that represent side effects
+  sideEffectTypes: [
+    'FETCH_DATA_REQUEST',
+    'SAVE_DATA_REQUEST',
+    'API_REQUEST',
+    'ASYNC_OPERATION_START'
+  ],
+  // Optional: Configure timeout for side effects
+  sideEffectTimeout: 10000,
+  // Optional: Enable debug logging
+  debug: process.env.NODE_ENV !== 'production'
 });
 
-// Add to your Redux store
+// Add to your Redux store with other middleware
 const store = configureStore({
   reducer: rootReducer,
-  middleware: getDefault => getDefault().concat(aiMiddleware),
+  middleware: getDefault => getDefault()
+    .concat(workflowMiddleware)
 });
 ```
 
@@ -96,16 +113,6 @@ type AIStoreConfig<S> = {
 - `predictStateChange(action)`: Predict state after an action
 - `getOptimizedActions()`: Get optimized action sequences
 - `getStateAnalytics()`: Get analytics about state changes
-
-### Testing
-
-```bash
-# Run tests
-pnpm test
-
-# Run tests with coverage
-pnpm test:coverage
-```
 
 ### Type Safety
 

@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation, useParams } from 'wouter';
+import { useParams } from 'wouter';
 
 import { Button } from '@/components/ui/button';
 import type { RootState } from '@/store';
@@ -7,7 +7,6 @@ import { archiveApplicant, clearSelection, updateApplicantStatus } from '@/store
 
 export const DetailView = () => {
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
   const dispatch = useDispatch();
   const applicant = useSelector((state: RootState) => 
     state.applicant.applicants.find(a => a.id === id)
@@ -15,7 +14,6 @@ export const DetailView = () => {
 
   const handleBack = () => {
     dispatch(clearSelection());
-    setLocation('/');
   };
 
   const handleApprove = () => {
@@ -33,7 +31,7 @@ export const DetailView = () => {
   const handleArchive = () => {
     if (id) {
       dispatch(archiveApplicant(id));
-      setLocation('/');
+      dispatch(clearSelection());
     }
   };
 
