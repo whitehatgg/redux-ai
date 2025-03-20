@@ -1,44 +1,72 @@
-# Redux AI - Intelligent State Management
+# Redux AI - Intelligent State Augmentation
 
-A sophisticated state management system that enhances Redux with AI-powered workflow capabilities, featuring:
+A powerful state augmentation system for Redux applications that enhances your store with intelligent workflow capabilities and AI-powered state management features.
 
-- 🧠 Intelligent action handling with TypeScript support
-- 🔄 Multi-step workflow processing
-- 🐛 Built-in error handling and timeout management
-- 📦 Framework adapters for Express.js and Next.js
+## Core Features
+
+- 🎯 Enhanced Redux state management with AI capabilities
+- 🔄 Intelligent workflow middleware for action orchestration  
+- 🧪 Type-safe state predictions and optimizations
+- 🔌 Framework adapters for Express.js and Next.js
+- 📦 Modular architecture with React components
 
 ## Quick Start
 
-### Install Dependencies
+### Installation
 
 ```bash
-pnpm install
+# Using pnpm (recommended)
+pnpm add @redux-ai/state @redux-ai/react
+
+# Or using npm
+npm install @redux-ai/state @redux-ai/react
 ```
 
-### Simple Example
+### Basic Example
 
-Here's a minimal example showing how to use Redux AI:
+Here's how to set up Redux AI with React:
 
 ```typescript
+// store.ts
 import { configureStore } from '@reduxjs/toolkit';
 import { createWorkflowMiddleware } from '@redux-ai/state';
 
 // Create store with workflow middleware
 const store = configureStore({
-  reducer: (state = {}, action) => {
-    switch (action.type) {
-      case 'UPDATE_USER':
-        return { ...state, user: action.payload };
-      default:
-        return state;
-    }
+  reducer: {
+    counter: counterReducer,
+    // ... other reducers
   },
   middleware: (getDefault) => getDefault().concat(createWorkflowMiddleware())
 });
 
-// Define and dispatch an action
-const userData = { status: 'active' };
-store.dispatch({ type: 'UPDATE_USER', payload: userData });
+export type RootState = ReturnType<typeof store.getState>;
+
+// App.tsx
+import { Provider } from 'react-redux';
+import { ReduxAIProvider } from '@redux-ai/react';
+
+function App() {
+  return (
+    <Provider store={store}>
+      <ReduxAIProvider>
+        <YourAppComponents />
+      </ReduxAIProvider>
+    </Provider>
+  );
+}
+
+// Using in components
+function Counter() {
+  const dispatch = useDispatch();
+  const count = useSelector((state: RootState) => state.counter.value);
+
+  return (
+    <button onClick={() => dispatch({ type: 'counter/increment' })}>
+      Count: {count}
+    </button>
+  );
+}
 ```
 
 ### Framework Integration
@@ -70,14 +98,47 @@ export default async function handler(req, res) {
 }
 ```
 
-## Project Structure
+## Architecture
 
 The project uses a monorepo structure with these key packages:
 
-- `@redux-ai/state`: Core state management with workflow support
-- `@redux-ai/express` & `@redux-ai/nextjs`: Framework adapters
-- `@redux-ai/openai`: OpenAI provider implementation
-- `@redux-ai/vector`: Vector storage for interaction history
+- `@redux-ai/state`: Core state augmentation with workflow support
+- `@redux-ai/react`: React components and hooks for Redux AI integration
+- `@redux-ai/express` & `@redux-ai/nextjs`: Framework adapters 
+- `@redux-ai/vector`: Vector storage for state analysis
+- `@redux-ai/openai`: OpenAI integration for AI capabilities
+
+## Features in Detail
+
+### State Augmentation
+
+Redux AI enhances your Redux store with:
+
+- Intelligent action handling and prediction
+- State flow optimization
+- Automated workflow management
+- Type-safe state transitions
+- AI-powered state suggestions
+
+### Workflow Management
+
+The workflow middleware provides:
+
+- Action orchestration and sequencing
+- Side effect handling
+- Error recovery
+- State transition monitoring
+- Automated testing support
+
+### React Integration
+
+The React package includes:
+
+- ReduxAIProvider for app integration
+- Hooks for state interaction
+- Type-safe components
+- State prediction utilities
+- Workflow visualization tools
 
 ## Development
 
