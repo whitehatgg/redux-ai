@@ -21,7 +21,7 @@ Here's a minimal example showing how to use Redux AI:
 
 ```typescript
 import { configureStore } from '@reduxjs/toolkit';
-import { createReduxAIState, createWorkflowMiddleware } from '@redux-ai/state';
+import { createWorkflowMiddleware } from '@redux-ai/state';
 
 // Create store with workflow middleware
 const store = configureStore({
@@ -33,37 +33,12 @@ const store = configureStore({
         return state;
     }
   },
-  middleware: (getDefault) => getDefault().concat(
-    createWorkflowMiddleware({
-      sideEffectTypes: ['UPDATE_USER']
-    })
-  )
+  middleware: (getDefault) => getDefault().concat(createWorkflowMiddleware())
 });
 
-// Define your actions
-const actions = {
-  updateUser: (data) => ({ 
-    type: 'UPDATE_USER',
-    payload: data 
-  })
-};
-
-// Initialize ReduxAIState
-const ai = createReduxAIState({
-  store,
-  actions,
-  storage: {
-    storeInteraction: async (query, response) => {
-      console.log('Interaction:', { query, response });
-    }
-  },
-  endpoint: '/api/ai'
-});
-
-// Process a query that updates user data
-ai.processQuery('update the user status to active')
-  .then(result => console.log('Success:', result))
-  .catch(error => console.error('Error:', error));
+// Define and dispatch an action
+const userData = { status: 'active' };
+store.dispatch({ type: 'UPDATE_USER', payload: userData });
 ```
 
 ### Framework Integration
