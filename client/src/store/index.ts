@@ -5,9 +5,7 @@ import type { ApplicantState } from './schema';
 import applicantReducer from './slices/applicantSlice';
 
 // Create the workflow middleware
-const workflowMiddleware = createWorkflowMiddleware({
-  debug: process.env.NODE_ENV !== 'production'
-});
+const workflowMiddleware = createWorkflowMiddleware();
 
 // Use schema's inferred type for store
 export type RootState = {
