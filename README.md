@@ -27,24 +27,31 @@ npm install @redux-ai/state @redux-ai/react
 Here's how to set up Redux AI with React:
 
 ```typescript
-// store.ts
+// store/index.ts
 import { configureStore } from '@reduxjs/toolkit';
 import { createWorkflowMiddleware } from '@redux-ai/state';
 
-// Create store with workflow middleware
+// Create the workflow middleware
+const workflowMiddleware = createWorkflowMiddleware();
+
+// Create store with middleware
 const store = configureStore({
   reducer: {
+    // Your reducers here
     counter: counterReducer,
-    // ... other reducers
   },
-  middleware: (getDefault) => getDefault().concat(createWorkflowMiddleware())
+  middleware: (getDefault) => 
+    getDefault().concat(workflowMiddleware)
 });
 
 export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
 
 // App.tsx
 import { Provider } from 'react-redux';
 import { ReduxAIProvider } from '@redux-ai/react';
+import {useDispatch, useSelector} from 'react-redux';
+
 
 function App() {
   return (
@@ -56,15 +63,18 @@ function App() {
   );
 }
 
-// Using in components
+// Example component with state augmentation
 function Counter() {
   const dispatch = useDispatch();
   const count = useSelector((state: RootState) => state.counter.value);
 
   return (
-    <button onClick={() => dispatch({ type: 'counter/increment' })}>
-      Count: {count}
-    </button>
+    <div>
+      <span>Count: {count}</span>
+      <button onClick={() => dispatch({ type: 'counter/increment' })}>
+        Increment
+      </button>
+    </div>
   );
 }
 ```
