@@ -4,13 +4,11 @@ Core state management functionality for Redux AI, providing intelligent state tr
 
 ## Features
 
-- AI-powered state tracking with TypeScript
-- Automatic action suggestion based on state patterns
-- Vector storage integration for historical analysis
-- XState machine integration for complex state flows
-- Efficient state diffing and change tracking
-- Redux Toolkit middleware and enhancers
-- Type-safe state prediction and optimization
+- 🎯 Enhanced Redux state management with AI capabilities
+- 🔄 Intelligent workflow middleware for action orchestration  
+- 🧪 Type-safe state predictions and optimizations
+- 🔌 Framework adapters for Express.js and Next.js
+- 📦 Modular architecture with React components
 
 ## Installation
 
@@ -27,113 +25,27 @@ npm install @redux-ai/state
 ### Basic Setup
 
 ```typescript
-import { createAIStore, type AIState } from '@redux-ai/state';
-import type { RootState } from './types';
-
-// Create an AI-powered store
-const store = createAIStore<RootState>({
-  reducer: rootReducer,
-  initialState: {},
-  vectorConfig: {
-    dimensions: 128,
-  },
-  predictorConfig: {
-    confidenceThreshold: 0.8,
-    maxPredictions: 5,
-  },
-});
-
-// The store automatically tracks state changes
-store.subscribe(() => {
-  const state = store.getState();
-  const suggestions = store.getSuggestions();
-  console.log('Suggested actions:', suggestions);
-});
-```
-
-### Integration with Side Effects
-
-The workflow middleware works with any side effect library by tracking action types:
-
-```typescript
+import { configureStore } from '@reduxjs/toolkit';
 import { createWorkflowMiddleware } from '@redux-ai/state';
 
-// Create workflow middleware
-const workflowMiddleware = createWorkflowMiddleware({
-  // List any action types that represent side effects
-  sideEffectTypes: [
-    'FETCH_DATA_REQUEST',
-    'SAVE_DATA_REQUEST',
-    'API_REQUEST',
-    'ASYNC_OPERATION_START'
-  ],
-  // Optional: Configure timeout for side effects
-  sideEffectTimeout: 10000,
-  // Optional: Enable debug logging
-  debug: process.env.NODE_ENV !== 'production'
-});
+// Create the workflow middleware
+const workflowMiddleware = createWorkflowMiddleware();
 
-// Add to your Redux store with other middleware
+// Create store with middleware
 const store = configureStore({
-  reducer: rootReducer,
-  middleware: getDefault => getDefault()
-    .concat(workflowMiddleware)
-});
-```
-
-## API Reference
-
-### Store Configuration
-
-#### `createAIStore(config)`
-
-Creates a new Redux store with AI capabilities.
-
-```typescript
-type AIStoreConfig<S> = {
-  reducer: Reducer<S>;
-  initialState: S;
-  vectorConfig: VectorConfig;
-  predictorConfig?: PredictorConfig;
-};
-```
-
-#### Parameters
-
-- `reducer` (Reducer) - Root reducer function
-- `initialState` (State) - Initial state object
-- `vectorConfig` (VectorConfig) - Vector storage configuration
-- `predictorConfig` (PredictorConfig, optional) - AI predictor settings
-
-### Methods
-
-#### AI Store Methods
-
-- `getSuggestions()`: Get AI-suggested actions based on current state
-- `predictStateChange(action)`: Predict state after an action
-- `getOptimizedActions()`: Get optimized action sequences
-- `getStateAnalytics()`: Get analytics about state changes
-
-### Type Safety
-
-The package is written in TypeScript and provides strong type safety:
-
-```typescript
-import type { AIState, AIAction } from '@redux-ai/state';
-
-// State types are properly inferred
-const state: AIState = store.getState();
-
-// Actions are type-checked
-store.dispatch<AIAction>({
-  type: 'AI_PREDICT',
-  payload: {
-    confidenceThreshold: 0.9,
+  reducer: {
+    // Your reducers here
+    counter: counterReducer,
   },
+  middleware: (getDefault) => 
+    getDefault().concat(workflowMiddleware)
 });
+
+// The store automatically handles workflow actions
+store.dispatch({ type: 'counter/increment' });
 ```
 
-## State Machine Integration
+### State Machine Integration
 
 ```typescript
 import { createStateMachine } from '@redux-ai/state';
@@ -158,12 +70,37 @@ const authMachine = createStateMachine({
 store.attachStateMachine(authMachine);
 ```
 
-## Performance Optimization
+## Features in Detail
 
-- Efficient state diffing for change detection
-- Batched updates for prediction calculations
-- Cached suggestion results
-- Configurable tracking granularity
+### State Augmentation
+
+Redux AI enhances your Redux store with:
+
+- Intelligent action handling and prediction
+- State flow optimization
+- Automated workflow management
+- Type-safe state transitions
+- AI-powered state suggestions
+
+### Workflow Management
+
+The workflow middleware provides:
+
+- Action orchestration and sequencing
+- Side effect handling
+- Error recovery
+- State transition monitoring
+- Automated testing support
+
+## Development
+
+```bash
+# Build package
+pnpm build
+
+# Run tests
+pnpm test
+```
 
 ## Contributing
 
