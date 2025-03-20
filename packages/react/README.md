@@ -25,104 +25,58 @@ pnpm add @redux-ai/react
 npm install @redux-ai/react
 ```
 
-## Key Dependencies
-
-- React 18.x
-- Redux Toolkit 2.x
-- TanStack Query 5.x
-- Radix UI Components
-- Tailwind CSS
-
 ## Usage
 
 ```typescript
-import {
-  ReduxAIProvider,
-  VectorDebugger,
-  ActivityLog,
-  useVectorDebug,
-  useAIActions
-} from '@redux-ai/react';
+import { ReduxAIProvider } from '@redux-ai/react';
+import { useDispatch, useSelector } from 'react-redux';
+import { createWorkflowMiddleware } from '@redux-ai/state';
+
+// Set up store with workflow middleware
+const workflowMiddleware = createWorkflowMiddleware();
+
+const store = configureStore({
+  reducer: {
+    // Your reducers here
+  },
+  middleware: (getDefault) => 
+    getDefault().concat(workflowMiddleware)
+});
 
 // Wrap your app with the provider
-const App = () => {
+function App() {
   return (
-    <ReduxAIProvider
-      store={store}
-      actions={[
-        {
-          type: 'users/add',
-          description: 'Add a new user',
-          keywords: ['user', 'create', 'add'],
-          metadata: {
-            category: 'User Management',
-            importance: 'high'
-          }
-        }
-      ]}
-    >
-      <YourApp />
-      <DebugPanel />
+    <ReduxAIProvider>
+      <YourAppComponents />
     </ReduxAIProvider>
   );
-};
+}
 
-// Create a debug panel with visualization
-const DebugPanel = () => {
-  return (
-    <div className="debug-panel">
-      <VectorDebugger
-        onActionSelect={(action) => {
-          console.log('Selected action:', action);
-        }}
-      />
-      <ActivityLog
-        filter="error"
-        maxEntries={50}
-      />
-      <StateInspector />
-    </div>
-  );
-};
-
-// Use hooks in your components
-const VectorViewer = () => {
-  const {
-    entries,
-    isLoading,
-    search,
-    refresh,
-    error // Direct error message from LLM
-  } = useVectorDebug();
-
-  const { suggestions, confidence, error: aiError } = useAIActions();
-
-  if (error) return <ErrorDisplay message={error} />;
-  if (isLoading) return <LoadingSpinner />;
+// Use in your components
+function Counter() {
+  const dispatch = useDispatch();
+  const count = useSelector((state: RootState) => state.counter.value);
 
   return (
     <div>
-      <SearchBar onSearch={search} />
-      <VectorList entries={entries} />
-      <AIActionSuggestions
-        suggestions={suggestions}
-        confidence={confidence}
-      />
+      <span>Count: {count}</span>
+      <button onClick={() => dispatch({ type: 'counter/increment' })}>
+        Increment
+      </button>
     </div>
   );
-};
+}
 ```
 
 ## Components
+
 ### `<ReduxAIProvider>`
 
 Root provider component that sets up the Redux AI context.
 
 #### Props
 
-- `store` (Store) - Redux store instance
-- `actions` (Action[]) - List of available actions
-- `config` (ProviderConfig) - Optional configuration
+- `children` (ReactNode) - Child components to wrap
 - `theme` (ThemeConfig) - Optional theme overrides
 
 ### `<VectorDebugger>`
@@ -195,51 +149,7 @@ Hook for state prediction and analysis.
 - `accuracy` - Prediction accuracy
 - `confidence` - Confidence metrics
 
-## Styling
-
-Components support customization through:
-
-- CSS variables for theming
-- Tailwind CSS classes
-- Style prop for inline styles
-- className prop for custom classes
-
-### Default Theme
-
-```css
-:root {
-  --ai-primary: #0ea5e9;
-  --ai-secondary: #0f172a;
-  --ai-accent: #f97316;
-  --ai-background: #ffffff;
-  --ai-foreground: #0f172a;
-}
-```
-
-## TypeScript Support
-
-Full TypeScript support with:
-
-- Strict type checking
-- Generic type parameters
-- Type inference
-- Autocomplete support
-- Proper component prop types
-
 ## Testing
-
-```bash
-# Run tests
-pnpm test
-
-# Run tests with coverage
-pnpm test:coverage
-
-# Run tests in watch mode
-pnpm test:watch
-```
-
-### Test Utilities
 
 ```typescript
 import {
@@ -251,35 +161,18 @@ import {
 // Create a mock store
 const store = createMockStore({
   initialState: {
-    users: []
+    counter: { value: 0 }
   }
 });
 
-// Render with vector storage mock
+// Render with provider
 const { getByText } = renderWithProvider(
-  <VectorDebugger />,
+  <Counter />,
   {
     store,
-    vectorStorage: mockVectorStorage({
-      entries: [/* mock entries */]
-    })
+    vectorStorage: mockVectorStorage()
   }
 );
-```
-
-## Error Handling
-
-```typescript
-import { AIComponentError } from '@redux-ai/react';
-
-try {
-  // Component logic
-} catch (error) {
-  if (error instanceof AIComponentError) {
-    console.error('AI Component Error:', error.message);
-    // Handle component-specific errors
-  }
-}
 ```
 
 ## Contributing
