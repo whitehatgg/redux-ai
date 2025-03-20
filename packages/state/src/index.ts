@@ -7,7 +7,6 @@ import type { AIStateConfig } from './types';
 import type { ActorRefFrom } from 'xstate';
 import type { MessageIntent } from './machine';
 
-// Export middleware first to avoid circular dependencies
 export { createWorkflowMiddleware };
 
 export interface AIResponse {
@@ -39,19 +38,54 @@ export class ReduxAIState {
     this.endpoint = config.endpoint;
     this.debug = config.debug || false;
 
-    if (config.machineService) {
-      this.conversationService = config.machineService;
-    } else {
-      const machine = createConversationMachine();
-      this.conversationService = interpret(machine).start();
+    const machine = createConversationMachine();
+    this.conversationService = config.machineService || interpret(machine).start();
+  }
+
+  private async waitForState(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  private async handleAction(action: UnknownAction | null, sideEffectId?: string): Promise<void> {
+    if (!action || !('type' in action)) return;
+
+    try {
+      // Dispatch with timeout
+      await Promise.race([
+        Promise.resolve(this.store.dispatch({ ...action, sideEffectId })),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Side effect timeout')), 5000)
+        )
+      ]);
+
+      if (sideEffectId) {
+        // Signal completion
+        this.conversationService.send({
+          type: 'SIDE_EFFECT_COMPLETE',
+          id: sideEffectId
+        });
+        await this.waitForState();
+      }
+    } catch (error) {
+      if (sideEffectId) {
+        // Handle failure
+        this.conversationService.send({
+          type: 'SIDE_EFFECT_COMPLETE',
+          id: sideEffectId
+        });
+        await this.waitForState();
+      }
+      throw error;
     }
   }
 
   async processQuery(query: string): Promise<AIResponse> {
     try {
-      // Add user query to chat first
+      // Start conversation
       this.conversationService.send({ type: 'QUERY', query });
+      await this.waitForState();
 
+      // Get API response
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,7 +93,7 @@ export class ReduxAIState {
           query,
           state: this.store.getState(),
           actions: this.actions
-        }),
+        })
       });
 
       if (!response.ok) {
@@ -68,90 +102,60 @@ export class ReduxAIState {
 
       const result = await response.json() as AIResponse;
 
-      if (!result || typeof result.message !== 'string') {
-        throw new Error('Invalid response format: missing message');
-      }
-
-      // Store interaction
+      // Store initial interaction
       await this.storage.storeInteraction(query, result.message, {
         query,
         response: result.message,
         timestamp: Date.now(),
         intent: result.intent as MessageIntent,
-        reasoning: result.reasoning || [],
-        action: result.action ? { type: result.action.type } : undefined
+        reasoning: result.reasoning || []
       });
 
-      // Send response to chat
-      this.conversationService.send({ 
-        type: 'RESPONSE', 
-        message: result.message,
-        intent: result.intent as MessageIntent
-      });
-
-      // For workflow intent, process each step
       if (result.intent === 'workflow' && Array.isArray(result.workflow)) {
-        // Start workflow processing with side effect tracking
-        this.conversationService.send({ 
-          type: 'WORKFLOW_START', 
-          steps: result.workflow.map(step => ({ 
+        // Initialize workflow
+        this.conversationService.send({
+          type: 'WORKFLOW_START',
+          steps: result.workflow.map(step => ({
             message: step.message,
             sideEffectId: step.action ? `${step.action.type}_${Date.now()}` : undefined
           }))
         });
+        await this.waitForState();
 
-        // Process each step
+        // Process workflow steps
         for (const step of result.workflow) {
           const sideEffectId = step.action ? `${step.action.type}_${Date.now()}` : undefined;
 
+          // Store step state
           await this.storage.storeInteraction(query, step.message, {
             query,
             response: step.message,
             timestamp: Date.now(),
             intent: step.intent as MessageIntent,
             reasoning: step.reasoning || [],
-            action: step.action ? { 
-              type: step.action.type,
-              sideEffectId 
-            } : undefined
+            action: step.action ? { type: step.action.type, sideEffectId } : undefined
           });
 
-          // If step has an action, dispatch it with side effect tracking
-          if (step.action && 'type' in step.action) {
-            this.store.dispatch({
-              ...step.action,
-              sideEffectId
-            });
-          }
-
-          // Send step message to chat
-          this.conversationService.send({ 
-            type: 'RESPONSE', 
+          // Start step
+          this.conversationService.send({
+            type: 'RESPONSE',
             message: step.message,
             intent: step.intent as MessageIntent,
             sideEffectId
           });
+          await this.waitForState();
 
-          // Wait for side effect to complete if present
-          if (sideEffectId) {
-            await new Promise<void>((resolve) => {
-              const checkComplete = () => {
-                const state = this.conversationService.getSnapshot();
-                if (state.context.workflow?.pendingSideEffects.includes(sideEffectId)) {
-                  setTimeout(checkComplete, 100); // Poll every 100ms
-                } else {
-                  resolve();
-                }
-              };
-              checkComplete();
-            });
+          // Handle action
+          if (step.action) {
+            await this.handleAction(step.action, sideEffectId);
           }
 
           // Move to next step
           this.conversationService.send({ type: 'NEXT_STEP' });
+          await this.waitForState();
         }
-      } else if (result.action && 'type' in result.action) {
-        this.store.dispatch(result.action);
+      } else if (result.action) {
+        await this.handleAction(result.action);
       }
 
       return result;
@@ -164,15 +168,12 @@ export class ReduxAIState {
   }
 }
 
-// Export the factory function
 export const createReduxAIState = (config: AIStateConfigWithService): ReduxAIState => {
   return new ReduxAIState(config);
 };
 
-// Export conversation machine
 export { createConversationMachine };
 
-// Export types
 export type {
   StepStatus,
   WorkflowStep,

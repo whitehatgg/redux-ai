@@ -1,105 +1,48 @@
-import type { Middleware, AnyAction } from '@reduxjs/toolkit';
-
-interface PendingAction {
-  type: string;
-  resolve: () => void;
-  timestamp: number;
-}
-
-interface SideEffect {
-  id: string;
-  completed: boolean;
-  action: string;
-}
+import type { Middleware, UnknownAction } from '@reduxjs/toolkit';
 
 interface WorkflowMiddlewareOptions {
   sideEffectTypes?: string[];
   sideEffectTimeout?: number;
+  debug?: boolean;
 }
 
-export class WorkflowMiddleware {
-  private pendingActions: PendingAction[] = [];
-  private sideEffects: SideEffect[] = [];
-  private sideEffectTimeout: number;
+class WorkflowMiddleware {
   private sideEffectTypes: Set<string>;
+  private readonly timeout: number;
+  private readonly debug: boolean;
 
   constructor(options: WorkflowMiddlewareOptions = {}) {
-    this.sideEffectTimeout = options.sideEffectTimeout || 5000;
     this.sideEffectTypes = new Set(options.sideEffectTypes || []);
-  }
-
-  private isSideEffect(action: AnyAction): boolean {
-    return this.sideEffectTypes.has(action.type);
-  }
-
-  private registerSideEffect(id: string, actionType: string): void {
-    this.sideEffects.push({ id, completed: false, action: actionType });
-  }
-
-  private completeSideEffect(id: string): void {
-    const effect = this.sideEffects.find(e => e.id === id);
-    if (effect) {
-      effect.completed = true;
-      this.checkPendingActions(effect.action);
-    }
-  }
-
-  private waitForAction(actionType: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timestamp = Date.now();
-      this.pendingActions.push({ type: actionType, resolve, timestamp });
-
-      setTimeout(() => {
-        const index = this.pendingActions.findIndex(a => 
-          a.type === actionType && a.timestamp === timestamp
-        );
-        if (index !== -1) {
-          this.pendingActions.splice(index, 1);
-          reject(new Error(`Timeout waiting for action: ${actionType}`));
-        }
-      }, this.sideEffectTimeout);
-    });
-  }
-
-  private checkPendingActions(actionType: string): void {
-    const now = Date.now();
-    const actionsToResolve = this.pendingActions.filter(action => 
-      action.type === actionType && 
-      now - action.timestamp < this.sideEffectTimeout
-    );
-
-    actionsToResolve.forEach(action => {
-      const index = this.pendingActions.indexOf(action);
-      if (index !== -1) {
-        this.pendingActions.splice(index, 1);
-        action.resolve();
-      }
-    });
+    this.timeout = options.sideEffectTimeout || 5000;
+    this.debug = options.debug || false;
   }
 
   createMiddleware(): Middleware {
-    return () => next => async (action: AnyAction) => {
-      if (this.isSideEffect(action)) {
-        const effectId = `${action.type}_${Date.now()}`;
-        this.registerSideEffect(effectId, action.type);
+    return () => next => action => {
+      if (!action || typeof action !== 'object' || !('type' in action)) {
+        return next(action);
+      }
 
-        const result = await next(action);
-        this.completeSideEffect(effectId);
+      const typedAction = action as UnknownAction;
+
+      if (!this.sideEffectTypes.has(typedAction.type)) {
+        return next(typedAction);
+      }
+
+      const result = next(typedAction);
+
+      if (!result || typeof result.then !== 'function') {
         return result;
       }
 
-      if (action.sideEffectId) {
-        this.completeSideEffect(action.sideEffectId);
-      }
-
-      const pendingEffects = this.sideEffects.filter(effect => !effect.completed);
-      if (pendingEffects.length > 0) {
-        await Promise.all(
-          pendingEffects.map(effect => this.waitForAction(effect.action))
-        ).catch(() => {});
-      }
-
-      return next(action);
+      return Promise.race([
+        result,
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error(`Side effect timeout after ${this.timeout}ms`));
+          }, this.timeout);
+        })
+      ]);
     };
   }
 }
