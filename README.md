@@ -142,6 +142,181 @@ const workflowResult = await runtime.query({
 });
 ```
 
+## Complete Example: Applicant Tracking System
+
+Here's a practical example of how to use Redux AI with a React application to create an applicant tracking system:
+
+### 1. Define Your Redux State Schema
+
+```typescript
+// client/src/store/schema.ts
+import { z } from 'zod';
+
+// Define the schema for individual applicants
+export const applicantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  status: z.enum(['new', 'interview', 'approved', 'rejected']),
+  position: z.string(),
+  appliedDate: z.string()
+});
+
+// Define available actions for Redux AI to use
+export const actionSchema = z
+  .discriminatedUnion('type', [
+    z.object({
+      type: z.literal('applicant/setSearchTerm'),
+      payload: z.string()
+    }),
+    z.object({
+      type: z.literal('applicant/selectApplicant'),
+      payload: z.string().nullable()
+    }),
+    z.object({
+      type: z.literal('applicant/approveApplicant'),
+      payload: z.undefined().optional()
+    }),
+    // More actions...
+  ]);
+
+// Export the JSON schema for use with Redux AI
+export const jsonActionSchema = zodToJsonSchema(actionSchema);
+```
+
+### 2. Create Redux Store with Reducer
+
+```typescript
+// client/src/store/slices/applicantSlice.ts
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { ApplicantState } from '../schema';
+
+// Initial state with mock data
+const initialState: ApplicantState = {
+  searchTerm: '',
+  isSearchOpen: false,
+  applicants: [
+    {
+      id: '1',
+      name: 'John Smith',
+      email: 'john.smith@example.com',
+      status: 'new',
+      position: 'Frontend Developer',
+      appliedDate: '2025-03-15'
+    },
+    // More applicants...
+  ],
+  selectedApplicantId: null,
+  // More state properties...
+};
+
+const applicantSlice = createSlice({
+  name: 'applicant',
+  initialState,
+  reducers: {
+    setSearchTerm: (state, action: PayloadAction<string>) => {
+      state.searchTerm = action.payload;
+    },
+    selectApplicant: (state, action: PayloadAction<string | null>) => {
+      state.selectedApplicantId = action.payload;
+    },
+    approveApplicant: (state) => {
+      if (state.selectedApplicantId) {
+        const applicant = state.applicants.find(a => a.id === state.selectedApplicantId);
+        if (applicant) {
+          applicant.status = 'approved';
+        }
+      }
+    },
+    // More reducers...
+  }
+});
+
+export const { setSearchTerm, selectApplicant, approveApplicant } = applicantSlice.actions;
+export default applicantSlice.reducer;
+```
+
+### 3. Set Up Redux AI Provider in Your React App
+
+```typescript
+// client/src/App.tsx
+import React from 'react';
+import { Provider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReduxAIProvider } from '@redux-ai/react';
+import { Switch, Route } from 'wouter';
+import { store } from './store';
+import { queryClient } from './lib/queryClient';
+import { jsonActionSchema } from './store/schema';
+import { ApplicantTable } from './components/ApplicantTable';
+import { ApplicantDetail } from './components/ApplicantDetail';
+
+function App() {
+  return (
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <ReduxAIProvider
+          store={store}
+          actions={jsonActionSchema}
+          endpoint="/api/query"
+          debug={true}
+        >
+          <div className="min-h-screen bg-background">
+            <div className="container mx-auto px-4 py-16">
+              <h2 className="text-center text-3xl font-bold mb-8">Applicant Tracking System</h2>
+              <p className="text-center text-muted-foreground mb-8">
+                Try Redux AI in action! Use the chat bubble to control the applicant system.
+              </p>
+              
+              <Switch>
+                <Route path="/applicant/:id" component={ApplicantDetail} />
+                <Route path="/" component={ApplicantTable} />
+              </Switch>
+              
+              {/* Chat bubble component would go here */}
+            </div>
+          </div>
+        </ReduxAIProvider>
+      </QueryClientProvider>
+    </Provider>
+  );
+}
+
+export default App;
+```
+
+### 4. Configure Server-Side Handler
+
+```typescript
+// server/routes.ts
+import { Express } from 'express';
+import { ExpressAdapter } from '@redux-ai/express';
+import { runtime } from './config';
+
+export async function registerRoutes(app: Express) {
+  const adapter = new ExpressAdapter();
+  const handler = await adapter.createHandler({ runtime });
+  
+  // Register the Redux AI query endpoint
+  app.post('/api/query', handler);
+  
+  // Add other routes as needed
+}
+```
+
+### 5. Using Natural Language to Control Your App
+
+With the setup above, users can now send natural language commands through the Redux AI interface. For example:
+
+- "Show me all applicants"
+- "Search for frontend developers"
+- "Select applicant 1"
+- "Approve the current applicant"
+- "Schedule an interview for John Smith"
+- "Reject the selected applicant"
+
+Each of these commands will be processed by the Redux AI runtime, which will dispatch the appropriate actions to your Redux store, updating your application state accordingly.
+
 ## Architecture
 
 The project uses a monorepo structure with the following packages:
