@@ -10,20 +10,11 @@ A sophisticated augmentation layer for Redux that enhances your existing state m
 - 🐛 Direct error propagation with transparent LLM messaging
 - 🏗️ Framework-agnostic design with Express.js and Next.js integrations
 
-## AI Enhancement for Existing Applicant Tracking Systems
+## Redux AI: Natural Language Interface for Redux Applications
 
-Redux AI doesn't create a new applicant tracking system - it enhances your existing one with powerful AI capabilities. Rather than replacing your carefully built ATS with yet another solution, Redux AI adds a layer of intelligence that works with your current system.
+Redux AI provides a natural language interface for any Redux application. This example shows how to integrate Redux AI with a sample applicant tracking system, but the same principles apply to any Redux-based application.
 
-### Why Enhancement is Better Than Replacement
-
-Traditional approaches to adding AI often involve building entirely new systems or complex integrations that disrupt existing workflows. Redux AI takes a different approach by:
-
-1. **Preserving Your Investment**: Builds on top of your existing Redux state management
-2. **Minimizing Disruption**: No need to retrain users on a completely new system
-3. **Reducing Development Time**: Integration in hours/days instead of weeks/months
-4. **Leveraging Established Patterns**: Works with your existing Redux actions and state
-
-Below is an example of how Redux AI integrates with an established applicant tracking system to add natural language control:
+### Integration Example
 
 ### 1. Define Your Redux State Schema
 
@@ -184,44 +175,23 @@ export async function registerRoutes(app: Express) {
 
 ### 5. AI-Enhanced User Experience
 
-With minimal integration effort, your existing applicant tracking system now gains powerful AI capabilities. Users can interact with the system through natural language, making complex operations more intuitive:
+With minimal integration effort, your Redux application gains powerful AI capabilities. Users can interact with the system through natural language, making complex operations more intuitive:
 
-- "Show me all frontend developer applicants who applied in the last week"
-- "Select John Smith's application and schedule an interview for next Tuesday"
-- "Find candidates with React experience and filter by those in the interview stage"
-- "Approve the current applicant and send them the standard offer letter"
-- "Summarize all rejected applications from March and their feedback"
+- "Show me all items that match these criteria..."
+- "Select this item and perform this action..."
+- "Find content with these characteristics..."
+- "Approve this item and trigger the next workflow step..."
+- "Summarize these data points based on these parameters..."
 
 The Redux AI layer intelligently translates these requests into the appropriate sequence of Redux actions, executing complex workflows that would normally require multiple UI interactions. This enhances your existing UI without replacing it, allowing both traditional and AI-driven interactions to coexist seamlessly.
 
-### Key Benefits for Existing ATS Systems
+### Key Benefits
 
 - **Zero-Modification Integration**: Add AI capabilities without rewriting your existing application code
 - **Improved User Efficiency**: Complex multi-step workflows become single natural language commands
 - **Enhanced Accessibility**: Users who struggle with complex UIs can interact naturally with the system
 - **Gradual Adoption**: Introduce AI capabilities alongside traditional interfaces, allowing users to choose their preferred method
-- **Future-Proof Architecture**: As your ATS evolves, Redux AI adapts to new actions and state structure
-
-### Before and After: A Practical Demonstration
-
-**Before Integration (Traditional ATS Workflow):**
-
-1. Click on search field
-2. Type "frontend developer"
-3. Click search button
-4. Sort results by application date
-5. Filter to only show candidates in the "interview" stage
-6. Open John Smith's profile
-7. Click on "Schedule Interview" button
-8. Select date and time from calendar widget
-9. Add interview details in form
-10. Submit form
-
-**After Redux AI Enhancement:**
-
-1. Type or speak: "Find frontend developers who are in the interview stage, sort by recent applications, and schedule an interview with John Smith for next Tuesday at 2pm"
-
-Redux AI will handle the entire sequence, dispatching the right Redux actions in the correct order to accomplish the complex workflow in one natural language command.
+- **Future-Proof Architecture**: As your application evolves, Redux AI adapts to new actions and state structure
 
 ## Architecture
 
