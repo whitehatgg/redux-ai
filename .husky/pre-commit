@@ -9,16 +9,8 @@ handle_error() {
 
 echo "Running pre-commit checks..."
 
-# Run linting first
-echo "Running lint..."
-pnpm run -r lint || handle_error "Lint"
-
-# Run tests with --passWithNoTests to handle packages without tests
-echo "Running tests..."
-pnpm run -r test -- --passWithNoTests || handle_error "Tests"
-
-# Run builds 
-echo "Running builds..."
-pnpm run -r build || handle_error "Build"
+# Use lint-staged for more efficient handling of changed files
+echo "Running lint-staged..."
+pnpm exec lint-staged || handle_error "lint-staged"
 
 echo "✨ All checks passed! Proceeding with commit..."
