@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation } from 'wouter';
 
 import { Checkbox } from '../components/ui/checkbox';
 import { Input } from '../components/ui/input';
@@ -16,18 +17,30 @@ import type { RootState } from '../store';
 import type { Applicant, VisibleColumnKey } from '../store/schema';
 import {
   selectApplicant,
+  setApplicants,
   setSearchTerm,
   setSortOrder,
   setVisibleColumns,
   toggleSearch,
-  viewDetail,
 } from '../store/slices/applicantSlice';
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
-  const [, setLocation] = useLocation();
   const applicantState = useSelector((state: RootState) => state.applicant);
   const { applicants, tableConfig } = applicantState;
+
+  // Fetch applicants from the server
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['/api/applicants'],
+    staleTime: 60000, // 1 minute
+  });
+
+  // Update Redux store when data is fetched
+  useEffect(() => {
+    if (data && Array.isArray(data)) {
+      dispatch(setApplicants(data));
+    }
+  }, [data, dispatch]);
 
   // Type-safe column definitions
   const allColumns: Array<{ key: VisibleColumnKey; label: string }> = [
@@ -74,6 +87,16 @@ export function ApplicantTable() {
       ? aValue.localeCompare(bValue)
       : bValue.localeCompare(aValue);
   });
+
+  // Show loading state when fetching data
+  if (isLoading) {
+    return <div className="py-8 text-center">Loading applicants...</div>;
+  }
+
+  // Show error state
+  if (error) {
+    return <div className="py-8 text-center text-red-500">Failed to load applicants</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -146,11 +169,10 @@ export function ApplicantTable() {
                 </TableRow>
               ) : (
                 sortedApplicants.map((applicant: Applicant) => (
-                  <TableRow 
-                    key={applicant.id} 
+                  <TableRow
+                    key={applicant.id}
                     className="cursor-pointer hover:bg-muted"
                     onClick={() => {
-                      console.log('Row clicked:', applicant.id);
                       dispatch(selectApplicant(applicant.id));
                       // Central navigation in AppRouter will handle the redirect
                     }}

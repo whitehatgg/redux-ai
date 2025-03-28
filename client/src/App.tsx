@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityLog, ChatBubble, ReduxAIProvider } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Provider, useSelector, useDispatch } from 'react-redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import { Route, Switch, useLocation } from 'wouter';
 
 import { ApplicantDetail } from './components/ApplicantDetail';
 import { ApplicantTable } from './components/ApplicantTable';
 import { queryClient } from './lib/queryClient';
-import { store } from './store';
+import { type RootState, store } from './store';
 import { jsonActionSchema } from './store/schema';
-import { RootState } from './store';
 
 // This component handles synchronization between Redux state and URL routing
 function AppRouter() {
@@ -19,13 +18,9 @@ function AppRouter() {
 
   // Central navigation effect - synchronizes Redux state with URL
   useEffect(() => {
-    console.log('AppRouter: Navigation effect triggered', { selectedApplicantId });
-    
     if (selectedApplicantId) {
-      console.log('AppRouter: Navigating to detail view:', `/applicant/${selectedApplicantId}`);
       setLocation(`/applicant/${selectedApplicantId}`);
     } else {
-      console.log('AppRouter: Navigating to list view');
       setLocation('/');
     }
   }, [selectedApplicantId, setLocation]);

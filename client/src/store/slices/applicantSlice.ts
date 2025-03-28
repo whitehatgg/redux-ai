@@ -1,120 +1,22 @@
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
+
 import type {
+  AddNoteAction,
+  Applicant,
+  ApplicantDetails,
   ApplicantState,
   SelectApplicantAction,
+  SetApplicantDetailsAction,
+  SetApplicantsAction,
   SetSearchTermAction,
   SetSortOrderAction,
   SetVisibleColumnsAction,
-  AddNoteAction,
 } from '../schema';
-
-// Mock applicant details
-const mockApplicantDetails = {
-  '1': {
-    skills: ['JavaScript', 'React', 'TypeScript', 'Node.js', 'Redux'],
-    education: [
-      {
-        institution: 'University of Technology',
-        degree: 'Bachelor of Computer Science',
-        year: '2020'
-      }
-    ],
-    experience: [
-      {
-        company: 'Tech Solutions Inc.',
-        role: 'Junior Developer',
-        duration: '2020-2022',
-        description: 'Worked on front-end development using React and Redux.'
-      },
-      {
-        company: 'Startup Innovation',
-        role: 'Intern',
-        duration: '2019-2020',
-        description: 'Assisted in developing web applications using JavaScript and Node.js.'
-      }
-    ],
-    notes: 'Strong candidate with good technical skills'
-  },
-  '2': {
-    skills: ['Product Strategy', 'User Research', 'Agile', 'Roadmapping', 'Analytics'],
-    education: [
-      {
-        institution: 'Business University',
-        degree: 'MBA',
-        year: '2018'
-      },
-      {
-        institution: 'Design College',
-        degree: 'Bachelor of Design',
-        year: '2015'
-      }
-    ],
-    experience: [
-      {
-        company: 'Tech Giant Corp',
-        role: 'Associate Product Manager',
-        duration: '2018-2022',
-        description: 'Led product development for mobile applications with over 1M users.'
-      },
-      {
-        company: 'Design Agency',
-        role: 'UX Researcher',
-        duration: '2015-2018',
-        description: 'Conducted user research and created product specifications.'
-      }
-    ],
-    notes: 'Excellent communication skills and leadership potential'
-  },
-  '3': {
-    skills: ['UI Design', 'Figma', 'User Research', 'Prototyping', 'Adobe Creative Suite'],
-    education: [
-      {
-        institution: 'Design Institute',
-        degree: 'Master of UX Design',
-        year: '2019'
-      }
-    ],
-    experience: [
-      {
-        company: 'Creative Solutions',
-        role: 'Junior Designer',
-        duration: '2019-2022',
-        description: 'Created user interfaces for web and mobile applications.'
-      }
-    ],
-    notes: 'Strong design portfolio but limited experience'
-  }
-};
 
 // Define initial state that matches ApplicantState type
 const initialState: ApplicantState = {
-  applicants: [
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      status: 'pending',
-      position: 'Software Engineer',
-      appliedDate: '2024-02-18',
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      status: 'approved',
-      position: 'Product Manager',
-      appliedDate: '2024-02-17',
-    },
-    {
-      id: '3',
-      name: 'Bob Wilson',
-      email: 'bob@example.com',
-      status: 'rejected',
-      position: 'UX Designer',
-      appliedDate: '2024-02-16',
-    },
-  ],
+  applicants: [],
   tableConfig: {
     visibleColumns: ['name', 'email', 'status', 'position', 'appliedDate'],
     enableSearch: true,
@@ -122,7 +24,6 @@ const initialState: ApplicantState = {
     sortBy: null,
     sortOrder: null,
   },
-  viewMode: 'list',
   selectedApplicantId: null,
   applicantDetails: null,
 };
@@ -148,22 +49,10 @@ const applicantSlice = createSlice({
       state.tableConfig.sortOrder = action.payload.direction;
     },
     selectApplicant(state, action: PayloadAction<SelectApplicantAction['payload']>) {
-      const applicantId = action.payload;
-      state.selectedApplicantId = applicantId;
-      
-      // Simulate fetching applicant details from API (using our mock data)
-      const mockDetails = mockApplicantDetails[applicantId as keyof typeof mockApplicantDetails];
-      state.applicantDetails = mockDetails || null;
-      
-      // Automatically switch to detail view when an applicant is selected
-      // This ensures AI commands like "select applicant 1" will work properly
-      state.viewMode = 'detail';
+      state.selectedApplicantId = action.payload;
+      // The actual details will be fetched from the server and set using setApplicantDetails
     },
-    viewDetail(state) {
-      state.viewMode = 'detail';
-    },
-    viewList(state) {
-      state.viewMode = 'list';
+    clearSelectedApplicant(state) {
       state.selectedApplicantId = null;
       state.applicantDetails = null;
     },
@@ -193,24 +82,44 @@ const applicantSlice = createSlice({
     },
     addNote(state, action: PayloadAction<AddNoteAction['payload']>) {
       if (state.selectedApplicantId && state.applicantDetails) {
-        state.applicantDetails.notes = action.payload;
+        // Create a new applicantDetails object with the updated notes
+        state.applicantDetails = {
+          ...state.applicantDetails,
+          notes: action.payload,
+        };
+      }
+    },
+    // New actions for server data
+    setApplicantDetails(state, action: PayloadAction<SetApplicantDetailsAction['payload']>) {
+      state.applicantDetails = action.payload;
+    },
+    setApplicants(state, action: PayloadAction<SetApplicantsAction['payload']>) {
+      state.applicants = action.payload;
+    },
+    // For updating a single applicant in the list
+    updateApplicant(state, action: PayloadAction<Applicant>) {
+      const index = state.applicants.findIndex(a => a.id === action.payload.id);
+      if (index !== -1) {
+        state.applicants[index] = action.payload;
       }
     },
   },
 });
 
-export const { 
-  setSearchTerm, 
-  toggleSearch, 
-  setVisibleColumns, 
-  setSortOrder, 
+export const {
+  setSearchTerm,
+  toggleSearch,
+  setVisibleColumns,
+  setSortOrder,
   selectApplicant,
-  viewDetail,
-  viewList,
+  clearSelectedApplicant,
   approveApplicant,
   rejectApplicant,
   scheduleInterview,
-  addNote
+  addNote,
+  setApplicantDetails,
+  setApplicants,
+  updateApplicant,
 } = applicantSlice.actions;
 
 export default applicantSlice.reducer;
