@@ -24,10 +24,32 @@ export const tableConfigSchema = z.object({
   sortOrder: z.union([z.enum(['asc', 'desc']), z.null()]),
 });
 
+// Define the view modes
+export const viewModes = ['list', 'detail'] as const;
+export type ViewMode = (typeof viewModes)[number];
+
 // Define the complete state schema
 export const applicantStateSchema = z.object({
   applicants: z.array(applicantSchema),
   tableConfig: tableConfigSchema,
+  viewMode: z.enum(viewModes),
+  selectedApplicantId: z.string().nullable(),
+  // Extended applicant data with more details when viewing a specific applicant
+  applicantDetails: z.object({
+    skills: z.array(z.string()).optional(),
+    education: z.array(z.object({
+      institution: z.string(),
+      degree: z.string(),
+      year: z.string()
+    })).optional(),
+    experience: z.array(z.object({
+      company: z.string(),
+      role: z.string(),
+      duration: z.string(),
+      description: z.string()
+    })).optional(),
+    notes: z.string().optional()
+  }).nullable(),
 });
 
 // Define the action payload schemas
@@ -37,12 +59,7 @@ export const setSortOrderSchema = z.object({
   column: z.string(),
   direction: z.enum(['asc', 'desc']),
 });
-
-// State query action schema
-export const stateQuerySchema = z.object({
-  query: z.string(),
-  state: z.record(z.unknown()),
-});
+export const selectApplicantSchema = z.string();
 
 // Action schemas defined as discriminated union
 export const actionSchema = z
@@ -63,8 +80,27 @@ export const actionSchema = z
       payload: setSortOrderSchema,
     }),
     z.object({
-      type: z.literal('state/query'),
-      payload: stateQuerySchema,
+      type: z.literal('applicant/selectApplicant'),
+      payload: selectApplicantSchema,
+    }),
+    z.object({
+      type: z.literal('applicant/viewDetail'),
+    }),
+    z.object({
+      type: z.literal('applicant/viewList'),
+    }),
+    z.object({
+      type: z.literal('applicant/approveApplicant'),
+    }),
+    z.object({
+      type: z.literal('applicant/rejectApplicant'),
+    }),
+    z.object({
+      type: z.literal('applicant/scheduleInterview'),
+    }),
+    z.object({
+      type: z.literal('applicant/addNote'),
+      payload: z.string(),
     }),
   ])
   .nullable();
@@ -80,6 +116,13 @@ export type SetSearchTermAction = Extract<Action, { type: 'applicant/setSearchTe
 export type ToggleSearchAction = Extract<Action, { type: 'applicant/toggleSearch' }>;
 export type SetVisibleColumnsAction = Extract<Action, { type: 'applicant/setVisibleColumns' }>;
 export type SetSortOrderAction = Extract<Action, { type: 'applicant/setSortOrder' }>;
+export type SelectApplicantAction = Extract<Action, { type: 'applicant/selectApplicant' }>;
+export type ViewDetailAction = Extract<Action, { type: 'applicant/viewDetail' }>;
+export type ViewListAction = Extract<Action, { type: 'applicant/viewList' }>;
+export type ApproveApplicantAction = Extract<Action, { type: 'applicant/approveApplicant' }>;
+export type RejectApplicantAction = Extract<Action, { type: 'applicant/rejectApplicant' }>;
+export type ScheduleInterviewAction = Extract<Action, { type: 'applicant/scheduleInterview' }>;
+export type AddNoteAction = Extract<Action, { type: 'applicant/addNote' }>;
 
 // Generate JSON schema
 export const jsonActionSchema = zodToJsonSchema(actionSchema);

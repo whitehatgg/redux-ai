@@ -1,12 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ActivityLog, ChatBubble, ReduxAIProvider } from '@redux-ai/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Provider } from 'react-redux';
+import { Provider, useSelector, useDispatch } from 'react-redux';
+import { Route, Switch, useLocation } from 'wouter';
 
+import { ApplicantDetail } from './components/ApplicantDetail';
 import { ApplicantTable } from './components/ApplicantTable';
 import { queryClient } from './lib/queryClient';
 import { store } from './store';
 import { jsonActionSchema } from './store/schema';
+import { RootState } from './store';
+
+// This component handles synchronization between Redux state and URL routing
+function AppRouter() {
+  const dispatch = useDispatch();
+  const [, setLocation] = useLocation();
+  const { selectedApplicantId } = useSelector((state: RootState) => state.applicant);
+
+  // Central navigation effect - synchronizes Redux state with URL
+  useEffect(() => {
+    console.log('AppRouter: Navigation effect triggered', { selectedApplicantId });
+    
+    if (selectedApplicantId) {
+      console.log('AppRouter: Navigating to detail view:', `/applicant/${selectedApplicantId}`);
+      setLocation(`/applicant/${selectedApplicantId}`);
+    } else {
+      console.log('AppRouter: Navigating to list view');
+      setLocation('/');
+    }
+  }, [selectedApplicantId, setLocation]);
+
+  return (
+    <Switch>
+      <Route path="/applicant/:id" component={ApplicantDetail} />
+      <Route path="/" component={ApplicantTable} />
+    </Switch>
+  );
+}
 
 function AppContent() {
   const [showActivityLog, setShowActivityLog] = useState(false);
@@ -16,13 +46,13 @@ function AppContent() {
     <div className="min-h-screen bg-background">
       {/* Demo Section */}
       <div id="demo" className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
-        <h2 className="mb-8 text-center text-3xl font-bold">Live Demo</h2>
+        <h2 className="mb-8 text-center text-3xl font-bold">Applicant Tracking System</h2>
         <p className="mb-8 text-center text-muted-foreground">
-          Try Redux AI in action! Use the chat bubble to control the applicant table below.
+          Try Redux AI in action! Use the chat bubble to control the applicant system below.
         </p>
         <div className="grid gap-8">
           <div className="flex flex-col gap-4">
-            <ApplicantTable />
+            <AppRouter />
           </div>
         </div>
       </div>

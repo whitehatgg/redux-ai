@@ -1,8 +1,9 @@
 import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'wouter';
 
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Checkbox } from '../components/ui/checkbox';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import {
   Table,
   TableBody,
@@ -10,18 +11,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import type { RootState } from '@/store';
-import type { Applicant, VisibleColumnKey } from '@/store/schema';
+} from '../components/ui/table';
+import type { RootState } from '../store';
+import type { Applicant, VisibleColumnKey } from '../store/schema';
 import {
+  selectApplicant,
   setSearchTerm,
   setSortOrder,
   setVisibleColumns,
   toggleSearch,
-} from '@/store/slices/applicantSlice';
+  viewDetail,
+} from '../store/slices/applicantSlice';
 
 export function ApplicantTable() {
   const dispatch = useDispatch();
+  const [, setLocation] = useLocation();
   const applicantState = useSelector((state: RootState) => state.applicant);
   const { applicants, tableConfig } = applicantState;
 
@@ -142,7 +146,15 @@ export function ApplicantTable() {
                 </TableRow>
               ) : (
                 sortedApplicants.map((applicant: Applicant) => (
-                  <TableRow key={applicant.id}>
+                  <TableRow 
+                    key={applicant.id} 
+                    className="cursor-pointer hover:bg-muted"
+                    onClick={() => {
+                      console.log('Row clicked:', applicant.id);
+                      dispatch(selectApplicant(applicant.id));
+                      // Central navigation in AppRouter will handle the redirect
+                    }}
+                  >
                     {allColumns.map(
                       ({ key }) =>
                         tableConfig.visibleColumns.includes(key) && (
