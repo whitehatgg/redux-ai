@@ -1,11 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { createEffectTracker } from '@redux-ai/state';
+import { createReduxAIMiddleware } from '@redux-ai/state';
 
 import type { ApplicantState } from './schema';
 import applicantReducer from './slices/applicantSlice';
 
 // Create the effect tracker middleware
-export const effectTracker = createEffectTracker({ 
+export const effectTracker = createReduxAIMiddleware({ 
   debug: true,
   timeout: 30000, // 30 seconds timeout for effects
   onEffectsCompleted: () => console.log('[EffectTracker] All effects completed, ready for next workflow step')

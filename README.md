@@ -163,10 +163,10 @@ export default App;
 The effect tracking middleware automatically detects and tracks asynchronous operations from Redux Thunk, RTK Query, Redux Saga, and Promise middleware. No manual marking of effects is needed - simply add the middleware to your Redux store and it will handle tracking of side effects automatically.
 
 ```typescript
-import { createEffectTracker } from '@redux-ai/state';
+import { createReduxAIMiddleware } from '@redux-ai/state';
 
 // Create the middleware
-const effectTracker = createEffectTracker({
+const effectTracker = createReduxAIMiddleware({
   debug: true,
   timeout: 30000,
 });

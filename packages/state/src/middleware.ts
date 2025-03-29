@@ -645,3 +645,5 @@ export const createReduxAIMiddleware = (options: EffectTrackerOptions = {}): Eff
 // The markAsEffect function has been removed.
 // The middleware now automatically detects and tracks asynchronous effects
 // without requiring manual marking of effects.
+
+// createEffectTracker is no longer available - use createReduxAIMiddleware instead
