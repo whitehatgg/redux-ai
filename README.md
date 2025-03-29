@@ -9,6 +9,8 @@ A sophisticated augmentation layer for Redux that enhances your existing state m
 - 💬 Conversational interface for controlling complex application state
 - 🐛 Direct error propagation with transparent LLM messaging
 - 🏗️ Framework-agnostic design with Express.js and Next.js integrations
+- ⏱️ Advanced effect tracking middleware to handle asynchronous operations
+- 🔄 Sequential workflow step processing with clean UI visualization
 
 ## Redux AI: Natural Language Interface for Redux Applications
 
@@ -129,6 +131,8 @@ function App() {
           actions={jsonActionSchema}
           endpoint="/api/query"
           debug={true}
+          stepDelay={1500} // Configure delay between workflow steps (in ms)
+          timeout={30000}  // Configure timeout for async effects (in ms)
         >
           <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-16">
@@ -152,6 +156,19 @@ function App() {
 }
 
 export default App;
+```
+
+### Using the Effect Tracking Middleware
+
+The effect tracking middleware automatically detects and tracks asynchronous operations from Redux Thunk, RTK Query, Redux Saga, and Promise middleware. For custom async patterns, you can manually mark actions as effects:
+
+```typescript
+import { markAsEffect } from '@redux-ai/state';
+
+// Dispatch an action and mark it as having async effects
+dispatch(markAsEffect(myAsyncAction()));
+
+// When all effects are complete, the middleware will signal completion
 ```
 
 ### 4. Configure Server-Side Handler
@@ -192,6 +209,9 @@ The Redux AI layer intelligently translates these requests into the appropriate 
 - **Enhanced Accessibility**: Users who struggle with complex UIs can interact naturally with the system
 - **Gradual Adoption**: Introduce AI capabilities alongside traditional interfaces, allowing users to choose their preferred method
 - **Future-Proof Architecture**: As your application evolves, Redux AI adapts to new actions and state structure
+- **Robust Async Handling**: Automatically tracks and waits for asynchronous operations to complete
+- **Seamless Workflow Visualization**: Each step in a complex workflow is clearly separated and visible
+- **Framework Agnostic**: Works with any Redux side-effect library including Thunk, Saga, and RTK Query
 
 ## Architecture
 
@@ -215,6 +235,13 @@ The project uses a monorepo structure with the following packages:
 - Provider implementations for different LLM services
 - JSON response format support
 - Streaming capabilities where supported
+
+### @redux-ai/state
+
+- Advanced middleware for tracking and managing asynchronous effects
+- Automatic tracking of common async patterns including Redux Thunk, RTK Query, and Redux Saga
+- Sequential workflow step processing with visual separation
+- Configurable delay system for proper UI visualization of complex workflows
 
 ## Development
 
