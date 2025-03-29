@@ -15,28 +15,6 @@ const trackedRequestIds = new Set<string>();
 // Track saga tasks (via meta flag)
 const sagaEffectIds = new Set<string>();
 
-// Track action types that typically indicate async operations
-// These are used internally for pattern matching
-const _asyncActionPatterns = [
-  // Redux-observable epics
-  /\/fulfilled$/,
-  /\/rejected$/,
-  /\/pending$/,
-  // Redux-saga patterns
-  /\/request$/,
-  /\/success$/,
-  /\/failure$/,
-  // Common naming patterns
-  /start$/i,
-  /begin$/i,
-  /complete$/i,
-  /success$/i,
-  /failure$/i,
-  /error$/i,
-  /done$/i,
-  /end$/i,
-];
-
 /**
  * Options for the effect tracker middleware
  */
@@ -47,9 +25,16 @@ export interface EffectTrackerOptions {
   debug?: boolean;
 
   /**
-   * Timeout in milliseconds
+   * Timeout in milliseconds for effects
    */
   timeout?: number;
+
+  /**
+   * Delay in milliseconds to group related actions
+   * Actions dispatched within this time window after the initial action
+   * will be considered part of the same group
+   */
+  groupingDelay?: number;
 
   /**
    * Callback when effects are completed
@@ -58,20 +43,100 @@ export interface EffectTrackerOptions {
 }
 
 /**
+ * Action group tracker to monitor related actions dispatched in a time window
+ */
+interface ActionGroup {
+  initialActionType: string;
+  startTime: number;
+  actions: Array<{
+    type: string;
+    timestamp: number;
+  }>;
+  pendingEffectIds: Set<string>;
+  groupId: string;
+}
+
+/**
+ * Interface for the Effect Tracker
+ */
+export interface EffectTracker {
+  /**
+   * The Redux middleware
+   */
+  middleware: Middleware;
+
+  /**
+   * Wait for all pending effects to complete
+   */
+  waitForEffects: () => Promise<void>;
+
+  /**
+   * Wait for all action groups to complete
+   * This is useful to wait for all related actions within a time window
+   */
+  waitForActionGroups?: () => Promise<void>;
+
+  /**
+   * Get information about side effects
+   */
+  getSideEffectInfo: () => SideEffectInfo;
+
+  /**
+   * Reset the side effect info
+   */
+  resetSideEffectInfo: () => void;
+}
+
+/**
+ * Interface for tracking side effects
+ */
+export interface SideEffectInfo {
+  pendingCount: number;
+  completedCount: number;
+  effects: Array<{
+    id: string;
+    type: string;
+    status: 'pending' | 'completed' | 'timeout';
+    startTime: number;
+    endTime?: number;
+  }>;
+}
+
+// Storage for side effects - can be used by activity log
+const sideEffectStore: SideEffectInfo = {
+  pendingCount: 0,
+  completedCount: 0,
+  effects: [],
+};
+
+/**
  * Creates a middleware that tracks asynchronous side effects from various sources:
  * - Redux Thunk
  * - RTK Query
  * - Redux Saga
  * - Promise Middleware
  * - Custom async actions
+ *
+ * This implementation uses time-based action grouping rather than pattern matching
  */
 const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
-  const { debug = false, timeout = 30000 } = options;
+  const {
+    debug = false,
+    timeout = 30000,
+    groupingDelay = 500, // Default 500ms window to group related actions
+  } = options;
+
+  // Active action groups being tracked
+  const activeActionGroups = new Map<string, ActionGroup>();
+
+  // Last action timestamp to track action sequences
+  let lastActionTimestamp = 0;
+  let currentActionGroup: ActionGroup | null = null;
 
   /**
    * Track an effect with the given ID
    */
-  const trackEffect = (effectId: string, promise: Promise<unknown>) => {
+  const trackEffect = (effectId: string, promise: Promise<unknown>, actionGroup?: ActionGroup) => {
     if (debug) {
       console.debug(`[EffectTracker] Tracking effect: ${effectId}`);
     }
@@ -80,6 +145,12 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
     const timeoutPromise = new Promise(_resolve => {
       setTimeout(() => {
         pendingEffects.delete(effectId);
+
+        // If this effect belongs to an action group, remove it from there too
+        if (actionGroup) {
+          actionGroup.pendingEffectIds.delete(effectId);
+        }
+
         if (debug) {
           console.warn(`[EffectTracker] Effect timed out after ${timeout}ms: ${effectId}`);
         }
@@ -97,6 +168,20 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
       })
       .finally(() => {
         pendingEffects.delete(effectId);
+
+        // If this effect belongs to an action group, remove it from there too
+        if (actionGroup) {
+          actionGroup.pendingEffectIds.delete(effectId);
+
+          // If the action group has no more pending effects, clean it up
+          if (actionGroup.pendingEffectIds.size === 0) {
+            activeActionGroups.delete(actionGroup.groupId);
+            if (debug) {
+              console.debug(`[EffectTracker] Action group completed: ${actionGroup.groupId}`);
+            }
+          }
+        }
+
         if (debug) {
           console.debug(`[EffectTracker] Effect completed: ${effectId}`);
         }
@@ -104,6 +189,11 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
 
     // Store the effect
     pendingEffects.set(effectId, trackedPromise);
+
+    // Add to action group if provided
+    if (actionGroup) {
+      actionGroup.pendingEffectIds.add(effectId);
+    }
 
     return trackedPromise;
   };
@@ -147,79 +237,112 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
     }
   };
 
-  // Map to track related action types by base type
-  const relatedActionMap = new Map<string, string[]>();
-
   /**
-   * Identifies the base action type from an async action sequence
-   * Examples:
-   * - "users/fetchUser/pending" -> "users/fetchUser"
-   * - "FETCH_POSTS_REQUEST" -> "FETCH_POSTS"
+   * Create a new action group or add to existing group based on timing
    */
-  const getBaseActionType = (actionType: string): string => {
-    // Handle RTK Query style
-    if (
-      actionType.endsWith('/pending') ||
-      actionType.endsWith('/fulfilled') ||
-      actionType.endsWith('/rejected')
-    ) {
-      return actionType.split('/').slice(0, -1).join('/');
+  const addToActionGroup = (action: any): ActionGroup => {
+    const now = Date.now();
+    const actionType = action.type ? String(action.type) : 'unknown';
+
+    // Check if we should create a new action group or use the current one
+    if (!currentActionGroup || now - lastActionTimestamp > groupingDelay) {
+      // Create a new action group
+      const groupId = `group-${actionType}-${now}`;
+      const newGroup: ActionGroup = {
+        initialActionType: actionType,
+        startTime: now,
+        actions: [
+          {
+            type: actionType,
+            timestamp: now,
+          },
+        ],
+        pendingEffectIds: new Set<string>(),
+        groupId,
+      };
+
+      // Store the group
+      activeActionGroups.set(groupId, newGroup);
+      currentActionGroup = newGroup;
+
+      if (debug) {
+        console.debug(`[EffectTracker] Created new action group: ${groupId}`);
+      }
+    } else {
+      // Add to existing group
+      currentActionGroup.actions.push({
+        type: actionType,
+        timestamp: now,
+      });
+
+      if (debug) {
+        console.debug(
+          `[EffectTracker] Added action to group ${currentActionGroup.groupId}: ${actionType}`
+        );
+      }
     }
 
-    // Handle Redux Saga style
-    if (
-      actionType.endsWith('_REQUEST') ||
-      actionType.endsWith('_SUCCESS') ||
-      actionType.endsWith('_FAILURE')
-    ) {
-      return actionType.replace(/_(REQUEST|SUCCESS|FAILURE)$/, '');
-    }
+    // Update last action timestamp
+    lastActionTimestamp = now;
 
-    // Handle other common patterns
-    const suffixMatch = actionType.match(/(START|BEGIN|COMPLETE|SUCCESS|FAILURE|ERROR|DONE|END)$/i);
-    if (suffixMatch) {
-      return actionType.substring(0, actionType.length - suffixMatch[0].length);
-    }
-
-    return actionType;
+    return currentActionGroup;
   };
 
   /**
-   * Determines if the action type represents the start of an async operation
+   * Wait for effects in all action groups to complete
    */
-  const isStartAction = (actionType: string): boolean => {
-    return (
-      actionType.endsWith('/pending') ||
-      actionType.endsWith('_REQUEST') ||
-      actionType.endsWith('START') ||
-      actionType.endsWith('BEGIN') ||
-      /start$/i.test(actionType) ||
-      /begin$/i.test(actionType)
-    );
-  };
+  const waitForActionGroups = async () => {
+    if (activeActionGroups.size === 0) {
+      if (debug) {
+        console.debug('[EffectTracker] No action groups to wait for');
+      }
+      return;
+    }
 
-  /**
-   * Determines if the action type represents the end of an async operation
-   */
-  const isEndAction = (actionType: string): boolean => {
-    return (
-      actionType.endsWith('/fulfilled') ||
-      actionType.endsWith('/rejected') ||
-      actionType.endsWith('_SUCCESS') ||
-      actionType.endsWith('_FAILURE') ||
-      actionType.endsWith('COMPLETE') ||
-      actionType.endsWith('SUCCESS') ||
-      actionType.endsWith('FAILURE') ||
-      actionType.endsWith('ERROR') ||
-      actionType.endsWith('DONE') ||
-      actionType.endsWith('END') ||
-      /complete$/i.test(actionType) ||
-      /success$/i.test(actionType) ||
-      /failure$/i.test(actionType) ||
-      /error$/i.test(actionType) ||
-      /done$/i.test(actionType) ||
-      /end$/i.test(actionType)
-    );
+    if (debug) {
+      console.debug(
+        `[EffectTracker] Waiting for ${activeActionGroups.size} action groups to complete`
+      );
+
+      // Log action group details for debugging
+      for (const group of activeActionGroups.values()) {
+        console.debug(
+          `[EffectTracker] Group: ${group.groupId}, Initial action: ${group.initialActionType}, ` +
+            `Actions: ${group.actions.length}, Pending effects: ${group.pendingEffectIds.size}`
+        );
+      }
+    }
+
+    // Create a promise for each action group
+    const groupPromises = Array.from(activeActionGroups.values()).map(group => {
+      return new Promise<void>(resolve => {
+        // Create polling interval to check if group is completed
+        const interval = setInterval(() => {
+          // If the group has no more pending effects or is no longer active, resolve
+          if (group.pendingEffectIds.size === 0 || !activeActionGroups.has(group.groupId)) {
+            clearInterval(interval);
+            resolve();
+            return;
+          }
+        }, 50);
+
+        // Safety timeout to prevent hanging
+        setTimeout(() => {
+          clearInterval(interval);
+          if (debug) {
+            console.warn(`[EffectTracker] Action group timed out: ${group.groupId}`);
+          }
+          resolve();
+        }, timeout);
+      });
+    });
+
+    // Wait for all group promises to complete
+    await Promise.all(groupPromises);
+
+    if (debug) {
+      console.debug('[EffectTracker] All action groups completed');
+    }
   };
 
   // The actual middleware
@@ -231,6 +354,9 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
 
     // Extract the action type safely
     const actionType = action.type ? String(action.type) : 'unknown';
+
+    // Add action to a group (either existing or new)
+    const actionGroup = addToActionGroup(action);
 
     // Handle several types of async patterns:
 
@@ -260,6 +386,10 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
             if (Date.now() - startTime > timeout) {
               clearInterval(interval);
               pendingEffects.delete(effectId);
+
+              // Remove from action group too
+              actionGroup.pendingEffectIds.delete(effectId);
+
               if (debug) {
                 console.warn(`[EffectTracker] RTK effect timed out: ${requestId}`);
               }
@@ -269,7 +399,7 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
           }, 50);
         });
 
-        trackEffect(effectId, rtPromise);
+        trackEffect(effectId, rtPromise, actionGroup);
       }
       // Clean up when the request completes
       else if (
@@ -279,6 +409,11 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
         trackedRequestIds.delete(requestId);
         const effectId = `rtk-${requestId}`;
         pendingEffects.delete(effectId);
+
+        // Remove from any action groups
+        for (const group of activeActionGroups.values()) {
+          group.pendingEffectIds.delete(effectId);
+        }
       }
     }
 
@@ -289,7 +424,7 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
       typeof action.payload.then === 'function'
     ) {
       const effectId = `payload-${actionType}-${Date.now()}`;
-      trackEffect(effectId, action.payload);
+      trackEffect(effectId, action.payload, actionGroup);
     }
 
     // 3. Saga effects or manually marked actions
@@ -299,7 +434,7 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
 
       // If a saga action has an explicit promise, track it
       if (action.meta.promise && typeof action.meta.promise.then === 'function') {
-        trackEffect(effectId, action.meta.promise);
+        trackEffect(effectId, action.meta.promise, actionGroup);
       }
       // Otherwise track via saga end action pattern
       else if (action.meta.isStart) {
@@ -329,120 +464,30 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
           }, timeout);
         });
 
-        trackEffect(effectId, sagaPromise);
+        trackEffect(effectId, sagaPromise, actionGroup);
       }
       // Handle saga completion
       else if (action.meta.isEnd && sagaEffectIds.has(sagaId)) {
         sagaEffectIds.delete(sagaId);
         pendingEffects.delete(`saga-${sagaId}`);
-      }
-    }
 
-    // 4. Track conventional async action patterns by naming convention
-    // This handles redux-observable, redux-saga, and other libraries that follow naming conventions
-    if (!action.meta?.requestId) {
-      // Don't double track RTK actions
-      const baseType = getBaseActionType(actionType);
-
-      // If this is a start action, track it
-      if (isStartAction(actionType)) {
-        // Store this action pattern so we can match it later
-        if (!relatedActionMap.has(baseType)) {
-          relatedActionMap.set(baseType, []);
+        // Remove from any action groups
+        for (const group of activeActionGroups.values()) {
+          group.pendingEffectIds.delete(`saga-${sagaId}`);
         }
-        relatedActionMap.get(baseType)?.push(actionType);
-
-        // Generate a unique ID for this pattern instance
-        const timestamp = Date.now();
-        const patternId = `pattern-${baseType}-${timestamp}`;
-
-        // Store timestamp in the related actions map to help with cleanup
-        if (!relatedActionMap.has(baseType)) {
-          relatedActionMap.set(baseType, []);
-        }
-
-        // Add this timestamp to the list of pending operations for this base type
-        relatedActionMap.get(baseType)?.push(timestamp.toString());
-
-        // Create a promise that will resolve when a matching end action is dispatched
-        const patternPromise = new Promise<void>(resolve => {
-          const interval = setInterval(() => {
-            // Check if this effect was cleaned up
-            if (!pendingEffects.has(patternId)) {
-              clearInterval(interval);
-              resolve();
-              return;
-            }
-
-            // Check for timeout
-            if (Date.now() - timestamp > timeout) {
-              clearInterval(interval);
-              pendingEffects.delete(patternId);
-
-              // Also remove from the related actions map
-              const related = relatedActionMap.get(baseType);
-              if (related) {
-                const index = related.indexOf(timestamp.toString());
-                if (index !== -1) {
-                  related.splice(index, 1);
-                }
-              }
-
-              if (debug) {
-                console.warn(`[EffectTracker] Pattern effect timed out: ${baseType}`);
-              }
-              resolve();
-              return;
-            }
-          }, 50);
-        });
-
-        if (debug) {
-          console.debug(
-            `[EffectTracker] Tracking pattern start: ${actionType} (base: ${baseType})`
-          );
-        }
-
-        trackEffect(patternId, patternPromise);
-      }
-      // If this is an end action, clean up the matching start action
-      else if (isEndAction(actionType)) {
-        const timestamps = relatedActionMap.get(baseType);
-        if (timestamps && timestamps.length > 0) {
-          // Get the oldest timestamp to clean up (FIFO)
-          const timestamp = timestamps.shift();
-
-          if (timestamp) {
-            const patternId = `pattern-${baseType}-${timestamp}`;
-
-            if (debug) {
-              console.debug(`[EffectTracker] Pattern completed: ${actionType} (base: ${baseType})`);
-            }
-
-            // Clean up the effect
-            pendingEffects.delete(patternId);
-          }
-        }
-      }
-    }
-
-    // 5. Non-promise dependencies check (for actions that don't use promises directly, like epics or flow)
-    if (action.meta?.deps && Array.isArray(action.meta.deps)) {
-      for (const depId of action.meta.deps) {
-        pendingEffects.delete(`dep-${depId}`);
       }
     }
 
     // Pass to next middleware and get result
     const result = next(action);
 
-    // 6. Thunk middleware will return a promise
+    // 4. Thunk middleware will return a promise
     if (result instanceof Promise) {
       const effectId = `thunk-${actionType}-${Date.now()}`;
-      trackEffect(effectId, result);
+      trackEffect(effectId, result, actionGroup);
     }
 
-    // 7. Check for promise properties in arbitrary locations
+    // 5. Check for promise properties in arbitrary locations
     // Some libraries might put promises in different action properties
     if (action && typeof action === 'object') {
       for (const key of Object.keys(action)) {
@@ -454,7 +499,7 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
           typeof action[key].then === 'function'
         ) {
           const effectId = `prop-${key}-${actionType}-${Date.now()}`;
-          trackEffect(effectId, action[key]);
+          trackEffect(effectId, action[key], actionGroup);
         }
       }
     }
@@ -466,54 +511,8 @@ const createEffectTrackerMiddleware = (options: EffectTrackerOptions = {}) => {
   return Object.assign(middleware, {
     waitForEffects,
     trackEffect,
+    waitForActionGroups,
   });
-};
-
-/**
- * Interface for the Effect Tracker
- */
-export interface EffectTracker {
-  /**
-   * The Redux middleware
-   */
-  middleware: Middleware;
-
-  /**
-   * Wait for all pending effects to complete
-   */
-  waitForEffects: () => Promise<void>;
-
-  /**
-   * Get information about side effects
-   */
-  getSideEffectInfo: () => SideEffectInfo;
-
-  /**
-   * Reset the side effect info
-   */
-  resetSideEffectInfo: () => void;
-}
-
-/**
- * Interface for tracking side effects
- */
-export interface SideEffectInfo {
-  pendingCount: number;
-  completedCount: number;
-  effects: Array<{
-    id: string;
-    type: string;
-    status: 'pending' | 'completed' | 'timeout';
-    startTime: number;
-    endTime?: number;
-  }>;
-}
-
-// Storage for side effects - can be used by activity log
-const sideEffectStore: SideEffectInfo = {
-  pendingCount: 0,
-  completedCount: 0,
-  effects: [],
 };
 
 /**
@@ -550,6 +549,7 @@ export const createReduxAIMiddleware = (options: EffectTrackerOptions = {}): Eff
   // Add trackEffect method to the middleware object
   const middlewareWithTrackEffect = middleware as Middleware & {
     waitForEffects: () => Promise<void>;
+    waitForActionGroups: () => Promise<void>;
     trackEffect: (effectId: string, promise: Promise<unknown>, type?: string) => Promise<unknown>;
   };
 
@@ -629,6 +629,7 @@ export const createReduxAIMiddleware = (options: EffectTrackerOptions = {}): Eff
   return {
     middleware: middlewareWithTrackEffect,
     waitForEffects: middlewareWithTrackEffect.waitForEffects,
+    waitForActionGroups: middlewareWithTrackEffect.waitForActionGroups,
 
     // Add a getter for the side effect store
     getSideEffectInfo: () => ({ ...sideEffectStore }),

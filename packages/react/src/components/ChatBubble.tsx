@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageSquare, Minimize2, Sidebar } from 'lucide-react';
-import { useSelector } from '@xstate/react';
 import type { ConversationMessage } from '@redux-ai/state';
+import { useSelector } from '@xstate/react';
+import { Loader2, MessageSquare, Minimize2, Sidebar } from 'lucide-react';
 
 import { useReduxAI } from '../hooks/useReduxAI';
 import { useReduxAIContext } from './ReduxAIProvider';
@@ -27,7 +27,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
   const messages = useSelector(
     machineService,
-    (state) => state?.context?.messages ?? [],
+    state => state?.context?.messages ?? [],
     (a, b) => a === b
   );
 
@@ -58,7 +58,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       const errorContent = error instanceof Error ? error.message : String(error);
       machineService?.send({
         type: 'RESPONSE',
-        message: errorContent
+        message: errorContent,
       });
     } finally {
       setIsSubmitting(false);
@@ -108,15 +108,36 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
               >
                 <div
                   className={`inline-block max-w-[80%] rounded-lg p-3 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                    message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                   }`}
                 >
                   {message.content}
                 </div>
               </div>
             ))}
+
+            {/* Typing indicator animation when processing */}
+            {(isProcessing || isSubmitting) && (
+              <div className="flex justify-start">
+                <div className="inline-block max-w-[80%] rounded-lg bg-muted p-3">
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-primary/60"
+                      style={{ animationDelay: '0ms' }}
+                    ></div>
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-primary/60"
+                      style={{ animationDelay: '150ms' }}
+                    ></div>
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-primary/60"
+                      style={{ animationDelay: '300ms' }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         </div>
@@ -136,7 +157,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                 disabled={isProcessing || isSubmitting}
                 className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
               >
-                {isProcessing || isSubmitting ? 'Sending...' : 'Send'}
+                {isProcessing || isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Thinking...
+                  </span>
+                ) : (
+                  'Send'
+                )}
               </button>
             </div>
           </form>
