@@ -17,7 +17,23 @@ Your task is to:
 1. Break down the request into individual steps
 2. For each step, determine if it's an action, state query, or conversation
 3. If it's an action, specify the exact action type and parameters from the available actions
-4. Include clear reasoning for each step
+4. Resolve parameters intelligently based on state and user references
+5. Include clear reasoning for each step
+
+PARAMETER RESOLUTION GUIDELINES:
+1. When user refers to entities by name, title, or description, resolve to the correct ID from state
+2. For position-based references (first, last, third, etc.), find the corresponding entity in state
+3. When an action requires an ID:
+   a. Extract it directly if mentioned explicitly
+   b. Look up the ID from state based on descriptive attributes
+   c. Use ordering/position logic ("first", "last", etc.) when applicable
+4. Always use entity IDs in action payloads, not names or descriptions
+5. Be careful with successive actions where later steps reference entities from earlier steps
+
+RESOLUTION EXAMPLES:
+- "select John and then approve him" → Find John's ID for the select action
+- "review first applicant and then schedule an interview" → Find the first applicant's ID
+- "move task to completed status" → Find the task ID based on current context/state
 
 RESPONSE FORMAT:
 {
@@ -32,10 +48,10 @@ RESPONSE FORMAT:
       "action": {
         "type": "exact_action_type",
         "payload": {
-          "param1": "value1"
+          "param1": "value1" // Use resolved IDs when appropriate
         }
       },
-      "reasoning": ["Why this step is needed"]
+      "reasoning": ["Why this step is needed", "How parameters were resolved"]
     },
     {
       "message": "Description of step 2",
@@ -43,15 +59,22 @@ RESPONSE FORMAT:
       "action": {
         "type": "exact_action_type",
         "payload": {
-          "param2": "value2"
+          "param2": "value2" // Use resolved IDs when appropriate
         }
       },
-      "reasoning": ["Why this step is needed"]
+      "reasoning": ["Why this step is needed", "How parameters were resolved"]
     }
   ]
 }
 
-Respond with a JSON object matching this exact format. Each action must match the schema in AVAILABLE_ACTIONS.`;
+VALIDATION REQUIREMENTS:
+1. Each action must match the schema in AVAILABLE_ACTIONS
+2. All required parameters must be provided with correct IDs resolved from state when applicable
+3. Parameters must match schema types
+4. Always prefer actual IDs over descriptive references
+5. Never leave required parameter fields empty - resolve from state if not directly provided
+
+Respond with a JSON object matching this exact format.`;
 }
 
 function generateIntentPrompt(params: QueryParams): string {
@@ -113,20 +136,35 @@ function generateActionPrompt(params: QueryParams): string {
     throw new Error('Action prompt requires actions schema');
   }
 
+  const hasState = !!params.state;
+
   return `Process the following action request using the available schema:
 
 USER QUERY: "${params.query}"
 AVAILABLE ACTIONS: ${JSON.stringify(params.actions, null, 2)}
+${hasState ? `CURRENT STATE: ${JSON.stringify(params.state, null, 2)}` : ''}
 ${params.conversations ? `CONVERSATION HISTORY:\n${params.conversations}` : ''}
 
 TASK:
-Identify and structure the appropriate action based on the query and conversation context.
+Identify and structure the appropriate action based on the query, state, and conversation context.
 
 PROCESSING GUIDELINES:
 1. Match query intent to available action types
-2. Extract required parameters from query and context
-3. Validate parameters against schema
-4. Structure response according to schema
+2. Extract or resolve required parameters from:
+   a. First, directly from the user query if explicitly provided
+   b. Second, identify objects by descriptive attributes (name, title, label, etc.) and extract their IDs from state
+   c. Third, use position-based references ("first", "last", "third", etc.) to find the right object in state
+   d. Finally, use conversation context if available
+3. For entity references (like "select John" or "first applicant"), always map to the correct ID by checking the state
+4. When the query mentions a property that isn't the ID (like a name or title), find the actual ID from the state
+5. Validate parameters against schema
+6. Structure response according to schema
+
+PARAMETER RESOLUTION EXAMPLES:
+- For "select first applicant" → Find first applicant in state and use its ID
+- For "select John" → Find applicant with name "John" in state and use its ID
+- For "approve status for task 3" → Use literal "3" as the task ID
+- For "assign to the newest project" → Find the newest project in state and use its ID
 
 RESPONSE FORMAT:
 {
@@ -134,19 +172,20 @@ RESPONSE FORMAT:
   "action": {
     "type": "action_type_from_schema",
     "payload": {
-      // parameters as defined in schema
+      // parameters as defined in schema with resolved IDs when needed
     }
   },
   "reasoning": [
-    "Step by step explanation of action selection and parameter extraction"
+    "Step by step explanation of action selection and parameter extraction/resolution"
   ]
 }
 
 VALIDATION REQUIREMENTS:
 1. Action type must exist in schema
-2. All required parameters must be provided
+2. All required parameters must be provided with correct IDs resolved from state when applicable
 3. Parameters must match schema types
-4. No extra parameters allowed
+4. Always prefer actual IDs over descriptive references
+5. Never leave required parameter fields empty - resolve from state if not directly provided
 
 Respond only with a valid JSON object following this exact format.`;
 }
@@ -240,7 +279,10 @@ VALIDATION REQUIREMENTS:
 Respond only with a valid JSON object following this exact format.`;
 }
 
-export function generatePrompt(type: 'intent' | 'action' | 'state' | 'conversation' | 'workflow', params: QueryParams): string {
+export function generatePrompt(
+  type: 'intent' | 'action' | 'state' | 'conversation' | 'workflow',
+  params: QueryParams
+): string {
   const promptGenerators = {
     intent: generateIntentPrompt,
     action: generateActionPrompt,
@@ -254,4 +296,5 @@ export function generatePrompt(type: 'intent' | 'action' | 'state' | 'conversati
   return generator(params);
 }
 
-export const JSON_FORMAT_MESSAGE = '\n\nRespond ONLY with a valid JSON object including all required fields.';
+export const JSON_FORMAT_MESSAGE =
+  '\n\nRespond ONLY with a valid JSON object including all required fields.';
