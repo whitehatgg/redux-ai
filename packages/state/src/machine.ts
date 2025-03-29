@@ -33,7 +33,12 @@ type WorkflowStartEvent = { type: 'WORKFLOW_START'; steps: Array<{ message: stri
 type NextStepEvent = { type: 'NEXT_STEP' };
 
 export type DelayedNextStepEvent = { type: 'DELAYED_NEXT_STEP'; delay: number };
-export type ConversationEvent = QueryEvent | ResponseEvent | WorkflowStartEvent | NextStepEvent | DelayedNextStepEvent;
+export type ConversationEvent =
+  | QueryEvent
+  | ResponseEvent
+  | WorkflowStartEvent
+  | NextStepEvent
+  | DelayedNextStepEvent;
 
 export const createConversationMachine = () =>
   createMachine({
@@ -45,7 +50,7 @@ export const createConversationMachine = () =>
     context: {
       messages: [],
       currentQuery: undefined,
-      workflow: undefined
+      workflow: undefined,
     },
     initial: 'idle',
     states: {
@@ -57,9 +62,9 @@ export const createConversationMachine = () =>
               currentQuery: ({ event }) => event.query,
               messages: ({ context, event }) => [
                 ...context.messages,
-                { role: 'user' as const, content: event.query }
-              ]
-            })
+                { role: 'user' as const, content: event.query },
+              ],
+            }),
           },
           WORKFLOW_START: {
             target: 'workflow',
@@ -68,12 +73,12 @@ export const createConversationMachine = () =>
                 currentStep: 0,
                 steps: event.steps.map((step, index) => ({
                   message: step.message,
-                  status: (index === 0 ? 'processing' : 'pending') as StepStatus
-                }))
-              })
-            })
-          }
-        }
+                  status: (index === 0 ? 'processing' : 'pending') as StepStatus,
+                })),
+              }),
+            }),
+          },
+        },
       },
       processing: {
         on: {
@@ -82,16 +87,16 @@ export const createConversationMachine = () =>
             actions: assign({
               messages: ({ context, event }) => [
                 ...context.messages,
-                { 
-                  role: 'assistant' as const, 
+                {
+                  role: 'assistant' as const,
                   content: event.message,
-                  intent: event.intent
-                }
+                  intent: event.intent,
+                },
               ],
-              currentQuery: () => undefined
-            })
-          }
-        }
+              currentQuery: () => undefined,
+            }),
+          },
+        },
       },
       workflow: {
         on: {
@@ -99,21 +104,21 @@ export const createConversationMachine = () =>
             actions: assign({
               messages: ({ context, event }) => [
                 ...context.messages,
-                { 
-                  role: 'assistant' as const, 
+                {
+                  role: 'assistant' as const,
                   content: event.message,
-                  intent: event.intent
-                }
-              ]
-            })
+                  intent: event.intent,
+                },
+              ],
+            }),
           },
           QUERY: {
             actions: assign({
               messages: ({ context, event }) => [
                 ...context.messages,
-                { role: 'user' as const, content: event.query }
-              ]
-            })
+                { role: 'user' as const, content: event.query },
+              ],
+            }),
           },
           NEXT_STEP: [
             {
@@ -122,7 +127,7 @@ export const createConversationMachine = () =>
                 return workflow ? workflow.currentStep >= workflow.steps.length - 1 : false;
               },
               target: 'idle',
-              actions: assign({ workflow: () => undefined })
+              actions: assign({ workflow: () => undefined }),
             },
             {
               actions: assign({
@@ -134,25 +139,25 @@ export const createConversationMachine = () =>
                     currentStep: nextStep,
                     steps: context.workflow.steps.map((step, index) => ({
                       ...step,
-                      status: (
-                        index === context.workflow?.currentStep ? 'completed' :
-                        index === nextStep ? 'processing' :
-                        step.status
-                      ) as StepStatus
-                    }))
+                      status: (index === context.workflow?.currentStep
+                        ? 'completed'
+                        : index === nextStep
+                          ? 'processing'
+                          : step.status) as StepStatus,
+                    })),
                   };
-                }
-              })
-            }
+                },
+              }),
+            },
           ],
           DELAYED_NEXT_STEP: {
-            actions: (context, event) => {
+            actions: (_context, _event) => {
               // This is a special event that will be delayed by the specified amount
               // The delay is handled by the parent component sending this event
               // after the specified delay
-            }
-          }
-        }
-      }
-    }
+            },
+          },
+        },
+      },
+    },
   });
