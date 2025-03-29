@@ -1,167 +1,152 @@
 # @redux-ai/state
 
-Core state management functionality for Redux AI, providing intelligent state tracking and prediction capabilities powered by vector storage and XState machines.
+Advanced intelligent runtime system for managing state in Redux applications with support for asynchronous effects.
 
 ## Features
 
-- AI-powered state tracking with TypeScript
-- Automatic action suggestion based on state patterns
-- Vector storage integration for historical analysis
-- XState machine integration for complex state flows
-- Efficient state diffing and change tracking
-- Redux Toolkit middleware and enhancers
-- Type-safe state prediction and optimization
+- Integrates with Redux to manage state
+- XState for advanced workflow and conversation state management
+- AI-powered message and workflow interpretation
+- **Effect tracking middleware** for coordinating asynchronous operations
+- Conversation state management
 
-## Installation
+## Effect Tracking Middleware
 
-```bash
-# Using pnpm (recommended)
-pnpm add @redux-ai/state
+The Effect Tracking Middleware allows you to coordinate asynchronous operations with state machine workflows. This middleware is designed to handle various types of async patterns including:
 
-# Or using npm
-npm install @redux-ai/state
-```
+- Redux Thunk
+- RTK Query
+- Redux Saga
+- Promise middleware
+- Custom async patterns via markAsEffect
 
-## Usage
+The middleware ensures that all side effects complete before moving to the next step in a workflow.
+
+### Usage
 
 ```typescript
-import { createAIStore, type AIState } from '@redux-ai/state';
-import type { RootState } from './types';
+import { configureStore } from '@reduxjs/toolkit';
+import { createReduxAIState, createEffectTracker, markAsEffect } from '@redux-ai/state';
+import { ReduxAIVector } from '@redux-ai/vector';
+import rootReducer from './reducers';
+import actions from './actions';
 
-// Create an AI-powered store
-const store = createAIStore<RootState>({
-  reducer: rootReducer,
-  initialState: {},
-  vectorConfig: {
-    dimensions: 128,
-  },
-  predictorConfig: {
-    confidenceThreshold: 0.8,
-    maxPredictions: 5,
-  },
+// Create the effect tracker
+const effectTracker = createEffectTracker({ 
+  debug: true,
+  timeout: 30000, // 30 seconds timeout for effects
+  onEffectsCompleted: () => console.log('All effects completed')
 });
 
-// The store automatically tracks state changes
-store.subscribe(() => {
-  const state = store.getState();
-  const suggestions = store.getSuggestions();
-  console.log('Suggested actions:', suggestions);
-});
-
-// Use the AI middleware
-const aiMiddleware = createAIMiddleware({
-  enablePrediction: true,
-  trackingConfig: {
-    includeMeta: true,
-    storeHistory: true,
-  },
-});
-
-// Add to your Redux store
+// Configure the Redux store with the effect tracker middleware
 const store = configureStore({
   reducer: rootReducer,
-  middleware: getDefault => getDefault().concat(aiMiddleware),
-});
-```
-
-## API Reference
-
-### Store Configuration
-
-#### `createAIStore(config)`
-
-Creates a new Redux store with AI capabilities.
-
-```typescript
-type AIStoreConfig<S> = {
-  reducer: Reducer<S>;
-  initialState: S;
-  vectorConfig: VectorConfig;
-  predictorConfig?: PredictorConfig;
-};
-```
-
-#### Parameters
-
-- `reducer` (Reducer) - Root reducer function
-- `initialState` (State) - Initial state object
-- `vectorConfig` (VectorConfig) - Vector storage configuration
-- `predictorConfig` (PredictorConfig, optional) - AI predictor settings
-
-### Methods
-
-#### AI Store Methods
-
-- `getSuggestions()`: Get AI-suggested actions based on current state
-- `predictStateChange(action)`: Predict state after an action
-- `getOptimizedActions()`: Get optimized action sequences
-- `getStateAnalytics()`: Get analytics about state changes
-
-### Testing
-
-```bash
-# Run tests
-pnpm test
-
-# Run tests with coverage
-pnpm test:coverage
-```
-
-### Type Safety
-
-The package is written in TypeScript and provides strong type safety:
-
-```typescript
-import type { AIState, AIAction } from '@redux-ai/state';
-
-// State types are properly inferred
-const state: AIState = store.getState();
-
-// Actions are type-checked
-store.dispatch<AIAction>({
-  type: 'AI_PREDICT',
-  payload: {
-    confidenceThreshold: 0.9,
-  },
-});
-```
-
-## State Machine Integration
-
-```typescript
-import { createStateMachine } from '@redux-ai/state';
-
-const authMachine = createStateMachine({
-  id: 'auth',
-  initial: 'idle',
-  states: {
-    idle: {
-      on: { LOGIN: 'authenticating' },
-    },
-    authenticating: {
-      on: {
-        SUCCESS: 'authenticated',
-        ERROR: 'error',
-      },
-    },
-  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(effectTracker.middleware)
 });
 
-// Integrate with Redux store
-store.attachStateMachine(authMachine);
+// Create the Redux AI state
+const aiState = createReduxAIState({
+  store,
+  actions,
+  storage: new ReduxAIVector(),
+  endpoint: 'https://your-ai-endpoint.com',
+  debug: true,
+  timeout: 30000,
+  stepDelay: 1500 // 1.5 second delay between workflow steps for better UI visibility and non-tracked side effects
+});
+
+// Use in an async function
+async function performOperation() {
+  // Dispatch an action that may trigger async effects
+  store.dispatch(someAsyncThunk());
+  
+  // Wait for all pending effects to complete
+  await aiState.waitForEffects();
+  
+  // Now you can safely proceed with the next step
+  console.log('All effects completed, proceeding to next step');
+}
+
+// With RTK Query
+const { data } = await store.dispatch(api.endpoints.getUser.initiate(123));
+await aiState.waitForEffects();
+
+// Mark a regular action as having an async effect with promise
+const promise = new Promise(resolve => setTimeout(resolve, 1000));
+store.dispatch(markAsEffect(someAction(), { promise }));
+
+// For Redux Saga or multi-step operations
+// Start action
+store.dispatch(markAsEffect(startSagaAction(), { 
+  effectId: 'unique-operation-id',
+  isStart: true 
+}));
+
+// Later, when the saga completes
+store.dispatch(markAsEffect(endSagaAction(), { 
+  effectId: 'unique-operation-id',
+  isEnd: true 
+}));
 ```
 
-## Performance Optimization
+## API
 
-- Efficient state diffing for change detection
-- Batched updates for prediction calculations
-- Cached suggestion results
-- Configurable tracking granularity
+### createEffectTracker(options)
 
-## Contributing
+Creates an effect tracker with middleware and utility methods.
 
-Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on our code of conduct and development process.
+Options:
+- `debug`: Boolean - Enable debug logging
+- `timeout`: Number - Timeout in milliseconds for pending effects (default: 30000)
+- `onEffectsCompleted`: Function - Callback when all effects are completed
 
-## License
+Returns an EffectTracker object with:
+- `middleware`: Redux middleware
+- `waitForEffects`: Function that returns a Promise that resolves when all effects complete
 
-MIT
+### markAsEffect(action, options)
+
+Marks a Redux action as having an asynchronous effect.
+
+Parameters:
+- `action`: The Redux action to mark
+- `options`: Configuration object with the following properties:
+  - `promise`: Optional promise to track with this effect
+  - `effectId`: Optional ID to identify this effect (useful for saga start/end pairs)
+  - `isStart`: Indicates this is the start of a saga or other multi-step async operation
+  - `isEnd`: Indicates this is the end of a saga or other multi-step async operation
+
+Returns the action with effect metadata added.
+
+For backwards compatibility, you can also pass a promise directly as the second parameter:
+```typescript
+markAsEffect(action, promise); // Equivalent to markAsEffect(action, { promise })
+```
+
+### ReduxAIState
+
+The main class for managing AI state.
+
+Configuration:
+- `store`: Redux store instance
+- `actions`: Available actions mapping
+- `storage`: Vector storage instance
+- `endpoint`: AI endpoint URL
+- `debug`: Enable debug logging
+- `timeout`: Timeout for effect completion (ms)
+- `stepDelay`: Delay between workflow steps (ms) for better UI visibility and ensuring non-tracked side effects can complete
+
+Methods:
+- `waitForEffects()`: Wait for all pending effects to complete
+- `processQuery(query)`: Process a user query and handle AI response
+
+## Handled Async Patterns
+
+The middleware automatically detects and tracks:
+
+1. **Redux Thunk** - When a thunk returns a promise
+2. **RTK Query** - By tracking the requestId in pending/fulfilled/rejected actions
+3. **Promise middleware** - When action.payload is a promise
+4. **Explicitly marked actions** - Using markAsEffect helper
+5. **Redux Saga** - Using markAsEffect with isStart/isEnd flags

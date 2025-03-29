@@ -150,6 +150,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ open, onClose }) => {
                                 </ul>
                               </div>
                             )}
+
+                          {/* Side effects section removed as requested */}
                         </div>
                       )}
                     </div>

@@ -39,8 +39,12 @@ export class RuntimeImpl implements RuntimeBase {
         // Execute each workflow step
         const processedSteps: CompletionResponse[] = [];
         for (const step of workflowResponse.workflow) {
+          // Ensure step.intent is one of the valid prompt types
+          const validPromptTypes = ['intent', 'action', 'state', 'conversation', 'workflow'];
+          const promptType = validPromptTypes.includes(step.intent) ? step.intent : 'conversation';
+          
           const stepMessages: Message[] = [
-            { role: 'system', content: generatePrompt(step.intent, params) },
+            { role: 'system', content: generatePrompt(promptType as 'intent' | 'action' | 'state' | 'conversation' | 'workflow', params) },
             { role: 'user', content: step.message }
           ];
           const stepResponse = await this.provider.createCompletion(stepMessages);

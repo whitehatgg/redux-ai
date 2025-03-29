@@ -46,7 +46,7 @@ function AppContent() {
           Try Redux AI in action! Use the chat bubble to control the applicant system below.
         </p>
         <div className="grid gap-8">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             <AppRouter />
           </div>
         </div>

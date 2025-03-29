@@ -12,6 +12,7 @@ export interface ActivityEntry {
     response?: string;
     reasoning?: string[];
     timestamp: number;
+    // Side effect tracking removed
   };
 }
 
@@ -27,6 +28,7 @@ function convertToActivityEntry(entry: VectorEntry): ActivityEntry {
       response: metadata.response || '',
       reasoning: metadata.reasoning || [],
       timestamp: metadata.timestamp,
+      // Side effects tracking removed as requested
     },
   };
 }

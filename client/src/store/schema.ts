@@ -64,7 +64,7 @@ export const setSortOrderSchema = z.object({
   column: z.string(),
   direction: z.enum(['asc', 'desc']),
 });
-export const selectApplicantSchema = z.string();
+export const selectApplicantSchema = z.string().describe('The ID of the applicant to select');
 
 // Action schemas defined as discriminated union
 export const actionSchema = z

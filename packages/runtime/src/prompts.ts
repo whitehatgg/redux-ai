@@ -249,7 +249,9 @@ export function generatePrompt(type: 'intent' | 'action' | 'state' | 'conversati
     workflow: generateWorkflowPrompt,
   };
 
-  return promptGenerators[type](params);
+  // Default to action prompt if type isn't recognized
+  const generator = promptGenerators[type] || promptGenerators.action;
+  return generator(params);
 }
 
 export const JSON_FORMAT_MESSAGE = '\n\nRespond ONLY with a valid JSON object including all required fields.';

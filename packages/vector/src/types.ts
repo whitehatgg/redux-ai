@@ -19,6 +19,18 @@ export interface VectorMetadata {
   action?: Record<string, unknown>;
   reasoning?: string[];
   timestamp: number;
+  // Side effect tracking
+  sideEffects?: {
+    pendingCount?: number;
+    completedCount?: number;
+    effects?: Array<{
+      id: string;
+      type: string;
+      status: 'pending' | 'completed' | 'timeout';
+      startTime: number;
+      endTime?: number;
+    }>;
+  };
 }
 
 // Configuration options for vector storage

@@ -32,7 +32,8 @@ type ResponseEvent = { type: 'RESPONSE'; message: string; intent?: MessageIntent
 type WorkflowStartEvent = { type: 'WORKFLOW_START'; steps: Array<{ message: string }> };
 type NextStepEvent = { type: 'NEXT_STEP' };
 
-export type ConversationEvent = QueryEvent | ResponseEvent | WorkflowStartEvent | NextStepEvent;
+export type DelayedNextStepEvent = { type: 'DELAYED_NEXT_STEP'; delay: number };
+export type ConversationEvent = QueryEvent | ResponseEvent | WorkflowStartEvent | NextStepEvent | DelayedNextStepEvent;
 
 export const createConversationMachine = () =>
   createMachine({
@@ -143,7 +144,14 @@ export const createConversationMachine = () =>
                 }
               })
             }
-          ]
+          ],
+          DELAYED_NEXT_STEP: {
+            actions: (context, event) => {
+              // This is a special event that will be delayed by the specified amount
+              // The delay is handled by the parent component sending this event
+              // after the specified delay
+            }
+          }
         }
       }
     }

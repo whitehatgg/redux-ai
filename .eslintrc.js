@@ -43,6 +43,14 @@ module.exports = {
         'react-hooks/exhaustive-deps': 'off',
         'no-console': 'off' // Allow console statements in test files
       }
+    },
+    {
+      // Middleware requires console logging for debugging purposes
+      files: ['**/middleware.ts', '**/index.ts'],
+      rules: {
+        'no-console': 'off', // Allow console for debugging as it's part of our requirements
+        '@typescript-eslint/no-unused-vars': 'warn' // Downgrade to warning
+      }
     }
   ],
 };

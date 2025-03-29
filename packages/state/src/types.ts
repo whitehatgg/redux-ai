@@ -9,6 +9,8 @@ export interface AIStateConfig {
   endpoint: string;
   onError?: (error: Error) => void;
   debug?: boolean;
+  timeout?: number;
+  stepDelay?: number; // Delay in milliseconds between workflow steps
 }
 
 export type { BaseAction };
