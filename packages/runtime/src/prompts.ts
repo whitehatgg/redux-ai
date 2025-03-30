@@ -34,10 +34,10 @@ PARAMETER RESOLUTION GUIDELINES:
 5. Be careful with successive actions where later steps reference entities from earlier steps
 
 RESOLUTION EXAMPLES:
-- "select item by name and then update its status" → Find the item's ID from the name
-- "review first item in list and then perform action" → Find the first item's ID in the list
-- "update item status" → Find the item ID based on current context/state
-- "search for John and tell me current state" → First search, then STATE intent to show the results
+- "entity_1/action with entity name" → Identify the entity ID from state using the name
+- "perform action on first entity in collection" → Find the first entity ID from the collection 
+- "update entity property" → Find the entity ID based on current context/state
+- "search for term and show current state" → First search action, then STATE intent to show results
 
 RESPONSE FORMAT:
 {
@@ -102,9 +102,9 @@ CLASSIFICATION GUIDELINES:
    - Operations have different intents or targets
    - Operations need sequential processing
    Examples: 
-   - "search for item and then update settings"
-   - "filter results, modify configuration and show me the current state" 
-   - "search for John and tell me current state"
+   - "search for term and then update configuration"
+   - "filter collection, modify settings and show me the current state" 
+   - "apply criteria and show filtered results"
 
 2. ACTION intent if:
    - Query represents a single operation
@@ -127,7 +127,7 @@ CLASSIFICATION GUIDELINES:
    - Response requires natural language processing
    - IMPORTANT: Do NOT classify requests for state information as conversation
 
-IMPORTANT: Queries asking about current state after filtering or searching (like "search for X and tell me current state") should be classified as PIPELINE intent with a second step that uses STATE intent.
+IMPORTANT: Queries asking about current state after filtering or searching (like "apply filter and show results") should be classified as PIPELINE intent with a second step that uses STATE intent.
 
 RESPONSE FORMAT:
 {
@@ -172,10 +172,10 @@ PROCESSING GUIDELINES:
 6. Structure response according to schema
 
 PARAMETER RESOLUTION EXAMPLES:
-- For "select first item" → Find first item in the relevant collection and use its ID
-- For "select item by name" → Find item with matching name in state and use its ID
-- For "update item with ID" → Use the literal ID value provided
-- For "assign to newest item" → Find the newest item in state and use its ID
+- For "perform action on first entity" → Find first entity in the relevant collection and use its ID
+- For "apply operation with entity name" → Find entity with matching name in state and use its ID
+- For "update entity with ID" → Use the literal ID value provided
+- For "process newest entity" → Find the newest entity in state and use its ID
 
 RESPONSE FORMAT:
 {
