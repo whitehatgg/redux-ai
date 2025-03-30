@@ -3,17 +3,17 @@ import { assign, createMachine } from 'xstate';
 // Types
 export type StepStatus = 'pending' | 'processing' | 'completed';
 
-export interface WorkflowStep {
+export interface PipelineStep {
   message: string;
   status: StepStatus;
 }
 
-export interface WorkflowContext {
+export interface PipelineContext {
   currentStep: number;
-  steps: WorkflowStep[];
+  steps: PipelineStep[];
 }
 
-export type MessageIntent = 'action' | 'state' | 'conversation' | 'workflow';
+export type MessageIntent = 'action' | 'state' | 'conversation' | 'pipeline';
 
 export interface ConversationMessage {
   role: 'system' | 'user' | 'assistant';
@@ -24,19 +24,19 @@ export interface ConversationMessage {
 export interface ConversationContext {
   messages: ConversationMessage[];
   currentQuery?: string;
-  workflow?: WorkflowContext;
+  pipeline?: PipelineContext;
 }
 
 type QueryEvent = { type: 'QUERY'; query: string };
 type ResponseEvent = { type: 'RESPONSE'; message: string; intent?: MessageIntent };
-type WorkflowStartEvent = { type: 'WORKFLOW_START'; steps: Array<{ message: string }> };
+type PipelineStartEvent = { type: 'PIPELINE_START'; steps: Array<{ message: string }> };
 type NextStepEvent = { type: 'NEXT_STEP' };
 
 export type DelayedNextStepEvent = { type: 'DELAYED_NEXT_STEP'; delay: number };
 export type ConversationEvent =
   | QueryEvent
   | ResponseEvent
-  | WorkflowStartEvent
+  | PipelineStartEvent
   | NextStepEvent
   | DelayedNextStepEvent;
 
@@ -50,7 +50,7 @@ export const createConversationMachine = () =>
     context: {
       messages: [],
       currentQuery: undefined,
-      workflow: undefined,
+      pipeline: undefined,
     },
     initial: 'idle',
     states: {
@@ -66,10 +66,10 @@ export const createConversationMachine = () =>
               ],
             }),
           },
-          WORKFLOW_START: {
-            target: 'workflow',
+          PIPELINE_START: {
+            target: 'pipeline',
             actions: assign({
-              workflow: ({ event }) => ({
+              pipeline: ({ event }) => ({
                 currentStep: 0,
                 steps: event.steps.map((step, index) => ({
                   message: step.message,
@@ -98,7 +98,7 @@ export const createConversationMachine = () =>
           },
         },
       },
-      workflow: {
+      pipeline: {
         on: {
           RESPONSE: {
             actions: assign({
@@ -123,23 +123,23 @@ export const createConversationMachine = () =>
           NEXT_STEP: [
             {
               guard: ({ context }) => {
-                const workflow = context.workflow;
-                return workflow ? workflow.currentStep >= workflow.steps.length - 1 : false;
+                const pipeline = context.pipeline;
+                return pipeline ? pipeline.currentStep >= pipeline.steps.length - 1 : false;
               },
               target: 'idle',
-              actions: assign({ workflow: () => undefined }),
+              actions: assign({ pipeline: () => undefined }),
             },
             {
               actions: assign({
-                workflow: ({ context }) => {
-                  if (!context.workflow) return undefined;
-                  const nextStep = context.workflow.currentStep + 1;
+                pipeline: ({ context }) => {
+                  if (!context.pipeline) return undefined;
+                  const nextStep = context.pipeline.currentStep + 1;
                   return {
-                    ...context.workflow,
+                    ...context.pipeline,
                     currentStep: nextStep,
-                    steps: context.workflow.steps.map((step, index) => ({
+                    steps: context.pipeline.steps.map((step, index) => ({
                       ...step,
-                      status: (index === context.workflow?.currentStep
+                      status: (index === context.pipeline?.currentStep
                         ? 'completed'
                         : index === nextStep
                           ? 'processing'

@@ -3,7 +3,7 @@ import { BaseLLMProvider } from './provider';
 import { completionResponseSchema } from './schema';
 import type { CompletionResponse, Message, QueryParams, RuntimeBase, RuntimeConfig } from './types';
 
-interface WorkflowStep {
+interface PipelineStep {
   intent: string;
   message: string;
   reasoning?: string | string[];
@@ -21,60 +21,66 @@ export class RuntimeImpl implements RuntimeBase {
     // Get intent first
     const intentMessages: Message[] = [
       { role: 'system', content: generatePrompt('intent', params) },
-      { role: 'user', content: query }
+      { role: 'user', content: query },
     ];
 
     const intentResponse = await this.provider.createCompletion(intentMessages);
     const intent = completionResponseSchema.parse(intentResponse).intent;
 
-    if (intent === 'workflow') {
-      const workflowMessages: Message[] = [
-        { role: 'system', content: generatePrompt('workflow', params) },
-        { role: 'user', content: query }
+    if (intent === 'pipeline') {
+      const pipelineMessages: Message[] = [
+        { role: 'system', content: generatePrompt('pipeline', params) },
+        { role: 'user', content: query },
       ];
 
-      const workflowResponse = await this.provider.createCompletion(workflowMessages);
+      const pipelineResponse = await this.provider.createCompletion(pipelineMessages);
 
-      if (workflowResponse.workflow && Array.isArray(workflowResponse.workflow)) {
-        // Execute each workflow step
+      if (pipelineResponse.pipeline && Array.isArray(pipelineResponse.pipeline)) {
+        // Execute each pipeline step
         const processedSteps: CompletionResponse[] = [];
-        for (const step of workflowResponse.workflow) {
+        for (const step of pipelineResponse.pipeline) {
           // Ensure step.intent is one of the valid prompt types
-          const validPromptTypes = ['intent', 'action', 'state', 'conversation', 'workflow'];
+          const validPromptTypes = ['intent', 'action', 'state', 'conversation', 'pipeline'];
           const promptType = validPromptTypes.includes(step.intent) ? step.intent : 'conversation';
-          
+
           const stepMessages: Message[] = [
-            { role: 'system', content: generatePrompt(promptType as 'intent' | 'action' | 'state' | 'conversation' | 'workflow', params) },
-            { role: 'user', content: step.message }
+            {
+              role: 'system',
+              content: generatePrompt(
+                promptType as 'intent' | 'action' | 'state' | 'conversation' | 'pipeline',
+                params
+              ),
+            },
+            { role: 'user', content: step.message },
           ];
           const stepResponse = await this.provider.createCompletion(stepMessages);
           processedSteps.push({
             intent: step.intent,
             message: stepResponse.message,
             reasoning: stepResponse.reasoning,
-            action: stepResponse.action
+            action: stepResponse.action,
           });
         }
 
         return {
-          ...workflowResponse,
-          workflow: processedSteps
+          ...pipelineResponse,
+          pipeline: processedSteps,
         };
       }
 
-      return workflowResponse;
+      return pipelineResponse;
     }
 
-    // For non-workflow requests
+    // For non-pipeline requests
     const messages: Message[] = [
       { role: 'system', content: generatePrompt(intent, params) },
-      { role: 'user', content: query }
+      { role: 'user', content: query },
     ];
 
     const response = await this.provider.createCompletion(messages);
     return {
       ...response,
-      intent
+      intent,
     };
   }
 

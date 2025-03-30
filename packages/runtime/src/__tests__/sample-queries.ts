@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { createRuntime } from '../index';
 import { BaseLLMProvider } from '../provider';
 import type { CompletionResponse, IntentCompletionResponse, Message } from '../types';
@@ -8,7 +9,9 @@ class TestProvider extends BaseLLMProvider {
     return message;
   }
 
-  protected async completeRaw(messages: Message[]): Promise<CompletionResponse | IntentCompletionResponse> {
+  protected async completeRaw(
+    messages: Message[]
+  ): Promise<CompletionResponse | IntentCompletionResponse> {
     const systemPrompt = messages[0].content;
     const userQuery = messages[1]?.content || '';
 
@@ -16,55 +19,55 @@ class TestProvider extends BaseLLMProvider {
     if (systemPrompt.includes('INTENT CLASSIFICATION RULES')) {
       if (userQuery.includes('and then')) {
         return {
-          intent: 'workflow',
+          intent: 'pipeline',
           message: 'Query contains multiple sequential operations',
           reasoning: ['Multiple operations detected'],
-          action: null
+          action: null,
         };
       } else if (userQuery.includes('create')) {
         return {
           intent: 'action',
           message: 'Query indicates action intent',
           reasoning: ['Action keywords detected'],
-          action: null
+          action: null,
         };
       } else if (userQuery.includes('show')) {
         return {
           intent: 'state',
           message: 'Query requests state information',
           reasoning: ['State request detected'],
-          action: null
+          action: null,
         };
       }
       return {
         intent: 'conversation',
         message: 'General conversation query',
         reasoning: ['No specific intent detected'],
-        action: null
+        action: null,
       };
     }
 
-    // Handle workflow processing
-    if (systemPrompt.includes('WORKFLOW RULES')) {
+    // Handle pipeline processing
+    if (systemPrompt.includes('WORKFLOW RULES') || systemPrompt.includes('PIPELINE RULES')) {
       return {
-        message: 'Processing workflow steps',
+        message: 'Processing pipeline steps',
         action: null,
-        reasoning: ['Workflow steps identified'],
-        intent: 'workflow',
-        workflow: [
+        reasoning: ['Pipeline steps identified'],
+        intent: 'pipeline',
+        pipeline: [
           {
             message: 'create a task',
             intent: 'action',
             reasoning: ['First step: Create task'],
-            action: { type: 'task/create', payload: { title: 'New Task' } }
+            action: { type: 'task/create', payload: { title: 'New Task' } },
           },
           {
             message: 'show all tasks',
             intent: 'state',
             reasoning: ['Second step: View tasks'],
-            action: null
-          }
-        ]
+            action: null,
+          },
+        ],
       };
     }
 
@@ -74,10 +77,10 @@ class TestProvider extends BaseLLMProvider {
         message: 'Task created',
         action: {
           type: 'task/create',
-          payload: { title: 'New Task' }
+          payload: { title: 'New Task' },
         },
         reasoning: ['Created task with default title'],
-        intent: 'action'
+        intent: 'action',
       };
     }
 
@@ -87,7 +90,7 @@ class TestProvider extends BaseLLMProvider {
         message: 'Current tasks: []',
         action: null,
         reasoning: ['Retrieved current task list'],
-        intent: 'state'
+        intent: 'state',
       };
     }
 
@@ -96,7 +99,7 @@ class TestProvider extends BaseLLMProvider {
       message: 'Conversation response',
       action: null,
       reasoning: ['Default response'],
-      intent: 'conversation'
+      intent: 'conversation',
     };
   }
 }
@@ -127,7 +130,7 @@ describe('Runtime Dynamic Prompt Tests', () => {
       expect(result.action).toBeDefined();
     });
 
-    it('should handle multi-step workflow intents', async () => {
+    it('should handle multi-step pipeline intents', async () => {
       const runtime = createRuntime({ provider: mockProvider });
       const result = await runtime.query({
         query: 'create a task and then show all tasks',
@@ -135,13 +138,13 @@ describe('Runtime Dynamic Prompt Tests', () => {
         state: { tasks: [] },
       });
 
-      expect(result.intent).toBe('workflow');
-      expect(result.workflow).toBeDefined();
-      expect(Array.isArray(result.workflow)).toBe(true);
-      expect(result.workflow).toHaveLength(2);
+      expect(result.intent).toBe('pipeline');
+      expect(result.pipeline).toBeDefined();
+      expect(Array.isArray(result.pipeline)).toBe(true);
+      expect(result.pipeline).toHaveLength(2);
       expect(result.action).toBeNull();
 
-      const [firstStep, secondStep] = result.workflow!;
+      const [firstStep, secondStep] = result.pipeline!;
 
       expect(firstStep.intent).toBe('action');
       expect(firstStep.message).toBe('Task created');

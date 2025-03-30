@@ -34,7 +34,7 @@ describe('Action Parameter Resolution Prompt', () => {
 
     // Check that the prompt includes parameter resolution instructions
     expect(prompt).toContain('PARAMETER RESOLUTION EXAMPLES');
-    expect(prompt).toContain('For "select first applicant"');
+    expect(prompt).toContain('For "select first item"');
     expect(prompt).toContain('CURRENT STATE');
 
     // Check that it includes instructions for resolving by descriptive attributes
@@ -45,7 +45,7 @@ describe('Action Parameter Resolution Prompt', () => {
     expect(prompt).toContain(JSON.stringify(mockState, null, 2));
   });
 
-  it('includes parameter resolution instructions in the workflow prompt', () => {
+  it('includes parameter resolution instructions in the pipeline prompt', () => {
     const mockActions = {
       'applicant/selectApplicant': {
         params: [{ name: 'id', type: 'string', required: true }],
@@ -71,7 +71,7 @@ describe('Action Parameter Resolution Prompt', () => {
       state: mockState,
     };
 
-    const prompt = generatePrompt('workflow', params);
+    const prompt = generatePrompt('pipeline', params);
 
     // Check that the prompt includes parameter resolution instructions
     expect(prompt).toContain('PARAMETER RESOLUTION GUIDELINES');
@@ -80,7 +80,7 @@ describe('Action Parameter Resolution Prompt', () => {
 
     // Check specific examples
     expect(prompt).toContain('RESOLUTION EXAMPLES');
-    expect(prompt).toContain('select John and then approve him');
+    expect(prompt).toContain('select item by name and then update its status');
 
     // Make sure validation emphasizes ID resolution
     expect(prompt).toContain('All required parameters must be provided with correct IDs');

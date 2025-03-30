@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createConversationMachine } from '../machine';
 import { interpret } from 'xstate';
+
+import { createConversationMachine } from '../machine';
 
 describe('Conversation Machine', () => {
   const machine = createConversationMachine();
@@ -19,7 +20,7 @@ describe('Conversation Machine', () => {
     expect(service.getSnapshot().context.messages).toHaveLength(1);
     expect(service.getSnapshot().context.messages[0]).toEqual({
       role: 'user',
-      content: 'test query'
+      content: 'test query',
     });
 
     // Send response
@@ -29,41 +30,38 @@ describe('Conversation Machine', () => {
     expect(service.getSnapshot().context.messages).toHaveLength(2);
     expect(service.getSnapshot().context.messages[1]).toEqual({
       role: 'assistant',
-      content: 'test response'
+      content: 'test response',
     });
 
     service.stop();
   });
 
-  it('should handle workflow transitions', () => {
+  it('should handle pipeline transitions', () => {
     const service = interpret(machine).start();
 
-    // Start workflow
+    // Start pipeline
     service.send({
-      type: 'WORKFLOW_START',
-      steps: [
-        { message: 'step 1' },
-        { message: 'step 2' }
-      ]
+      type: 'PIPELINE_START',
+      steps: [{ message: 'step 1' }, { message: 'step 2' }],
     });
 
-    // Check initial workflow state
-    expect(service.getSnapshot().value).toBe('workflow');
-    const workflow = service.getSnapshot().context.workflow;
-    expect(workflow).toBeDefined();
-    if (workflow) {
-      expect(workflow.currentStep).toBe(0);
-      expect(workflow.steps).toHaveLength(2);
-      expect(workflow.steps[0].status).toBe('processing');
-      expect(workflow.steps[1].status).toBe('pending');
+    // Check initial pipeline state
+    expect(service.getSnapshot().value).toBe('pipeline');
+    const pipeline = service.getSnapshot().context.pipeline;
+    expect(pipeline).toBeDefined();
+    if (pipeline) {
+      expect(pipeline.currentStep).toBe(0);
+      expect(pipeline.steps).toHaveLength(2);
+      expect(pipeline.steps[0].status).toBe('processing');
+      expect(pipeline.steps[1].status).toBe('pending');
     }
 
-    // Complete workflow
+    // Complete pipeline
     service.send({ type: 'NEXT_STEP' });
     service.send({ type: 'NEXT_STEP' });
 
     expect(service.getSnapshot().value).toBe('idle');
-    expect(service.getSnapshot().context.workflow).toBeUndefined();
+    expect(service.getSnapshot().context.pipeline).toBeUndefined();
 
     service.stop();
   });

@@ -541,7 +541,7 @@ export const createReduxAIMiddleware = (options: EffectTrackerOptions = {}): Eff
 
       // Log effects completed
       if (options.debug) {
-        console.debug('[EffectTracker] All effects completed, ready for next workflow step');
+        console.debug('[EffectTracker] All effects completed, ready for next pipeline step');
       }
     },
   });

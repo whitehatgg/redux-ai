@@ -4,17 +4,17 @@ export interface CompletionResponse {
   message: string;
   action: Record<string, unknown> | null;
   reasoning: string | string[];
-  intent: 'action' | 'state' | 'conversation' | 'workflow';
-  workflow?: CompletionResponse[];
+  intent: 'action' | 'state' | 'conversation' | 'pipeline';
+  pipeline?: CompletionResponse[];
   steps?: Array<{ query: string }>;
 }
 
 export interface IntentCompletionResponse {
-  intent: 'action' | 'state' | 'conversation' | 'workflow';
+  intent: 'action' | 'state' | 'conversation' | 'pipeline';
   message: string;
   reasoning: string | string[];
   action: Record<string, unknown> | null;
-  workflow?: CompletionResponse[];
+  pipeline?: CompletionResponse[];
   steps?: Array<{ query: string }>;
 }
 

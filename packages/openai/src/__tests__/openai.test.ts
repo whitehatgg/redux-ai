@@ -1,4 +1,8 @@
-import { vi } from 'vitest';
+import type { Message } from '@redux-ai/runtime';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { OpenAIConfig } from '../index';
+import { OpenAIProvider } from '../index';
 
 // Mock must be defined before module imports
 const mockCompletionsCreate = vi.fn();
@@ -11,11 +15,6 @@ vi.mock('openai', () => ({
     },
   })),
 }));
-
-import type { Message } from '@redux-ai/runtime';
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { OpenAIConfig } from '../index';
-import { OpenAIProvider } from '../index';
 
 describe('OpenAI Provider', () => {
   let mockConfig: OpenAIConfig;
@@ -34,7 +33,7 @@ describe('OpenAI Provider', () => {
     expect(provider).toBeInstanceOf(OpenAIProvider);
   });
 
-  it('should handle workflow responses correctly', async () => {
+  it('should handle pipeline responses correctly', async () => {
     const provider = new OpenAIProvider(mockConfig);
 
     mockCompletionsCreate.mockResolvedValue({
@@ -43,10 +42,10 @@ describe('OpenAI Provider', () => {
           message: {
             content: JSON.stringify({
               message: 'Processing multi-step request',
-              intent: 'workflow',
+              intent: 'pipeline',
               action: null,
-              reasoning: ['Processing workflow steps'],
-              workflow: [
+              reasoning: ['Processing pipeline steps'],
+              pipeline: [
                 {
                   message: 'search for John',
                   intent: 'action',
@@ -69,13 +68,13 @@ describe('OpenAI Provider', () => {
     const messages: Message[] = [{ role: 'user', content: 'search for John and disable name' }];
     const response = await provider.createCompletion(messages);
 
-    expect(response.intent).toBe('workflow');
+    expect(response.intent).toBe('pipeline');
     expect(response.action).toBeNull();
-    expect(response.workflow).toBeDefined();
-    expect(response.workflow).toHaveLength(2);
+    expect(response.pipeline).toBeDefined();
+    expect(response.pipeline).toHaveLength(2);
 
     // Verify first step (action)
-    expect(response.workflow![0]).toEqual({
+    expect(response.pipeline![0]).toEqual({
       message: 'search for John',
       intent: 'action',
       action: { type: 'search', payload: { term: 'John' } },
@@ -83,7 +82,7 @@ describe('OpenAI Provider', () => {
     });
 
     // Verify second step (action)
-    expect(response.workflow![1]).toEqual({
+    expect(response.pipeline![1]).toEqual({
       message: 'disable name column',
       intent: 'action',
       action: { type: 'setVisibleColumns', payload: { columns: ['email', 'status'] } },
@@ -120,7 +119,7 @@ describe('OpenAI Provider', () => {
     });
   });
 
-  it('should handle workflow validation', async () => {
+  it('should handle pipeline validation', async () => {
     const provider = new OpenAIProvider(mockConfig);
 
     mockCompletionsCreate.mockResolvedValue({
@@ -128,11 +127,11 @@ describe('OpenAI Provider', () => {
         {
           message: {
             content: JSON.stringify({
-              message: 'Processing workflow',
-              intent: 'workflow',
+              message: 'Processing pipeline',
+              intent: 'pipeline',
               action: null,
-              reasoning: ['Workflow test'],
-              workflow: [
+              reasoning: ['Pipeline test'],
+              pipeline: [
                 {
                   message: 'first step',
                   intent: 'action',
@@ -146,12 +145,12 @@ describe('OpenAI Provider', () => {
       ],
     });
 
-    const messages: Message[] = [{ role: 'user', content: 'test workflow' }];
+    const messages: Message[] = [{ role: 'user', content: 'test pipeline' }];
     const response = await provider.createCompletion(messages);
 
-    expect(response.intent).toBe('workflow');
-    expect(response.workflow).toBeDefined();
-    expect(response.workflow![0].message).toBe('first step');
+    expect(response.intent).toBe('pipeline');
+    expect(response.pipeline).toBeDefined();
+    expect(response.pipeline![0].message).toBe('first step');
   });
 
   it('should handle API errors gracefully', async () => {

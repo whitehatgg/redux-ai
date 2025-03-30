@@ -13,7 +13,7 @@ export interface AIResponse {
   action: UnknownAction | null;
   reasoning?: string[];
   intent?: MessageIntent;
-  workflow?: AIResponse[];
+  pipeline?: AIResponse[];
 }
 
 export interface AIStateConfigWithService extends AIStateConfig, EffectTrackerOptions {
@@ -141,19 +141,19 @@ export class ReduxAIState {
         intent: result.intent as MessageIntent,
       });
 
-      // For workflow intent, process each step
-      if (result.intent === 'workflow' && Array.isArray(result.workflow)) {
-        // Initialize the workflow but with only the first step
-        const firstStep = result.workflow[0];
+      // For pipeline intent, process each step
+      if (result.intent === 'pipeline' && Array.isArray(result.pipeline)) {
+        // Initialize the pipeline but with only the first step
+        const firstStep = result.pipeline[0];
         this.conversationService.send({
-          type: 'WORKFLOW_START',
+          type: 'PIPELINE_START',
           steps: [{ message: firstStep.message }],
         });
 
         // Process each step with significant delays between them and sequentially adding them to UI
-        for (let i = 0; i < result.workflow.length; i++) {
-          const step = result.workflow[i];
-          const isLastStep = i === result.workflow.length - 1;
+        for (let i = 0; i < result.pipeline.length; i++) {
+          const step = result.pipeline[i];
+          const isLastStep = i === result.pipeline.length - 1;
 
           // Reset the side effect info for this step
           this.effectTracker.resetSideEffectInfo();
@@ -209,10 +209,10 @@ export class ReduxAIState {
             // Move to next step in the state machine
             this.conversationService.send({ type: 'NEXT_STEP' });
 
-            // Add the next step to the workflow steps array now
-            const nextStep = result.workflow[i + 1];
+            // Add the next step to the pipeline steps array now
+            const nextStep = result.pipeline[i + 1];
             this.conversationService.send({
-              type: 'WORKFLOW_START',
+              type: 'PIPELINE_START',
               steps: [{ message: nextStep.message }],
             });
 
@@ -262,8 +262,8 @@ export { createConversationMachine };
 
 export type {
   StepStatus,
-  WorkflowStep,
-  WorkflowContext,
+  PipelineStep,
+  PipelineContext,
   ConversationMessage,
   ConversationContext,
   ConversationEvent,
