@@ -16,8 +16,9 @@ ${hasState ? `CURRENT STATE: ${JSON.stringify(params.state, null, 2)}` : ''}
 Your task is to:
 1. Break down the request into individual steps
 2. For each step, determine if it's an action, state query, or conversation
-   - Use STATE intent for steps that request information about the current state (e.g., "show me", "tell me", "current state")
-   - Always use STATE intent for the final step if it asks about current status or information
+   - ALWAYS use STATE intent when a step requests information about the current state
+   - STATE intent applies for any phrases like "show me", "tell me", "what is", "display", "current state", etc.
+   - If the query asks about filtered data or search results, classify that step as STATE intent, not conversation
 3. If it's an action, specify the exact action type and parameters from the available actions
 4. Resolve parameters intelligently based on state and user references
 5. Include clear reasoning for each step
@@ -36,6 +37,7 @@ RESOLUTION EXAMPLES:
 - "select item by name and then update its status" → Find the item's ID from the name
 - "review first item in list and then perform action" → Find the first item's ID in the list
 - "update item status" → Find the item ID based on current context/state
+- "search for John and tell me current state" → First search, then STATE intent to show the results
 
 RESPONSE FORMAT:
 {
@@ -57,14 +59,9 @@ RESPONSE FORMAT:
     },
     {
       "message": "Description of step 2",
-      "intent": "action",
-      "action": {
-        "type": "exact_action_type",
-        "payload": {
-          "param2": "value2" // Use resolved IDs when appropriate
-        }
-      },
-      "reasoning": ["Why this step is needed", "How parameters were resolved"]
+      "intent": "state", // Use state intent for showing information
+      "action": null,    // No action for state intents
+      "reasoning": ["Why this step needs state information"]
     }
   ]
 }
@@ -75,6 +72,7 @@ VALIDATION REQUIREMENTS:
 3. Parameters must match schema types
 4. Always prefer actual IDs over descriptive references
 5. Never leave required parameter fields empty - resolve from state if not directly provided
+6. Always use state intent for queries about current state, filtered results, or search results
 
 Respond with a JSON object matching this exact format.`;
 }
@@ -106,6 +104,7 @@ CLASSIFICATION GUIDELINES:
    Examples: 
    - "search for item and then update settings"
    - "filter results, modify configuration and show me the current state" 
+   - "search for John and tell me current state"
 
 2. ACTION intent if:
    - Query represents a single operation
@@ -114,7 +113,10 @@ CLASSIFICATION GUIDELINES:
 
 3. STATE intent if:
    - Query requests information about current state
+   - Query asks about filtered results or search results
    - Query contains phrases like "what is", "show me", "tell me", "display", "current state"
+   - Query asks what items match certain criteria
+   - Query asks about status of items, settings, or configuration
    - Requested information exists in current state
    - No system modification is required
    - Use this for the final step in pipelines requesting state information
@@ -123,6 +125,9 @@ CLASSIFICATION GUIDELINES:
    - Query is natural language interaction
    - No matching actions or state queries
    - Response requires natural language processing
+   - IMPORTANT: Do NOT classify requests for state information as conversation
+
+IMPORTANT: Queries asking about current state after filtering or searching (like "search for X and tell me current state") should be classified as PIPELINE intent with a second step that uses STATE intent.
 
 RESPONSE FORMAT:
 {
