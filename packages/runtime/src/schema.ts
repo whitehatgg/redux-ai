@@ -5,7 +5,7 @@ export const completionResponseSchema = z.object({
   action: z.union([z.record(z.unknown()), z.null()]),
   reasoning: z.array(z.string()),
   intent: z.enum(['action', 'state', 'conversation', 'pipeline']),
-  workflow: z
+  pipeline: z
     .array(
       z.object({
         message: z.string(),

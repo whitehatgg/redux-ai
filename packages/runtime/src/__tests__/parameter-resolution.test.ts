@@ -34,7 +34,7 @@ describe('Action Parameter Resolution Prompt', () => {
 
     // Check that the prompt includes parameter resolution instructions
     expect(prompt).toContain('PARAMETER RESOLUTION EXAMPLES');
-    expect(prompt).toContain('For "select first item"');
+    expect(prompt).toContain('For "perform action on first entity"');
     expect(prompt).toContain('CURRENT STATE');
 
     // Check that it includes instructions for resolving by descriptive attributes
@@ -80,7 +80,7 @@ describe('Action Parameter Resolution Prompt', () => {
 
     // Check specific examples
     expect(prompt).toContain('RESOLUTION EXAMPLES');
-    expect(prompt).toContain('select item by name and then update its status');
+    expect(prompt).toContain('- "entity_1/action with entity name"');
 
     // Make sure validation emphasizes ID resolution
     expect(prompt).toContain('All required parameters must be provided with correct IDs');
